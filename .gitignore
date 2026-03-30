@@ -12,6 +12,10 @@ Thumbs.db
 dist/
 node_modules/
 
+# Packed extension files — never commit these
+*.crx
+*.pem
+
 # Local dev notes
 *.local
 notes.md
