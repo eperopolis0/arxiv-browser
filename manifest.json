@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "arXiv cs.AI Daily Browser",
+  "version": "3.0.0",
+  "description": "Interactive scatter map of today's arXiv AI/ML papers — clustered by topic, filterable by field and format.",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://arxiv.org/*",
+    "https://export.arxiv.org/*",
+    "https://huggingface.co/*",
+    "https://ar5iv.labs.arxiv.org/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
