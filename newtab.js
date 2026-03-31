@@ -274,7 +274,16 @@ function saveStarred() {
 function toggleStar(p) {
   p.starred = !p.starred;
   if (p.starred) {
-    _starredData[p.id] = { title: p.title, summary: p._summary || '' };
+    _starredData[p.id] = {
+      title:      p.title,
+      summary:    p._summary || '',
+      absLink:    p._absLink || 'https://arxiv.org/abs/' + p.id,
+      pdfLink:    p._pdfLink || '',
+      authors:    p._authors || '',
+      cat:        p.cat,
+      clusters:   p.clusters,
+      dateStarred: new Date().toISOString().slice(0, 10)
+    };
   } else {
     delete _starredData[p.id];
   }
@@ -285,12 +294,73 @@ function toggleStar(p) {
   const n = PAPERS.filter(p=>p.starred).length;
   const sc = document.getElementById('star-count');
   if (sc) sc.textContent = n;
-  // Recompute Y positions and animate dots into new positions
+  // Update drawer count + re-render if open
+  const countEl = document.getElementById('starred-drawer-count');
+  if (countEl) countEl.textContent = Object.keys(_starredData).length;
+  if (document.getElementById('starred-drawer')?.classList.contains('open')) buildStarredDrawer();
   applyJitter();
   animateDots();
   updateAxisLabel();
   updateAxisNote();
 }
+
+// ═══════════════════════════════════════════════════════
+// STARRED PAPERS DRAWER
+// ═══════════════════════════════════════════════════════
+function openStarredDrawer() {
+  buildStarredDrawer();
+  document.getElementById('starred-drawer').classList.add('open');
+  const countEl = document.getElementById('starred-drawer-count');
+  if (countEl) countEl.textContent = Object.keys(_starredData).length;
+}
+function closeStarredDrawer() {
+  document.getElementById('starred-drawer').classList.remove('open');
+}
+
+function buildStarredDrawer() {
+  const list = document.getElementById('starred-list');
+  if (!list) return;
+  const entries = Object.entries(_starredData);
+  if (!entries.length) {
+    list.innerHTML = '<div class="se-empty">No starred papers yet.<br>Star a paper from the tooltip<br>to save it here.</div>';
+    return;
+  }
+  // Most recent first
+  entries.sort((a, b) => (b[1].dateStarred || '').localeCompare(a[1].dateStarred || ''));
+  list.innerHTML = entries.map(([id, d]) => {
+    const abs  = esc(d.absLink || 'https://arxiv.org/abs/' + id);
+    const pdf  = d.pdfLink ? esc(d.pdfLink) : '';
+    const meta = [d.dateStarred, d.clusters?.[0], d.authors].filter(Boolean).join(' · ');
+    return `<div class="se-entry">
+      <a class="se-title" href="${abs}" target="_blank">${esc(d.title)}</a>
+      <div class="se-meta">${esc(meta)}</div>
+      <div class="se-actions">
+        <a class="se-btn" href="${abs}" target="_blank">arXiv ↗</a>
+        ${pdf ? `<a class="se-btn" href="${pdf}" target="_blank">PDF ↗</a>` : ''}
+        <button class="se-btn se-unstar" data-id="${esc(id)}">✕ unstar</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.se-unstar').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      // If paper is in today's list, go through toggleStar for full cleanup
+      const p = PAPERS.find(p => p.id === id);
+      if (p && p.starred) { toggleStar(p); return; }
+      // Otherwise remove directly from store
+      delete _starredData[id];
+      saveStarred();
+      const countEl = document.getElementById('starred-drawer-count');
+      if (countEl) countEl.textContent = Object.keys(_starredData).length;
+      applyJitter(); animateDots(); updateAxisLabel(); updateAxisNote();
+      buildStarredDrawer();
+    });
+  });
+}
+
+document.getElementById('starred-drawer-close').addEventListener('click', closeStarredDrawer);
 
 // ═══════════════════════════════════════════════════════
 // CHROME STORAGE & LOADING
@@ -537,6 +607,17 @@ function buildLegend() {
   starSec.appendChild(starBtn);
   starWrapper.appendChild(starSec);
   legendEl.appendChild(starWrapper);
+
+  // ── View Starred library ──
+  const drawerSec = document.createElement('div');
+  drawerSec.style.cssText = 'margin-top:4px';
+  const drawerBtn = document.createElement('button');
+  drawerBtn.className = 'filter-btn star-btn';
+  drawerBtn.id = 'view-starred-btn';
+  drawerBtn.innerHTML = '\u2605 View starred library';
+  drawerBtn.addEventListener('click', openStarredDrawer);
+  drawerSec.appendChild(drawerBtn);
+  legendEl.appendChild(drawerSec);
 
   const navSec = document.createElement('div');
   navSec.innerHTML = '<div class="leg-note">zoom: scroll/pinch<br>pin: click dot</div>';

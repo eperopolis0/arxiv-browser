@@ -126,11 +126,25 @@ async function doFetchAndCache() {
     ]);
     const rawPapers = await fetchArxivBatch(count);
 
+    // Drop papers arXiv announced more than 2 days ago.
+    // We filter on `updated` (arXiv announcement/processing date), NOT `published`
+    // (submission date). A paper submitted Friday gets published=Fri but updated=Mon
+    // when arXiv announces it — so a 2-day window correctly keeps weekend papers
+    // without needing a wider calendar cutoff.
+    const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const freshPapers = rawPapers.filter(p => {
+      const upd = (p.updated || p.published || '').slice(0, 10);
+      return !upd || upd >= cutoff;
+    });
+    if (freshPapers.length < rawPapers.length) {
+      console.log(`[arXiv] Date filter: dropped ${rawPapers.length - freshPapers.length} stale papers (updated before ${cutoff}).`);
+    }
+
     // S2 affiliation lookup — non-fatal; missing → prestige 2 (neutral)
-    const prestigeMap = await fetchS2Affiliations(rawPapers);
+    const prestigeMap = await fetchS2Affiliations(freshPapers);
 
     // Cross-reference HF trending + prestige
-    const allEnriched = rawPapers.map(p => {
+    const allEnriched = freshPapers.map(p => {
       const hf = hfTrending.get(p.arxivId);
       return {
         ...p,
@@ -420,6 +434,7 @@ function parseAtomXML(xml) {
     const arxivId = id.replace('http://arxiv.org/abs/', '').trim();
 
     const published = (/<published[^>]*>([\s\S]*?)<\/published>/.exec(e) || [])[1]?.trim() || '';
+    const updated   = (/<updated[^>]*>([\s\S]*?)<\/updated>/.exec(e)   || [])[1]?.trim() || '';
 
     const title = xmlText(/<title[^>]*>([\s\S]*?)<\/title>/.exec(e));
     const summary = xmlText(/<summary[^>]*>([\s\S]*?)<\/summary>/.exec(e));
@@ -441,7 +456,7 @@ function parseAtomXML(xml) {
 
     if (arxivId && title) {
       papers.push({
-        arxivId, title, summary, published,
+        arxivId, title, summary, published, updated,
         authors, categories, pdfLink,
         absLink: `https://arxiv.org/abs/${arxivId}`,
         trending: false, upvotes: 0
@@ -491,7 +506,8 @@ function scoreApplied(title, summary) {
   const tTerms = ['theorem','lemma','proof','regret','sample complexity','convergence rate','upper bound','lower bound','pac learning','formal','asymptotic','theoretical analysis','minimax','information-theoretic'];
   const a = aTerms.filter(t => text.includes(t)).length;
   const th = tTerms.filter(t => text.includes(t)).length;
-  return Math.min(1, Math.max(0, 0.5 + (a - th) * 0.12));
+  // Base 0.38 (slight theory-lean) so neutral papers don't pile up at centre.
+  return Math.min(1, Math.max(0, 0.38 + a * 0.11 - th * 0.15));
 }
 
 function scoreRelevance(cat, title, summary) {
@@ -676,10 +692,12 @@ async function processAndStore(rawPapers) {
       prestige,  // 1=unknown 2=research 3=frontier
       starred:   false,
       clusters:  [cluster],
-      _absLink:  p.absLink  || `https://arxiv.org/abs/${p.arxivId}`,
-      _pdfLink:  p.pdfLink  || `https://arxiv.org/pdf/${p.arxivId}`,
-      _authors:  (p.authors || []).slice(0,3).join(', '),
-      _summary:  p.summary || '',
+      _absLink:   p.absLink  || `https://arxiv.org/abs/${p.arxivId}`,
+      _pdfLink:   p.pdfLink  || `https://arxiv.org/pdf/${p.arxivId}`,
+      _authors:   (p.authors || []).slice(0,3).join(', '),
+      _summary:   p.summary || '',
+      _published: (p.published || '').slice(0, 10), // YYYY-MM-DD submission date
+      _updated:   (p.updated   || p.published || '').slice(0, 10), // YYYY-MM-DD announcement date
     };
   });
 

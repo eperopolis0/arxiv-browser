@@ -133,6 +133,44 @@
   .filter-btn.star-btn.active { background: rgba(196,148,40,0.13); }
   .leg-note { font-size: 0.63rem; color: rgba(232,217,188,0.25); line-height: 1.65; letter-spacing: 0.02em; }
 
+  /* ── Starred Papers Drawer ── */
+  #starred-drawer {
+    position: fixed; top: 0; right: -400px; width: 380px; height: 100%;
+    background: #0c0a14; border-left: 1px solid rgba(196,148,40,0.22);
+    z-index: 900; transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #starred-drawer.open { right: 0; }
+  #starred-drawer-header {
+    padding: 14px 16px 12px; flex-shrink: 0;
+    border-bottom: 1px solid rgba(196,148,40,0.15);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  #starred-drawer-title {
+    color: #c49428; font-size: 0.78rem; letter-spacing: 0.1em;
+    text-transform: uppercase; text-shadow: 0 0 12px rgba(196,148,40,0.3);
+  }
+  #starred-drawer-close {
+    background: none; border: none; color: rgba(232,217,188,0.4);
+    font-size: 1.3rem; cursor: pointer; padding: 0 2px; line-height: 1;
+  }
+  #starred-drawer-close:hover { color: rgba(232,217,188,0.85); }
+  #starred-list { overflow-y: auto; flex: 1; padding: 4px 0; }
+  #starred-list::-webkit-scrollbar { width: 4px; }
+  #starred-list::-webkit-scrollbar-track { background: transparent; }
+  #starred-list::-webkit-scrollbar-thumb { background: rgba(196,148,40,0.2); border-radius: 2px; }
+  .se-entry { padding: 10px 16px 12px; border-bottom: 1px solid rgba(196,148,40,0.07); }
+  .se-entry:hover { background: rgba(196,148,40,0.04); }
+  .se-title { font-size: 0.8rem; color: rgba(232,217,188,0.88); line-height: 1.4; margin-bottom: 4px; text-decoration: none; display: block; }
+  .se-title:hover { color: #c49428; }
+  .se-meta { font-size: 0.65rem; color: rgba(196,148,40,0.55); margin-bottom: 6px; }
+  .se-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .se-btn { font-size: 0.62rem; padding: 2px 7px; border-radius: 3px; cursor: pointer; background: none; border: 1px solid rgba(196,148,40,0.3); color: rgba(196,148,40,0.7); text-decoration: none; font-family: inherit; transition: all 0.15s; }
+  .se-btn:hover { border-color: rgba(196,148,40,0.7); color: #c49428; }
+  .se-unstar { border-color: rgba(232,217,188,0.15); color: rgba(232,217,188,0.3); }
+  .se-unstar:hover { border-color: rgba(225,84,62,0.5); color: rgba(225,84,62,0.8); }
+  .se-empty { padding: 32px 20px; text-align: center; color: rgba(232,217,188,0.22); font-size: 0.78rem; line-height: 1.7; }
+
   /* ── Loading Overlay ── */
   #loading-overlay {
     position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -272,6 +310,14 @@
 </div>
 
 <div id="tooltip"></div>
+
+<div id="starred-drawer">
+  <div id="starred-drawer-header">
+    <span id="starred-drawer-title">★ Starred Papers (<span id="starred-drawer-count">0</span>)</span>
+    <button id="starred-drawer-close">×</button>
+  </div>
+  <div id="starred-list"></div>
+</div>
 
 <script src="d3.min.js"></script>
 <script src="newtab.js"></script>
