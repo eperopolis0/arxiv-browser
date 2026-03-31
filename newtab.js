@@ -308,8 +308,10 @@ async function loadAndRender() {
     // Skip if fetchError is set — the user can hit Retry manually. Otherwise
     // we'd loop forever re-triggering failed fetches.
     const today = new Date().toISOString().slice(0, 10);
-    if (data.lastFetch !== today && !data.fetchInProgress && !data.fetchError) {
-      chrome.storage.local.set({ lastFetch: null }, () => {
+    if (data.lastFetch !== today && !data.fetchInProgress) {
+      // Always attempt a refresh for stale papers — even if a previous fetch
+      // failed overnight. Clear the error so doFetchAndCache gets a clean run.
+      chrome.storage.local.set({ lastFetch: null, fetchError: null }, () => {
         chrome.runtime.sendMessage({ action: 'refresh' });
       });
     }

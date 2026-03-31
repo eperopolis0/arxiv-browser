@@ -40,18 +40,18 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 function scheduleDailyAlarm() {
-  // Fire at 9pm daily — arXiv posts new papers around 8pm ET, so 9pm reliably
-  // catches the same-day batch. Handler skips weekends (no arXiv posts Sat/Sun).
-  const now = new Date();
-  const next9pm = new Date(now);
-  next9pm.setHours(21, 0, 0, 0);
-  if (now >= next9pm) next9pm.setDate(next9pm.getDate() + 1); // already past 9pm → tomorrow
-  const delayMs = next9pm.getTime() - now.getTime();
+  // Fire at midnight daily. arXiv posts at 8pm ET, so by midnight local time
+  // papers have been up for hours and arXiv is no longer under peak load.
+  // Always schedule for the NEXT midnight so we don't double-fire.
+  const nextMidnight = new Date();
+  nextMidnight.setDate(nextMidnight.getDate() + 1);
+  nextMidnight.setHours(0, 0, 0, 0);
+  const delayMs = nextMidnight.getTime() - Date.now();
   chrome.alarms.create(ALARM_NAME, {
     delayInMinutes: delayMs / 60000,
     periodInMinutes: 24 * 60   // re-fires every 24h after that
   });
-  console.log(`[arXiv] Alarm set for ${next9pm.toLocaleString()}`);
+  console.log(`[arXiv] Alarm set for ${nextMidnight.toLocaleString()}`);
 }
 
 function isFetchDay() {
