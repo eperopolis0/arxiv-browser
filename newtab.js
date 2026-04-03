@@ -7,14 +7,14 @@ const CAT_COLOR  = { 'cs.CL':'#5899DA','cs.CV':'#6DAB5A','cs.RO':'#E47D43','cs.C
 const CAT_LABEL  = { 'cs.CL':'NLP','cs.CV':'Vision','cs.RO':'Robotics','cs.CR':'Safety','cs.LG':'ML Methods','cs.AI':'General AI','cs.HC':'HCI','cs.IR':'Retrieval' };
 const FMT_LABEL  = { empirical:'Empirical', benchmark:'Benchmark', survey:'Survey', theory:'Theory', position:'Position' };
 const FMT_COLOR  = { empirical:'#5899DA', benchmark:'#F3B839', survey:'#9B6BBA', theory:'#7DBFCC', position:'#E47D43' };
-const D3_SYMBOL  = { empirical:d3.symbolCircle, benchmark:d3.symbolTriangle, survey:d3.symbolSquare, theory:d3.symbolStar, position:d3.symbolDiamond };
+const D3_SYMBOL  = { empirical:d3.symbolCircle, benchmark:d3.symbolTriangle, survey:d3.symbolSquare, theory:d3.symbolCross, position:d3.symbolDiamond };
 
 let ALL_CLUSTERS = [];
 const ALL_CATS     = ['cs.CR','cs.CL','cs.CV','cs.RO','cs.LG','cs.AI','cs.HC','cs.IR'];
 const ALL_FORMATS  = ['empirical','benchmark','survey','theory','position'];
 const ALL_PRESTIGE = [3, 2, 1];
-const PRESTIGE_LABEL = { 3:'★★★ Frontier', 2:'★★ Research', 1:'★ Other' };
-const PRESTIGE_COLOR = { 3:'#D7C4E3',      2:'#94A3B8',     1:'rgba(241,240,222,0.42)' };
+const PRESTIGE_LABEL = { 3:'★★★ Elite', 2:'★★ Research', 1:'★ Independent' };
+const PRESTIGE_COLOR = { 3:'#D7C4E3',      2:'#94A3B8',     1:'rgba(241,240,222,0.55)' };
 let activeCats     = new Set(ALL_CATS);
 let activeFormats  = new Set(ALL_FORMATS);
 let activePrestige = new Set(ALL_PRESTIGE);
@@ -302,6 +302,7 @@ function toggleStar(p) {
   animateDots();
   updateAxisLabel();
   updateAxisNote();
+  renderSidebar();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -365,7 +366,11 @@ document.getElementById('starred-drawer-close').addEventListener('click', closeS
 // ═══════════════════════════════════════════════════════
 // CHROME STORAGE & LOADING
 // ═══════════════════════════════════════════════════════
+let _renderInFlight = false;
 async function loadAndRender() {
+  if (_renderInFlight) return; // prevent concurrent renders from dataUpdated + countdown racing
+  _renderInFlight = true;
+  try {
   const data = await new Promise(r =>
     chrome.storage.local.get(['processedPapers','papers','lastFetch','fetchError','fetchInProgress'], r)
   );
@@ -442,6 +447,9 @@ async function loadAndRender() {
     }
   }
   showError('Timed out. Check your connection and reload.');
+  } finally {
+    _renderInFlight = false;
+  }
 }
 
 async function renderPapers(processedPapers, lastFetch) {
@@ -464,7 +472,7 @@ async function renderPapers(processedPapers, lastFetch) {
 
   activeCats     = new Set(ALL_CATS.filter(c => PAPERS.some(p => p.cat === c)));
   activeFormats  = new Set(ALL_FORMATS.filter(f => PAPERS.some(p => p.format === f)));
-  activePrestige = new Set(ALL_PRESTIGE.filter(t => PAPERS.some(p => (p.prestige ?? 1) === t)));
+  activePrestige = new Set(ALL_PRESTIGE); // always start with all tiers active — never clobber user filters mid-session
 
   // Wire search bar once after papers load
   const searchInput = document.getElementById('search-input');
@@ -484,6 +492,16 @@ async function renderPapers(processedPapers, lastFetch) {
 
   hideLoading();
   draw();
+  renderSidebar();
+
+  // Background-verify all tier-2 and unverified papers first (high priority),
+  // then re-verify tier-3 papers so false positives can be corrected.
+  // Staggered 600ms apart to avoid hammering arxiv.
+  const priVerify = PAPERS.filter(p => p.prestige === 2 || p.prestige === null);
+  const secVerify = PAPERS.filter(p => p.prestige === 3);
+  priVerify.forEach((p, i) => setTimeout(() => verifyPrestige(p), i * 600));
+  const secStart = priVerify.length * 600 + 1000;
+  secVerify.forEach((p, i) => setTimeout(() => verifyPrestige(p), secStart + i * 600));
 }
 
 // ─── Build cluster bar ───
@@ -614,7 +632,7 @@ function buildLegend() {
   const drawerBtn = document.createElement('button');
   drawerBtn.className = 'filter-btn star-btn';
   drawerBtn.id = 'view-starred-btn';
-  drawerBtn.innerHTML = '\u2605 View starred library';
+  drawerBtn.innerHTML = '\u2605 Starred library';
   drawerBtn.addEventListener('click', openStarredDrawer);
   drawerSec.appendChild(drawerBtn);
   legendEl.appendChild(drawerSec);
@@ -655,7 +673,11 @@ const BLOB_FILL_DIM  = 0.00,  BLOB_FILL_BASE  = 0.04,  BLOB_FILL_HI  = 0.40;
 const BLOB_STRK_DIM  = 0.03,  BLOB_STRK_BASE  = 0.18,  BLOB_STRK_HI  = 1.00;
 
 // Prestige opacity — module-level so click handlers outside renderPapers can use it
-const PRESTIGE_OPACITY = { 1: 0.28, 2: 0.75, 3: 1.00 };
+// null = not yet verified → treated as ★ until HTML scan runs
+// 1    = ★  Independent (no notable affiliation)
+// 2    = ★★ Academic    (established university / secondary lab)
+// 3    = ★★★ Elite      (frontier AI lab or top-tier academic AI program)
+const PRESTIGE_OPACITY = { 1: 0.42, 2: 0.85, 3: 1.00 };
 const dotOpacity = d => PRESTIGE_OPACITY[d.prestige ?? 1];
 
 const SCALE = 3;
@@ -675,6 +697,18 @@ const zoom = d3.zoom().scaleExtent([0.25, 12])
       .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
   });
 svg.call(zoom);
+
+// ═══════════════════════════════════════════════════════
+// DOT SIZING — module-scope so verifyPrestige can update dots after draw() returns
+// ═══════════════════════════════════════════════════════
+// Tier 3 (elite): 1.5× area → √1.5 ≈ 1.22× radius
+// Tier 2 (academic): 1× (default)
+// Tier 1 (independent): 0.5× area → √0.5 ≈ 0.71× radius
+const SYM_BASE     = 310;
+const HIT_BASE     = 18;
+const PRESTIGE_AREA = { 1: 0.50, 2: 1.00, 3: 1.50 };
+const symSize = d => SYM_BASE * (PRESTIGE_AREA[d.prestige ?? 1] ?? 1.0);
+const hitR    = d => HIT_BASE * Math.sqrt(PRESTIGE_AREA[d.prestige ?? 1] ?? 1.0);
 
 // ═══════════════════════════════════════════════════════
 // TOOLTIP
@@ -711,6 +745,7 @@ tipEl.addEventListener('click', e => {
     updateVisibility();
     showTip(lastTipEvt, p);
   } else if (action === 'togglePrestige') {
+    if (p.prestige === null) { verifyPrestige(p, true); return; }
     const tier = parseInt(el.dataset.tier);
     activePrestige.has(tier) ? activePrestige.delete(tier) : activePrestige.add(tier);
     const btn = document.querySelector('[data-prestige="'+tier+'"]');
@@ -730,6 +765,115 @@ tipEl.addEventListener('click', e => {
   }
 });
 
+// ── Debounced prestige storage writes ───────────────────────────────────────────────
+// Accumulates concurrent auto-verify results and flushes in a single storage write,
+// avoiding the read-modify-write race condition from interleaved callbacks.
+const _pendingPrestigeSaves = new Map(); // id → tier
+let   _prestigeSaveTimer    = null;
+function schedulePrestigeSave(id, tier) {
+  _pendingPrestigeSaves.set(id, tier);
+  clearTimeout(_prestigeSaveTimer);
+  _prestigeSaveTimer = setTimeout(() => {
+    const updates = new Map(_pendingPrestigeSaves);
+    _pendingPrestigeSaves.clear();
+    chrome.storage.local.get(['processedPapers'], r => {
+      const pp = r.processedPapers || [];
+      updates.forEach((t, pid) => {
+        const idx = pp.findIndex(p => p.id === pid);
+        if (idx !== -1) pp[idx].prestige = t;
+        else pp.push({ id: pid, prestige: t });
+      });
+      chrome.storage.local.set({ processedPapers: pp });
+    });
+  }, 300);
+}
+
+// Patch just the prestige span in a sidebar card — avoids full DOM rebuild and the
+// synthetic mouseover events that a full renderSidebar() would trigger.
+function patchCardPrestige(d) {
+  const card = [...document.querySelectorAll('#sidebar-list .sb-card')].find(c => c.dataset.id === d.id);
+  if (!card) return;
+  const span = card.querySelector('.sb-prestige');
+  if (!span) return;
+  const presColor = PRESTIGE_COLOR[d.prestige ?? 1];
+  const presLabel = d.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[d.prestige ?? 1];
+  span.style.color = presColor;
+  span.textContent = presLabel;
+  span.style.pointerEvents = '';
+  span.style.cursor = d.prestige === null ? 'pointer' : '';
+  if (d.prestige === null) span.dataset.sbAction = 'verify';
+  else delete span.dataset.sbAction;
+}
+
+// In-flight guard — prevents double-verifying the same paper (e.g. user click + auto-verify race).
+const _verifyingIds = new Set();
+
+// Fetch HTML affiliations for a paper and update prestige in place.
+// Called on auto-verify (load), dot click, and when user clicks "★ Unverified".
+// Always trusts a successful HTML fetch result (allows corrections in both directions).
+// Only guard: tier==null means fetch failed — don't touch prestige in that case.
+// userInitiated: when true, enforces an 800ms min display of "↻ Verifying…" and shows
+// "✗ No data" briefly if the fetch can't determine a tier. Auto-verify passes false
+// to avoid slowing down the queue or cluttering the sidebar with "✗ No data" messages.
+function verifyPrestige(d, userInitiated = false) {
+  if (_verifyingIds.has(d.id)) {
+    // Already in flight — sync hover panel state so user sees "↻ Verifying…" instead of "★ Unverified"
+    if (_tipPaper === d) showTip(lastTipEvt, d);
+    return;
+  }
+  _verifyingIds.add(d.id);
+
+  // Immediately show "↻ Verifying…" in whichever panels are currently visible.
+  const sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')].find(c => c.dataset.id === d.id);
+  const sbPres = sbCard?.querySelector('.sb-prestige');
+  if (sbPres) { sbPres.textContent = '↻ Verifying…'; sbPres.style.pointerEvents = 'none'; }
+  if (_tipPaper === d) {
+    const tipPres = tipEl.querySelector('[data-tip-action="togglePrestige"]');
+    if (tipPres) { tipPres.textContent = '↻ Verifying…'; tipPres.style.pointerEvents = 'none'; }
+  }
+
+  const _verifyStart = Date.now();
+  chrome.runtime.sendMessage({ action: 'fetchHTMLPrestige', arxivId: d.id }, resp => {
+    _verifyingIds.delete(d.id);
+    const tier = resp?.tier;
+    const elapsed = Date.now() - _verifyStart;
+    // For user-initiated verify, enforce 800ms min so "↻ Verifying…" is readable
+    const delay = userInitiated ? Math.max(0, 800 - elapsed) : 0;
+
+    if (tier == null || tier === d.prestige) {
+      setTimeout(() => {
+        // For user-initiated null result: flash "✗ No data" so they know we tried
+        if (userInitiated && tier == null && d.prestige === null) {
+          const sbCard2 = [...document.querySelectorAll('#sidebar-list .sb-card')].find(c => c.dataset.id === d.id);
+          const sbPres2 = sbCard2?.querySelector('.sb-prestige');
+          if (sbPres2) { sbPres2.textContent = '✗ No data'; sbPres2.style.pointerEvents = 'none'; }
+          if (_tipPaper === d) {
+            const tp = tipEl.querySelector('[data-tip-action="togglePrestige"]');
+            if (tp) { tp.textContent = '✗ No data'; tp.style.pointerEvents = 'none'; }
+          }
+          setTimeout(() => { patchCardPrestige(d); if (_tipPaper === d) showTip(lastTipEvt, d); }, 1200);
+        } else {
+          patchCardPrestige(d);
+          if (_tipPaper === d) showTip(lastTipEvt, d);
+        }
+      }, delay);
+      return;
+    }
+    // Prestige changed — update data, dots, filter bar, and both panels.
+    setTimeout(() => {
+      d.prestige = tier;
+      dotsG.selectAll('path.pdot').filter(dd => dd === d)
+        .attr('d', d3.symbol().type(D3_SYMBOL[d.format] || d3.symbolCircle).size(symSize(d))());
+      dotsG.selectAll('circle.phit').filter(dd => dd === d).attr('r', hitR(d));
+      dotsG.selectAll('circle.star-glow').filter(dd => dd === d).attr('r', hitR(d) + 3);
+      patchCardPrestige(d);
+      if (_tipPaper === d) showTip(lastTipEvt, d);
+      updateVisibility();
+      schedulePrestigeSave(d.id, tier);
+    }, delay);
+  });
+}
+
 function showTip(evt, p) {
   _tipPaper = p;
   const clusterChips = p.clusters.map(c => {
@@ -740,20 +884,27 @@ function showTip(evt, p) {
   const fmtActive  = activeFormats.has(p.format);
   const tier       = p.prestige ?? 1;
   const tierActive = activePrestige.has(tier);
+  const isVerifying = _verifyingIds.has(p.id);
+  const prestigeText = isVerifying ? '↻ Verifying…' : (p.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[tier]);
   const badgeStyle = (color, active) =>
     'color:'+color+';border-color:'+color+';cursor:pointer;opacity:'+(active?'1':'0.38')+';';
   tipEl.innerHTML =
-    // Prestige badge — upper right, clickable to filter
-    '<span class="tt-prestige" data-tip-action="togglePrestige" data-tier="'+tier+'" style="color:'+PRESTIGE_COLOR[tier]+';opacity:'+(tierActive?'1':'0.38')+'">'+PRESTIGE_LABEL[tier]+'</span>'+
-    '<div class="tt-clusters">'+clusterChips+'</div>'+
-    '<div class="tt-title">'+esc(p.title)+'</div>'+
-    '<div class="tt-gist">'+esc(p.gist)+'</div>'+
-    '<div class="tt-badges">'+
-      '<span class="tt-badge" data-tip-action="toggleCat" data-cat="'+p.cat+'" style="'+badgeStyle(CAT_COLOR[p.cat], catActive)+'">'+CAT_LABEL[p.cat]+'</span>'+
-      '<span class="tt-badge" data-tip-action="toggleFmt" data-fmt="'+p.format+'" style="'+badgeStyle(FMT_COLOR[p.format], fmtActive)+'">'+FMT_LABEL[p.format]+'</span>'+
-      (p.trending ? '<span class="tt-badge" style="color:#6DAB5A;border-color:#6DAB5A">\u25b2 '+p.upvotes+' HF</span>' : '')+
+    // Top row: tags left, rating right — mirrors text pane layout
+    '<div class="tt-header-row">'+
+      '<span>'+
+        '<span data-tip-action="toggleCat" data-cat="'+p.cat+'" style="color:'+(CAT_COLOR[p.cat]||'#94A3B8')+';opacity:'+(catActive?'1':'0.38')+';cursor:pointer">'+(CAT_LABEL[p.cat]||p.cat)+'</span>'+
+        (FMT_LABEL[p.format] ? '<span class="tt-header-sep">·</span><span data-tip-action="toggleFmt" data-fmt="'+p.format+'" style="color:'+FMT_COLOR[p.format]+';opacity:'+(fmtActive?'1':'0.38')+';cursor:pointer">'+FMT_LABEL[p.format]+'</span>' : '')+
+        (p.trending ? '<span class="tt-header-sep">·</span><span style="color:#6DAB5A">\u25b2 '+p.upvotes+'</span>' : '')+
+      '</span>'+
+      '<span data-tip-action="togglePrestige" data-tier="'+tier+'" style="color:'+PRESTIGE_COLOR[tier]+';opacity:'+(tierActive?'1':'0.38')+';cursor:pointer'+(isVerifying?';pointer-events:none':'')+'">'+ prestigeText+'</span>'+
     '</div>'+
-    '<div class="tt-authors"><a href="'+esc(p._absLink)+'" target="_blank" style="color:rgba(241,240,222,0.45);text-decoration:underline">arxiv:'+esc(p.id)+' \u2197</a></div>'+
+    '<div class="tt-title">'+esc(p.title)+'</div>'+
+    '<div class="tt-clusters">'+clusterChips+'</div>'+
+    (function(){
+      const { excerpt } = extractExcerpt(p._summary || p.gist || '');
+      return '<div class="tt-gist" style="color:rgba(232,217,188,0.82)">'+esc(excerpt)+'</div>';
+    })()+
+    '<div class="tt-authors"><a href="'+esc(p._absLink)+'" target="_blank" style="color:rgba(241,240,222,0.35);text-decoration:underline">arxiv:'+esc(p.id)+' \u2197</a></div>'+
     '<a class="tt-pdf-btn" href="'+esc(p._pdfLink||'https://arxiv.org/pdf/'+p.id)+'" target="_blank">\ud83d\udcc4 Open this PDF</a>'+
     '<button class="tt-star-btn '+(p.starred?'starred':'')+'" data-tip-action="star">'+
       (p.starred ? '\u2605 Starred \u2014 click to unstar' : '\u2606 Star this paper')+
@@ -769,14 +920,16 @@ function moveTip(evt) {
   let lx = evt.clientX+pad, ly = evt.clientY-pad;
   if (lx+tw > window.innerWidth-8)  lx = evt.clientX-tw-pad;
   if (ly+th > window.innerHeight-8) ly = evt.clientY-th-pad;
+  if (ly < 8) ly = 8;  // don't clip behind top bar
   tipEl.style.left = lx+'px'; tipEl.style.top = ly+'px';
 }
 
 document.addEventListener('click', e => {
-  if (!e.target.closest('#tooltip') && !e.target.closest('.phit')) {
+  if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card')) {
     pinned = null; tipEl.style.display = 'none';
     dotsG?.selectAll('path.pdot').attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
     resetClusterHighlight();
+    document.querySelectorAll('.sb-card.sb-active').forEach(c => c.classList.remove('sb-active'));
   }
 });
 
@@ -820,9 +973,9 @@ function matchesSearch(d) {
 }
 
 function paperIsVisible(d) {
-  return activeCats.has(d.cat)
-    && activeFormats.has(d.format)
-    && activePrestige.has(d.prestige ?? 2)
+  return (!ALL_CATS.includes(d.cat) || activeCats.has(d.cat))
+    && (!ALL_FORMATS.includes(d.format) || activeFormats.has(d.format))
+    && activePrestige.has(d.prestige ?? 1)
     && (!activeClusters.size || d.clusters.some(c => activeClusters.has(c)))
     && (!starFilterActive || d.starred)
     && matchesSearch(d);
@@ -880,6 +1033,242 @@ function updateVisibility() {
 
   if (activeClusters.size) highlightClusters([...activeClusters]);
   else resetClusterHighlight();
+
+  renderSidebar();
+}
+
+// ═══════════════════════════════════════════════════════
+// SIDEBAR — ranked paper list
+// ═══════════════════════════════════════════════════════
+
+// Find the index of the last *real* sentence boundary (period/!/?) in `text`,
+// skipping false positives from abbreviations like "vs.", "e.g.", "et al." and
+// single lowercase letters.  Returns the index of the punctuation char, or -1.
+// The next sentence starts at returnValue + 2.
+function lastRealSentenceBound(text) {
+  // Abbreviations whose trailing period must not be treated as a sentence end
+  const ABBREV_RE = /\b(?:vs|e\.g|i\.e|et\s+al|fig|eq|refs?|sec|no|vol|pp|ca|cf|viz|approx|dept|univ|dr|mr|mrs|ms|prof|sr|jr|[a-z])\s*$/i;
+  let best = -1;
+  const re = /([.!?])([ \n])/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    if (m[1] === '.') {
+      // Skip if preceded by a known abbreviation
+      if (ABBREV_RE.test(text.slice(0, m.index))) continue;
+      // Skip if the next non-space character is lowercase (not a sentence start)
+      const after = text.slice(m.index + 2);
+      if (after && /^[a-z]/.test(after)) continue;
+    }
+    best = m.index;
+  }
+  return best;
+}
+
+// Extract the highlight excerpt from an abstract: the gap sentence (the one
+// immediately before "We introduce/propose/present/…") plus the contribution
+// sentence itself.  Returns { before, excerpt, after } for three-way rendering.
+// Falls back to first ~200 chars if no contribution sentence is found.
+function extractExcerpt(text) {
+  if (!text) return { before: '', gap: '', excerpt: text || '', after: '' };
+
+  const CONTRIB_RE = /\b(?:We|This\s+(?:paper|work|article|study))\s+(introduce[sd]?|present[s]?|propose[sd]?|develop[s]?|show[s]?|release[sd]?|train[s]?|build[s]?|design[s]?|describe[sd]?|demonstrate[sd]?|report[s]?|find[s]?|found|identif(?:y|ies|ied)|establish(?:es|ed)?|evaluate[sd]?|analy[zs]e[sd]?|investigat(?:e[sd]?|es)|examin(?:e[sd]?|es)|explor(?:e[sd]?|es)|stud(?:y|ies|ied)|survey[sd]?|test[s]?|extend[s]?|contribut(?:e[sd]?|es)|address(?:es|ed)?|focus(?:es|ed)?|quantif(?:y|ies|ied))\b/i;
+
+  // Collect all matches; prefer the first whose sentence contains "(1)" (enumerated contributions)
+  const allMatches = [];
+  const reG = new RegExp(CONTRIB_RE.source, 'gi');
+  let _m;
+  while ((_m = reG.exec(text)) !== null) allMatches.push(_m);
+
+  if (!allMatches.length) {
+    // Fallback: highlight the first complete sentence in gold, no gap sentence
+    const sentM = /[.!?](?:\s|$)/.exec(text);
+    const split = sentM ? sentM.index + 1 : text.length;
+    return { before: '', gap: '', excerpt: text.slice(0, split), after: text.slice(split) };
+  }
+
+  // Prefer first match whose sentence contains "(1)" — enumerated-contribution sentences
+  let chosen = allMatches[0];
+  for (const candidate of allMatches) {
+    const bef = text.slice(0, candidate.index);
+    const sStart = Math.max(bef.lastIndexOf('. ') + 2, bef.lastIndexOf('.\n') + 2, 0);
+    const tl = text.slice(candidate.index);
+    const eM = /[.!?](?:\s|$)/.exec(tl);
+    const sEnd = eM ? candidate.index + eM.index + 1 : text.length;
+    if (/\(1\)/.test(text.slice(sStart, sEnd))) { chosen = candidate; break; }
+  }
+
+  // Find the start of the contribution sentence (the one beginning with "We …")
+  // Use lastRealSentenceBound to skip abbreviation periods like "vs.", "e.g."
+  const beforeContrib = text.slice(0, chosen.index);
+  const contribBoundary = lastRealSentenceBound(beforeContrib);
+  const contribStart = contribBoundary === -1 ? 0 : contribBoundary + 2;
+
+  // Find the end of the contribution sentence (full sentence, no truncation)
+  const tail = text.slice(chosen.index);
+  const endM = /[.!?](?:\s|$)/.exec(tail);
+  const excerptEnd = endM ? chosen.index + endM.index + 1 : text.length;
+
+  // Find the start of the gap sentence (the sentence immediately before contrib)
+  if (contribStart === 0) {
+    // Contribution is the very first sentence — no gap sentence
+    return { before: '', gap: '', excerpt: text.slice(0, excerptEnd), after: text.slice(excerptEnd) };
+  }
+  const beforeGap = text.slice(0, contribBoundary); // text before the gap sentence's terminal '.'
+  const gapBoundary = lastRealSentenceBound(beforeGap);
+  const gapStart = gapBoundary === -1 ? 0 : gapBoundary + 2;
+
+  return {
+    before:  text.slice(0, gapStart),
+    gap:     text.slice(gapStart, contribStart),   // white  — sentence before "We …"
+    excerpt: text.slice(contribStart, excerptEnd), // gold   — "We introduce/propose/…" sentence
+    after:   text.slice(excerptEnd),
+  };
+}
+
+let _sidebarWired = false;
+
+function renderSidebar() {
+  const listEl = document.getElementById('sidebar-list');
+  const titleEl = document.getElementById('sidebar-title');
+  if (!listEl) return;
+
+  const personalized = Object.keys(_starredData).length > 0;
+  if (titleEl) titleEl.textContent = personalized ? 'For you' : 'Relevant today';
+
+  // Score and sort visible papers by projected interest (descending), top 60
+  const entries = PAPERS
+    .filter(p => paperIsVisible(p))
+    .map(p => ({ p, score: scoreAffinity(p, _starredData) ?? p.relevance }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 60);
+
+  listEl.innerHTML = entries.map(({ p }) => {
+    const presColor = PRESTIGE_COLOR[p.prestige ?? 1];
+    const presLabel = p.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[p.prestige ?? 1];
+    const pdfHref = esc(p._pdfLink || 'https://arxiv.org/pdf/'+p.id);
+    const clusterChipsSb = (p.clusters || []).map(c => {
+      const active = !activeClusters.size || activeClusters.has(c);
+      return '<span class="sb-cluster-chip" data-sb-action="toggleCluster" data-cluster="'+esc(c)+'" style="opacity:'+(active?'1':'0.38')+'">'+esc(c)+'</span>';
+    }).join('');
+    return '<div class="sb-card" data-id="'+esc(p.id)+'">'
+      + '<div class="sb-title">'+esc(p.title)+'</div>'
+      + '<div class="sb-card-meta">'
+      + '<span>'
+      + '<span style="color:'+(CAT_COLOR[p.cat]||'#94A3B8')+'">'+(CAT_LABEL[p.cat]||p.cat)+'</span>'
+      + (FMT_LABEL[p.format] ? '<span style="color:rgba(232,217,188,0.3)"> · </span><span style="color:'+(FMT_COLOR[p.format]||'#94A3B8')+'">'+(FMT_LABEL[p.format])+'</span>' : '')
+      + '</span>'
+      + (p.prestige === null
+          ? '<span class="sb-prestige" data-sb-action="verify" style="color:'+presColor+';cursor:pointer">'+presLabel+'</span>'
+          : '<span class="sb-prestige" style="color:'+presColor+'">'+presLabel+'</span>')
+      + '</div>'
+      + (clusterChipsSb ? '<div class="sb-clusters">'+clusterChipsSb+'</div>' : '')
+      + (function() {
+          const { before, gap, excerpt, after } = extractExcerpt(p._summary || p.gist || '');
+          return '<div class="sb-gist">'
+            + esc(before)
+            + (gap ? '<span class="sb-gap">'+esc(gap)+'</span>' : '')
+            + '<span class="sb-excerpt">'+esc(excerpt)+'</span>'
+            + esc(after)
+            + '</div>';
+        })()
+      + '<div class="sb-actions">'
+      + '<button class="sb-star'+(p.starred?' starred':'')+'" data-sb-action="star">'+(p.starred?'\u2605 Starred':'\u2606 Star')+'</button>'
+      + '<a class="sb-pdf" href="'+pdfHref+'" target="_blank" data-sb-action="pdf">\ud83d\udcc4 Open PDF</a>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+
+  // Wire event listeners once — the list element itself is stable
+  if (!_sidebarWired) {
+    listEl.addEventListener('mouseover', sidebarMouseover);
+    listEl.addEventListener('mouseout', sidebarMouseout);
+    listEl.addEventListener('click', sidebarClick);
+    _sidebarWired = true;
+  }
+}
+
+function sidebarMouseover(e) {
+  const card = e.target.closest('.sb-card');
+  if (!card || pinned) return;
+  if (card.contains(e.relatedTarget)) return; // still within same card — ignore child transitions
+  const d = PAPERS.find(p => p.id === card.dataset.id);
+  if (!d) return;
+  card.classList.add('sb-active');
+  const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
+  base.l = Math.min(0.88, base.l + 0.32);
+  dotsG.selectAll('path.pdot').filter(dd => dd === d)
+    .attr('fill', base.formatHex()).attr('fill-opacity', 1).raise();
+  highlightClusters(d.clusters);
+  // Show tooltip at the dot's screen position
+  const svgRect = document.getElementById('chart').getBoundingClientRect();
+  const t = d3.zoomTransform(svg.node());
+  const dotScreenX = svgRect.left + t.applyX(xSc(d._x));
+  const dotScreenY = svgRect.top  + t.applyY(ySc(d._y));
+  showTip({ clientX: dotScreenX, clientY: dotScreenY }, d);
+}
+
+function sidebarMouseout(e) {
+  const card = e.target.closest('.sb-card');
+  if (!card || pinned) return;
+  if (card.contains(e.relatedTarget)) return; // moved to child — not a real exit
+  const d = PAPERS.find(p => p.id === card.dataset.id);
+  if (!d) return;
+  card.classList.remove('sb-active');
+  dotsG.selectAll('path.pdot').filter(dd => dd === d)
+    .attr('fill', CAT_COLOR[d.cat] || '#94A3B8')
+    .attr('fill-opacity', dotOpacity(d));
+  resetClusterHighlight();
+  tipEl.style.display = 'none';
+}
+
+function sidebarClick(e) {
+  const card = e.target.closest('.sb-card');
+  if (!card) return;
+  const d = PAPERS.find(p => p.id === card.dataset.id);
+  if (!d) return;
+
+  // Star / PDF / cluster-filter buttons — handle without pinning
+  if (e.target.closest('[data-sb-action="star"]')) { toggleStar(d); return; }
+  if (e.target.closest('[data-sb-action="pdf"]')) return;
+  if (e.target.closest('[data-sb-action="verify"]')) {
+    verifyPrestige(d, true); // userInitiated: enforces 800ms min display + "✗ No data" feedback
+    return;
+  }
+  if (e.target.closest('[data-sb-action="toggleCluster"]')) {
+    const cluster = e.target.closest('[data-sb-action="toggleCluster"]').dataset.cluster;
+    if (activeClusters.has(cluster)) activeClusters.delete(cluster);
+    else activeClusters.add(cluster);
+    updateVisibility();
+    return;
+  }
+
+  // Remove active highlight from all cards
+  document.querySelectorAll('.sb-card.sb-active').forEach(c => c.classList.remove('sb-active'));
+
+  if (pinned === d) {
+    // Unpin
+    pinned = null;
+    dotsG.selectAll('path.pdot')
+      .attr('fill-opacity', dd => dotOpacity(dd))
+      .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
+    tipEl.style.display = 'none';
+    resetClusterHighlight();
+  } else {
+    pinned = d;
+    card.classList.add('sb-active');
+    dotsG.selectAll('path.pdot')
+      .attr('fill-opacity', dd => dd === d ? 1 : 0.08)
+      .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.03)
+      .style('filter', null)
+      .filter(dd => dd === d).raise();
+    highlightClusters(d.clusters);
+    // Position tooltip at the dot's actual screen position (accounting for zoom/pan)
+    const svgRect = document.getElementById('chart').getBoundingClientRect();
+    const t = d3.zoomTransform(svg.node());
+    const dotScreenX = svgRect.left + t.applyX(xSc(d._x));
+    const dotScreenY = svgRect.top  + t.applyY(ySc(d._y));
+    showTip({ clientX: dotScreenX, clientY: dotScreenY }, d);
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -931,23 +1320,33 @@ function draw() {
   const PW = W * SCALE, PH = H * SCALE;
   svg.attr('viewBox', '0 0 '+W+' '+H);
 
-  xSc = d3.scaleLinear().domain([0,1]).range([M.left, PW - M.right]);
-  ySc = d3.scaleLinear().domain([0,1]).range([PH - M.bottom, M.top]);
-
   applyJitter();
+
+  // Fit axes to actual data extent so dots use the full chart area.
+  // Pad by 8% on each side so edge dots aren't clipped.
+  const PAD = 0.08;
+  const xs = PAPERS.map(p => p._x), ys = PAPERS.map(p => p._y);
+  const xExt = [Math.min(...xs) - PAD, Math.max(...xs) + PAD];
+  const yExt = [Math.min(...ys) - PAD, Math.max(...ys) + PAD];
+  xSc = d3.scaleLinear().domain(xExt).range([M.left, PW - M.right]);
+  ySc = d3.scaleLinear().domain(yExt).range([PH - M.bottom, M.top]);
   svg.call(zoom.transform, d3.zoomIdentity.scale(1 / SCALE));
 
   // Grid
   gridG.selectAll('*').remove();
-  [0.25,0.5,0.75].forEach(v => {
-    gridG.append('line').attr('x1',xSc(v)).attr('x2',xSc(v)).attr('y1',ySc(0)).attr('y2',ySc(1))
-      .attr('stroke','rgba(196,148,40,0.07)').attr('stroke-width',1);
-    gridG.append('line').attr('x1',xSc(0)).attr('x2',xSc(1)).attr('y1',ySc(v)).attr('y2',ySc(v))
+  const [x0, x1] = xSc.domain(), [y0, y1] = ySc.domain();
+  const xMid = (x0+x1)/2, yMid = (y0+y1)/2;
+  [[x0+(x1-x0)*0.25, true],[x0+(x1-x0)*0.75, true]].forEach(([v]) => {
+    gridG.append('line').attr('x1',xSc(v)).attr('x2',xSc(v)).attr('y1',ySc(y0)).attr('y2',ySc(y1))
       .attr('stroke','rgba(196,148,40,0.07)').attr('stroke-width',1);
   });
-  gridG.append('line').attr('x1',xSc(0.5)).attr('x2',xSc(0.5)).attr('y1',ySc(0)).attr('y2',ySc(1))
+  [[y0+(y1-y0)*0.25, true],[y0+(y1-y0)*0.75, true]].forEach(([v]) => {
+    gridG.append('line').attr('x1',xSc(x0)).attr('x2',xSc(x1)).attr('y1',ySc(v)).attr('y2',ySc(v))
+      .attr('stroke','rgba(196,148,40,0.07)').attr('stroke-width',1);
+  });
+  gridG.append('line').attr('x1',xSc(xMid)).attr('x2',xSc(xMid)).attr('y1',ySc(y0)).attr('y2',ySc(y1))
     .attr('stroke','rgba(196,148,40,0.18)').attr('stroke-width',1).attr('stroke-dasharray','4,8');
-  gridG.append('line').attr('x1',xSc(0)).attr('x2',xSc(1)).attr('y1',ySc(0.5)).attr('y2',ySc(0.5))
+  gridG.append('line').attr('x1',xSc(x0)).attr('x2',xSc(x1)).attr('y1',ySc(yMid)).attr('y2',ySc(yMid))
     .attr('stroke','rgba(196,148,40,0.18)').attr('stroke-width',1).attr('stroke-dasharray','4,8');
 
   // Blobs
@@ -985,16 +1384,8 @@ function draw() {
       .attr('fill','none').attr('stroke',color).attr('opacity',BLOB_STRK_BASE).attr('stroke-width',3);
   });
 
-  // Dots
+  // Dots — symSize/hitR/SYM_BASE/PRESTIGE_AREA are module-scope (above TOOLTIP section)
   dotsG.selectAll('*').remove();
-  // Base symbol area (px²) and hit radius — both scale with prestige tier.
-  // Tier 3 (frontier labs / elite universities): 1.5× area → √1.5 ≈ 1.22× radius
-  // Tier 2 (default / unknown): 1×
-  // Tier 1 (small/unrecognised institution): 0.5× area → √0.5 ≈ 0.71× radius
-  const SYM_BASE = 310, HIT_BASE = 18;
-  const PRESTIGE_AREA = { 1: 0.50, 2: 1.00, 3: 1.50 };
-  const symSize = d => SYM_BASE * (PRESTIGE_AREA[d.prestige] ?? 1.0);
-  const hitR    = d => HIT_BASE * Math.sqrt(PRESTIGE_AREA[d.prestige] ?? 1.0);
 
   function symTransform(d, scl) {
     return 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(scl/currentK)+')';
@@ -1061,6 +1452,13 @@ function draw() {
           .filter(dd => dd === d).raise();
         highlightClusters(d.clusters);
         showTip(evt, d);
+        // Scroll sidebar to the matching card
+        const sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
+          .find(c => c.dataset.id === d.id);
+        if (sbCard) sbCard.scrollIntoView({ behavior: 'instant', block: 'center' });
+
+        // If prestige is not yet confirmed as frontier, verify via HTML fetch.
+        if (d.prestige !== 3) verifyPrestige(d, true);
       }
     });
 
@@ -1107,10 +1505,24 @@ function updateAxisNote() {
   if (n === 0) {
     note.innerHTML = '<div class="leg-note" style="color:rgba(196,148,40,0.55)">★ Star papers to<br>personalize Y axis</div>';
   } else {
-    const extra = prevDays > 0 ? ' +'+prevDays+' prev' : '';
+    const extra = prevDays > 0 ? '<br>+'+prevDays+' previous' : '';
     note.innerHTML = '<div class="leg-note" style="color:rgba(196,148,40,0.65)">Y axis: your interests<br>('+todayStarred+' starred today'+extra+')</div>';
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// SIDEBAR TOGGLE
+// ═══════════════════════════════════════════════════════
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('collapsed');
+  document.getElementById('sidebar-show').style.display = '';
+  draw(); // re-measure SVG now that chart-area is wider
+});
+document.getElementById('sidebar-show').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('collapsed');
+  document.getElementById('sidebar-show').style.display = 'none';
+  draw();
+});
 
 // ═══════════════════════════════════════════════════════
 // REFRESH & MESSAGE HANDLING

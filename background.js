@@ -79,6 +79,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.storage.local.get(['lastFetch', 'fetchError', 'paperCount', 'fetchInProgress'], sendResponse);
     return true;
   }
+  if (msg.action === 'fetchHTMLPrestige') {
+    fetchHTMLPrestige(msg.arxivId)
+      .then(tier => sendResponse({ tier }))
+      .catch(() => sendResponse({ tier: null }));
+    return true; // async response
+  }
 });
 
 // ── Fetch & Cache ─────────────────────────────────────
@@ -150,7 +156,7 @@ async function doFetchAndCache() {
         ...p,
         trending: !!hf,
         upvotes: hf?.upvotes || 0,
-        prestige: prestigeMap.get(p.arxivId.replace(/v\d+$/, '')) ?? 1,
+        prestige: prestigeMap.get(p.arxivId.replace(/v\d+$/, '')) ?? null,
       };
     });
 
@@ -343,6 +349,66 @@ const PRESTIGE_TIER2 = [
   'salesforce research',
   'allen institute',
 ];
+
+// Email domains for fetchHTMLPrestige scan.
+const EMAIL_DOMAIN_TIER3 = [
+  'google.com','deepmind.com','anthropic.com','openai.com',
+  'meta.com','microsoft.com','nvidia.com','apple.com',
+  'amazon.com','huggingface.co',
+];
+const EMAIL_DOMAIN_TIER2 = [
+  'nyu.edu','cornell.edu','columbia.edu','cmu.edu','mit.edu',
+  'stanford.edu','berkeley.edu','uw.edu','gatech.edu',
+  'illinois.edu','utexas.edu','umd.edu','upenn.edu',
+  'jhu.edu','ed.ac.uk','ic.ac.uk','ucl.ac.uk',
+  'nus.edu.sg','ntu.edu.sg','tum.de',
+  'adobe.com','ibm.com','samsung.com','sony.com',
+  'baidu.com','alibaba-inc.com','bytedance.com','salesforce.com',
+];
+
+// On-click prestige scan: fetch the first 64KB of the arxiv latexml HTML version.
+// The CSS preamble is typically 20–40KB; 64KB reliably reaches the author block.
+// ltx_role_affiliation spans only appear in the authors section — safe from citation pollution.
+// Returns 3, 2, 1 (confirmed), or null (no HTML version or no affiliation data found).
+async function fetchHTMLPrestige(arxivId) {
+  const url = `https://arxiv.org/html/${arxivId}`;
+  let text;
+  try {
+    const resp = await fetchWithTimeout(url, 15000, {
+      headers: { Range: 'bytes=0-65535' }
+    });
+    if (resp.status !== 200 && resp.status !== 206) return null;
+    text = await resp.text();
+  } catch (e) {
+    console.warn(`[Prestige] Fetch failed for ${arxivId}: ${e.message}`);
+    return null;
+  }
+
+  let affiliationText = '';
+  const affRe = /<span[^>]*ltx_role_affiliation[^>]*>([\s\S]*?)<\/span>/gi;
+  let affM;
+  while ((affM = affRe.exec(text)) !== null) {
+    affiliationText += ' ' + affM[1].replace(/<[^>]+>/g, ' ');
+  }
+  // Fallback: small window of ltx_authors block (800 chars — stays in front matter).
+  if (!affiliationText.trim()) {
+    const authM = /class="[^"]*ltx_authors[^"]*"[^>]*>([\s\S]{0,800})/i.exec(text);
+    if (authM) affiliationText = authM[1].replace(/<[^>]+>/g, ' ');
+  }
+
+  const emailMatches = text.match(/href="mailto:[^"]+"/gi) || [];
+  const emailText = emailMatches.join(' ');
+
+  if (!affiliationText.trim() && !emailText) return null;
+
+  const scanText = (affiliationText + ' ' + emailText).toLowerCase();
+
+  for (const t of PRESTIGE_TIER3) { if (scanText.includes(t)) return 3; }
+  for (const d of EMAIL_DOMAIN_TIER3) { if (scanText.includes('@' + d)) return 3; }
+  for (const t of PRESTIGE_TIER2) { if (scanText.includes(t)) return 2; }
+  for (const d of EMAIL_DOMAIN_TIER2) { if (scanText.includes('@' + d)) return 2; }
+  return 1; // affiliation found but no notable institution — confirmed Independent
+}
 
 // Thresholds for author citation count → tier.
 // Any author on the paper with citations above the tier-3 threshold bumps the
@@ -661,10 +727,9 @@ const ABSTRACT_TIER3 = [
 
 function scorePrestigeFromAbstract(title, summary) {
   const text = (title + ' ' + (summary || '')).toLowerCase();
-  for (const t of ABSTRACT_TIER3) {
-    if (text.includes(t)) return 3;
-  }
-  return null; // no match — defer to S2
+  for (const t of ABSTRACT_TIER3) { if (text.includes(t)) return 3; }
+  for (const t of PRESTIGE_TIER2) { if (text.includes(t)) return 2; }
+  return null; // no match — starts as unverified, HTML scan fills in later
 }
 
 async function processAndStore(rawPapers) {
@@ -677,8 +742,8 @@ async function processAndStore(rawPapers) {
     const cat = (p.categories || []).find(c => c.startsWith('cs.')) || p.categories?.[0] || 'cs.AI';
     const cluster = classifyPaper(p.title, p.summary || '', cat);
     const abstractTier = scorePrestigeFromAbstract(p.title, p.summary || '');
-    // Abstract scan takes priority (day-one signal); S2 fills in what abstract misses.
-    const prestige = abstractTier ?? (p.prestige ?? 1);
+    // Abstract scan takes priority; S2 prestige fills in what abstract misses; null = unverified.
+    const prestige = abstractTier ?? p.prestige ?? null;
     return {
       id:        p.arxivId,
       title:     p.title,
