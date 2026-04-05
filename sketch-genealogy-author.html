@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Research Genealogy × Author Trajectories — Concept Sketch</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0f1117;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+#header {
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #1e2535;
+  flex-shrink: 0;
+}
+#header h1 { font-size: 14px; font-weight: 600; color: #c49428; letter-spacing: 0.03em; }
+.badge {
+  font-size: 10px; background: #1e2535; color: #888;
+  padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.badge.green { background: #0d1f12; color: #50c878; }
+
+#panels {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.panel { display: flex; flex-direction: column; overflow: hidden; }
+#genealogy-panel { width: 56%; border-right: 1px solid #1a2030; }
+#author-panel    { width: 44%; }
+
+.panel-header {
+  padding: 7px 16px;
+  font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.08em;
+  border-bottom: 1px solid #1a2030; flex-shrink: 0;
+}
+.panel-header em { color: #c49428; font-style: normal; }
+
+.panel-body { flex: 1; overflow: hidden; position: relative; }
+
+#overlay-svg {
+  position: fixed; top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 50;
+}
+
+/* Walkthrough bar */
+#walkthrough {
+  flex-shrink: 0;
+  background: #090c12;
+  border-top: 1px solid #1a2030;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 78px;
+}
+#wt-text-area { flex: 1; }
+#wt-title { font-size: 12px; font-weight: 600; color: #c49428; margin-bottom: 5px; }
+#wt-body  { font-size: 12px; color: #8a96a8; line-height: 1.55; max-width: 680px; }
+#wt-body em { color: #c0a84a; font-style: normal; font-weight: 500; }
+
+#wt-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.wt-btn {
+  background: #1e2535; border: 1px solid #2a3548; color: #c49428;
+  padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px;
+  transition: background 0.15s;
+}
+.wt-btn:hover { background: #252f42; }
+.wt-btn:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+#wt-indicator { font-size: 11px; color: #444; min-width: 36px; text-align: center; }
+#wt-skip {
+  background: none; border: 1px solid #272d3a; color: #4a5468;
+  padding: 5px 11px; border-radius: 4px; cursor: pointer; font-size: 11px;
+  margin-left: 6px; transition: color 0.15s, border-color 0.15s;
+}
+#wt-skip:hover { color: #8a96a8; border-color: #3a4458; }
+#free-mode-hint {
+  display: none; font-size: 11px; color: #3a4458; text-align: center;
+  padding: 14px 0 8px;
+}
+
+/* Tooltip */
+#tooltip {
+  position: fixed; background: #141a28; border: 1px solid #2a3548;
+  border-radius: 6px; padding: 9px 13px; font-size: 11.5px;
+  pointer-events: none; opacity: 0; transition: opacity 0.12s;
+  z-index: 200; max-width: 230px; line-height: 1.55;
+}
+#tooltip.show { opacity: 1; }
+.tt-name  { font-weight: 600; color: #dde0e8; margin-bottom: 3px; font-size: 12px; }
+.tt-meta  { color: #6a7488; }
+.tt-gold  { color: #c49428; }
+
+/* SVG text */
+text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Research Genealogy &times; Author Trajectories</h1>
+  <span class="badge">Concept Sketch</span>
+  <span class="badge green">Chain-of-Thought Lineage</span>
+</div>
+
+<div id="panels">
+  <div class="panel" id="genealogy-panel">
+    <div class="panel-header">Idea Lineage &mdash; <em>where did this come from?</em></div>
+    <div class="panel-body" id="g-body"></div>
+  </div>
+  <div class="panel" id="author-panel">
+    <div class="panel-header">Author Trajectories &mdash; <em>who&rsquo;s carrying it forward?</em></div>
+    <div class="panel-body" id="a-body"></div>
+  </div>
+</div>
+
+<svg id="overlay-svg"></svg>
+
+<div id="walkthrough">
+  <div id="wt-text-area">
+    <div id="wt-title"></div>
+    <div id="wt-body"></div>
+  </div>
+  <div id="wt-controls">
+    <button class="wt-btn" id="wt-prev">&#8592;</button>
+    <span id="wt-indicator"></span>
+    <button class="wt-btn" id="wt-next">&#8594;</button>
+    <button id="wt-skip">Explore freely &rarr;</button>
+  </div>
+</div>
+<div id="free-mode-hint">Click any paper or researcher to pin &bull; Escape to clear &bull; Hover to explore</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const PAPERS = [
+  { id:'flavell', short:'Metacognition',        title:'Metacognition and Cognitive Monitoring',                    authors:['John H. Flavell'],                            year:1979, cites:12400, cluster:'cognitive' },
+  { id:'scratch', short:'Scratchpad Prompting', title:'Show Your Work: Scratchpads for Intermediate Computation', authors:['Maxwell Nye','Eric Zelikman','+2'],            year:2021, cites:890,  cluster:'reasoning' },
+  { id:'star',    short:'STaR',                 title:'STaR: Self-Taught Reasoner',                               authors:['Eric Zelikman','Yuhuai Wu','+2'],              year:2022, cites:1240, cluster:'reasoning' },
+  { id:'cot',     short:'Chain-of-Thought',     title:'Chain-of-Thought Prompting Elicits Reasoning in LLMs',    authors:['Jason Wei','Xuezhi Wang','Denny Zhou','+5'],   year:2022, cites:8240, cluster:'reasoning', seed:true },
+  { id:'l2m',     short:'Least-to-Most',        title:'Least-to-Most Prompting Enables Complex Reasoning',       authors:['Denny Zhou','Nathanael Schärli','+4'],         year:2022, cites:1180, cluster:'reasoning' },
+  { id:'sc',      short:'Self-Consistency',     title:'Self-Consistency Improves Chain of Thought Reasoning',    authors:['Xuezhi Wang','Jason Wei','+4'],                year:2022, cites:3120, cluster:'reasoning' },
+  { id:'prm',     short:'Process Rewards',      title:"Let's Verify Step by Step (Process Reward Models)",       authors:['Hunter Lightman','Eric Zelikman','+8'],        year:2023, cites:1820, cluster:'evals'     },
+  { id:'tot',     short:'Tree of Thoughts',     title:'Tree of Thoughts: Deliberate Problem Solving with LLMs', authors:['Shunyu Yao','Dian Yu','+4'],                   year:2023, cites:2380, cluster:'reasoning' },
+];
+
+// source cites target (arrow: target → source, older is lower)
+const EDGES = [
+  { s:'flavell', t:'scratch', dashed:true  },
+  { s:'scratch', t:'cot'                   },
+  { s:'scratch', t:'star'                  },
+  { s:'star',    t:'prm'                   },
+  { s:'cot',     t:'sc'                    },
+  { s:'cot',     t:'l2m'                   },
+  { s:'cot',     t:'prm'                   },
+  { s:'sc',      t:'tot'                   },
+];
+
+// nx/ny: 0–1 within panel (ny: 0=top, 1=bottom, older=higher ny)
+const LAYOUT = {
+  flavell: { nx:0.21, ny:0.87 },
+  scratch: { nx:0.33, ny:0.61 },
+  star:    { nx:0.19, ny:0.43 },
+  cot:     { nx:0.55, ny:0.41 },
+  l2m:     { nx:0.38, ny:0.46 },
+  sc:      { nx:0.67, ny:0.37 },
+  prm:     { nx:0.71, ny:0.22 },
+  tot:     { nx:0.54, ny:0.19 },
+};
+
+const AUTHORS = [
+  { id:'wei',      name:'Jason Wei',    affil:'Google Brain',       focus:'Evaluation & scaling',    inst:'google',
+    trail:[{x:.33,y:.51},{x:.42,y:.61},{x:.50,y:.70},{x:.55,y:.75}], papers:['cot','sc']            },
+  { id:'wang',     name:'Xuezhi Wang',  affil:'Google Brain',       focus:'Reasoning robustness',    inst:'google',
+    trail:[{x:.37,y:.35},{x:.44,y:.46},{x:.51,y:.56},{x:.53,y:.61}], papers:['cot','sc']            },
+  { id:'yao',      name:'Shunyu Yao',   affil:'Princeton → OpenAI', focus:'LLM agents',              inst:'openai',
+    trail:[{x:.17,y:.29},{x:.33,y:.45},{x:.56,y:.63},{x:.75,y:.81}], papers:['tot']                 },
+  { id:'zelikman', name:'Eric Zelikman',affil:'Stanford',           focus:'Self-improvement in LLMs',inst:'stanford',
+    trail:[{x:.27,y:.36},{x:.37,y:.49},{x:.47,y:.60},{x:.54,y:.67}], papers:['scratch','star','prm'] },
+  { id:'zhou',     name:'Denny Zhou',   affil:'Google Brain',       focus:'Structured reasoning',    inst:'google',
+    trail:[{x:.20,y:.57},{x:.24,y:.60},{x:.27,y:.62},{x:.29,y:.63}], papers:['cot','l2m']           },
+];
+
+const CLUSTER_COLOR = { reasoning:'#4a9eff', cognitive:'#f0a030', evals:'#50c878' };
+const INST_COLOR    = { google:'#4a9eff', openai:'#9b59b6', stanford:'#f0a030' };
+
+const maxCites = d3.max(PAPERS, d => d.cites);
+const rScale   = d => Math.max(7, Math.sqrt(d.cites / maxCites) * 28);
+
+// ─── WALKTHROUGH STEPS ───────────────────────────────────────────────────────
+
+const STEPS = [
+  {
+    title: "Here's today's seed paper",
+    html:  "You open arXiv Map and spot <em>Chain-of-Thought Prompting</em>. 8,240 citations — clearly important. But is it genuinely novel, or the fiftieth variation on an old idea? This tool traces its intellectual lineage.",
+    dimPapers:   ['flavell','scratch','star','l2m','sc','prm','tot'],
+    dimAuthors:  'all',
+    edges:       false,
+  },
+  {
+    title: "Tracing its lineage",
+    html:  "Citation relationships radiate backward through time. Older papers sit lower — the bottom is 1979, the top is 2023. The shape of this tree tells you where Chain-of-Thought actually came from.",
+    dimPapers:   [],
+    dimAuthors:  'all',
+    edges:       true,
+    animateEdges: true,
+  },
+  {
+    title: "An underexplored branch",
+    html:  "This dashed line is the interesting find. <em>Scratchpad Prompting (2021)</em> traces to metacognition research from 1979 — but nobody in the modern LLM lineage is citing it. That's 45 years of cognitive science the field has walked past.",
+    dimPapers:   ['star','cot','l2m','sc','prm','tot'],
+    dimAuthors:  'all',
+    edges:       true,
+    pulseEdge:   'flavell-scratch',
+    glowPapers:  ['flavell','scratch'],
+  },
+  {
+    title: "A name that threads through",
+    html:  "One researcher appears at <em>three nodes</em> in this lineage — Eric Zelikman. Scratchpad (2021), STaR (2022), Process Reward Models (2023). Not a lead author anywhere, but a thread connecting the whole story.",
+    dimPapers:   ['flavell','cot','l2m','sc','tot'],
+    dimAuthors:  ['wei','wang','yao','zhou'],
+    edges:       true,
+    crossLinkAuthor: 'zelikman',
+    showTrail:   ['zelikman'],
+  },
+  {
+    title: "Where is he headed?",
+    html:  "His trajectory shows a researcher who started at the intersection of cognitive science and ML, moved steadily through self-improvement systems, and is now heading toward territory almost nobody else came from. The direction matters.",
+    dimPapers:   ['flavell','cot','l2m','sc','tot'],
+    dimAuthors:  ['wei','wang','yao','zhou'],
+    edges:       true,
+    crossLinkAuthor: 'zelikman',
+    animateTrail: 'zelikman',
+  },
+  {
+    title: "A cluster converging",
+    html:  "Pull back and look at all the trajectories together. Yao from RL, Zelikman from cognitive science, Wei from NLP — three researchers from completely different starting points, <em>all converging on the same region</em>. That's usually a signal that something real is forming.",
+    dimPapers:   [],
+    dimAuthors:  [],
+    edges:       true,
+    showAllTrails: true,
+  },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+let step           = 0;
+let walkthroughOn  = true;
+let pinnedPaper    = null;
+let pinnedAuthor   = null;
+let pulseTimer     = null;
+
+// ─── SVG SETUP ───────────────────────────────────────────────────────────────
+
+const gBody    = document.getElementById('g-body');
+const aBody    = document.getElementById('a-body');
+const overlay  = d3.select('#overlay-svg');
+const tooltipEl = document.getElementById('tooltip');
+
+const gSvg = d3.select(gBody).append('svg').attr('width','100%').attr('height','100%');
+const aSvg = d3.select(aBody).append('svg').attr('width','100%').attr('height','100%');
+const gRoot = gSvg.append('g');
+const aRoot = aSvg.append('g');
+
+function gDims() { const r = gBody.getBoundingClientRect(); return { w: r.width, h: r.height }; }
+function aDims() { const r = aBody.getBoundingClientRect(); return { w: r.width, h: r.height }; }
+
+// ─── COORDINATE HELPERS ──────────────────────────────────────────────────────
+
+function paperXY(id) {
+  const { w, h } = gDims();
+  const L = LAYOUT[id];
+  return { x: 40 + L.nx * (w - 60), y: 18 + L.ny * (h - 38) };
+}
+
+function authorXY(id, ti = 3) {
+  const { w, h } = aDims();
+  const a = AUTHORS.find(x => x.id === id);
+  const p = a.trail[ti];
+  return { x: 52 + p.x * (w - 72), y: 28 + (1 - p.y) * (h - 52) };
+}
+
+// Screen coords for overlay lines
+function paperScreen(id) {
+  const el = document.querySelector(`.p-main-${id}`);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+function authorScreen(id) {
+  const el = document.querySelector(`.a-main-${id}`);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+// ─── DRAW GENEALOGY ──────────────────────────────────────────────────────────
+
+function drawGenealogy() {
+  gRoot.selectAll('*').remove();
+  gSvg.selectAll('defs').remove();
+
+  const { w, h } = gDims();
+
+  // Arrow markers
+  const defs = gSvg.append('defs');
+  function mkArrow(id, color) {
+    defs.append('marker').attr('id', id)
+      .attr('viewBox','0 -4 8 8').attr('refX',7).attr('refY',0)
+      .attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto')
+      .append('path').attr('d','M0,-4L8,0L0,4').attr('fill', color);
+  }
+  mkArrow('arr-gray',   '#2e3a50');
+  mkArrow('arr-orange', '#f0a030');
+
+  // Faint horizontal year rules
+  const yearMap = { flavell:1979, scratch:2021, cot:2022, tot:2023 };
+  Object.entries(yearMap).forEach(([pid, yr]) => {
+    const p = paperXY(pid);
+    gRoot.append('line')
+      .attr('x1', 34).attr('x2', w - 8)
+      .attr('y1', p.y).attr('y2', p.y)
+      .attr('stroke','#181f2e').attr('stroke-width', 1);
+    gRoot.append('text')
+      .attr('x', 6).attr('y', p.y + 4)
+      .attr('font-size', 10).attr('fill', '#313c52')
+      .attr('font-family', 'monospace')
+      .text(yr);
+  });
+
+  // Edges (drawn first, under nodes)
+  EDGES.forEach(e => {
+    const sp = paperXY(e.s), tp = paperXY(e.t);
+    const tp_r = rScale(PAPERS.find(p => p.id === e.t));
+    const dx = tp.x - sp.x, dy = tp.y - sp.y;
+    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+    const eid = `${e.s}-${e.t}`;
+    gRoot.append('line')
+      .attr('class', `edge eid-${eid}`)
+      .attr('x1', sp.x).attr('y1', sp.y)
+      .attr('x2', tp.x - dx/len*(tp_r+4))
+      .attr('y2', tp.y - dy/len*(tp_r+4))
+      .attr('stroke', e.dashed ? '#f0a030' : '#2e3a50')
+      .attr('stroke-width', e.dashed ? 1.5 : 1.2)
+      .attr('stroke-dasharray', e.dashed ? '5,4' : null)
+      .attr('marker-end', e.dashed ? 'url(#arr-orange)' : 'url(#arr-gray)')
+      .attr('opacity', 0);
+  });
+
+  // Nodes (drawn over edges)
+  PAPERS.forEach(p => {
+    const { x, y } = paperXY(p.id);
+    const r  = rScale(p);
+    const col = CLUSTER_COLOR[p.cluster];
+
+    const g = gRoot.append('g')
+      .attr('class', `paper-g paper-g-${p.id}`)
+      .attr('transform', `translate(${x},${y})`)
+      .style('cursor', walkthroughOn ? 'default' : 'pointer')
+      .on('mouseenter', (ev) => !walkthroughOn && onPaperEnter(ev, p))
+      .on('mousemove',  (ev) => !walkthroughOn && moveTooltip(ev))
+      .on('mouseleave', ()  => !walkthroughOn && onPaperLeave())
+      .on('click',      ()  => !walkthroughOn && onPaperClick(p));
+
+    // Seed outer ring
+    if (p.seed) {
+      g.append('circle').attr('r', r + 6)
+        .attr('fill','none').attr('stroke','#c49428')
+        .attr('stroke-width', 1.5).attr('opacity', 0.5);
+    }
+
+    // Main circle — class used by getBoundingClientRect for overlay lines
+    g.append('circle')
+      .attr('class', `p-main-${p.id}`)
+      .attr('r', r)
+      .attr('fill', col).attr('fill-opacity', 0.15)
+      .attr('stroke', col).attr('stroke-width', p.seed ? 2 : 1.5);
+
+    // Hit area
+    g.append('circle').attr('r', r + 10).attr('fill','transparent');
+
+    g.append('text').attr('y', r + 12).attr('text-anchor','middle')
+      .attr('font-size', 10).attr('fill','#b0b8c8').text(p.short);
+    g.append('text').attr('y', r + 22).attr('text-anchor','middle')
+      .attr('font-size', 9).attr('fill','#4a5468').text(p.year);
+  });
+
+  // Legend
+  const leg = gRoot.append('g').attr('transform', `translate(${w - 108}, 14)`);
+  [['reasoning','Reasoning'],['cognitive','Cognitive sci.'],['evals','Evals']].forEach(([k,v],i) => {
+    const row = leg.append('g').attr('transform',`translate(0,${i*16})`);
+    row.append('circle').attr('r',4).attr('fill',CLUSTER_COLOR[k]).attr('fill-opacity',.5)
+       .attr('stroke',CLUSTER_COLOR[k]).attr('stroke-width',1);
+    row.append('text').attr('x',10).attr('dy',4).attr('font-size',9).attr('fill','#3e4a5e').text(v);
+  });
+  const drow = leg.append('g').attr('transform',`translate(0,${3*16})`);
+  drow.append('line').attr('x1',-7).attr('x2',7).attr('stroke','#f0a030')
+      .attr('stroke-dasharray','3,2').attr('stroke-width',1.5).attr('y1',0).attr('y2',0);
+  drow.append('text').attr('x',10).attr('dy',4).attr('font-size',9).attr('fill','#3e4a5e').text('Unexplored link');
+}
+
+// ─── DRAW AUTHOR PANEL ───────────────────────────────────────────────────────
+
+function drawAuthorPanel() {
+  aRoot.selectAll('*').remove();
+  aSvg.selectAll('defs').remove();
+
+  const { w, h } = aDims();
+  const PL = 52, PR = 28, PT = 28, PB = 42;
+
+  // Arrow marker for trajectories
+  aSvg.append('defs').append('marker').attr('id','arr-traj')
+    .attr('viewBox','0 -4 8 8').attr('refX',7).attr('refY',0)
+    .attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto')
+    .append('path').attr('d','M0,-4L8,0L0,4').attr('fill','#c49428');
+
+  // Axis lines
+  aRoot.append('line').attr('x1',PL).attr('x2',w-PR).attr('y1',h-PB).attr('y2',h-PB)
+    .attr('stroke','#1a2030').attr('stroke-width',1);
+  aRoot.append('line').attr('x1',PL).attr('x2',PL).attr('y1',PT).attr('y2',h-PB)
+    .attr('stroke','#1a2030').attr('stroke-width',1);
+
+  // Grid
+  [.25,.5,.75].forEach(f => {
+    const gx = PL + f*(w-PL-PR), gy = PT + (1-f)*(h-PT-PB);
+    aRoot.append('line').attr('x1',gx).attr('x2',gx).attr('y1',PT).attr('y2',h-PB)
+      .attr('stroke','#131820').attr('stroke-width',1);
+    aRoot.append('line').attr('x1',PL).attr('x2',w-PR).attr('y1',gy).attr('y2',gy)
+      .attr('stroke','#131820').attr('stroke-width',1);
+  });
+
+  // Axis labels
+  aRoot.append('text').attr('x',PL).attr('y',h-10).attr('font-size',10).attr('fill','#2e3848').text('← Theoretical');
+  aRoot.append('text').attr('x',w-PR).attr('y',h-10).attr('text-anchor','end').attr('font-size',10).attr('fill','#2e3848').text('Applied →');
+  aRoot.append('text').attr('x',w/2).attr('y',14).attr('text-anchor','middle').attr('font-size',10).attr('fill','#222d3e').text('T–3 · · · T–2 · · · T–1 · · · Now');
+
+  const yLabel = aRoot.append('text').attr('font-size',10).attr('fill','#2e3848')
+    .attr('text-anchor','middle').text('↑ Influence');
+  yLabel.attr('transform',`translate(14,${(PT+h-PB)/2}) rotate(-90)`);
+
+  // Authors
+  AUTHORS.forEach(a => {
+    const col = INST_COLOR[a.inst];
+    const ag = aRoot.append('g')
+      .attr('class', `author-g author-g-${a.id}`)
+      .style('cursor', walkthroughOn ? 'default' : 'pointer')
+      .on('mouseenter', (ev) => !walkthroughOn && onAuthorEnter(ev, a))
+      .on('mousemove',  (ev) => !walkthroughOn && moveTooltip(ev))
+      .on('mouseleave', ()  => !walkthroughOn && onAuthorLeave())
+      .on('click',      ()  => !walkthroughOn && onAuthorClick(a));
+
+    // Trail line (T-3 → current)
+    const p0 = authorXY(a.id, 0), p3 = authorXY(a.id, 3);
+    ag.append('line').attr('class','trail-line')
+      .attr('x1',p0.x).attr('y1',p0.y).attr('x2',p3.x).attr('y2',p3.y)
+      .attr('stroke',col).attr('stroke-width',1).attr('stroke-opacity',.35).attr('opacity',0);
+
+    // Trail dots (T-3, T-2, T-1)
+    [0,1,2].forEach(ti => {
+      const tp = authorXY(a.id, ti);
+      ag.append('circle').attr('class',`trail-dot trail-dot-${ti}`)
+        .attr('cx',tp.x).attr('cy',tp.y).attr('r',3.5)
+        .attr('fill',col).attr('fill-opacity',[.18,.30,.45][ti])
+        .attr('stroke',col).attr('stroke-width',.5)
+        .attr('opacity',0);
+    });
+
+    // Trajectory arrow (current → projected)
+    const dx = p3.x - p0.x, dy = p3.y - p0.y;
+    const len = Math.sqrt(dx*dx+dy*dy) || 1;
+    const ex = p3.x + dx/len * 20, ey = p3.y + dy/len * 20;
+    ag.append('line').attr('class','trail-arrow')
+      .attr('x1',p3.x).attr('y1',p3.y).attr('x2',ex).attr('y2',ey)
+      .attr('stroke','#c49428').attr('stroke-width',1.5)
+      .attr('marker-end','url(#arr-traj)').attr('opacity',0);
+
+    // Current dot
+    const { x, y } = authorXY(a.id);
+    ag.append('circle')
+      .attr('class', `a-main-${a.id}`)
+      .attr('cx', x).attr('cy', y).attr('r', 9)
+      .attr('fill',col).attr('fill-opacity',.20)
+      .attr('stroke',col).attr('stroke-width',2);
+    // Hit area
+    ag.append('circle').attr('cx',x).attr('cy',y).attr('r',18).attr('fill','transparent');
+
+    // Name label
+    ag.append('text').attr('x',x+12).attr('y',y+4)
+      .attr('font-size',10).attr('fill','#8a96a8')
+      .text(a.name.split(' ').slice(-1)[0]); // last name
+  });
+
+  // Institution legend
+  const ileg = aRoot.append('g').attr('transform',`translate(${PL+4},${PT+6})`);
+  [['google','Google Brain'],['openai','OpenAI'],['stanford','Stanford']].forEach(([k,v],i) => {
+    const row = ileg.append('g').attr('transform',`translate(0,${i*15})`);
+    row.append('circle').attr('r',4).attr('fill',INST_COLOR[k]).attr('fill-opacity',.5)
+       .attr('stroke',INST_COLOR[k]).attr('stroke-width',1);
+    row.append('text').attr('x',10).attr('dy',4).attr('font-size',9).attr('fill','#3e4a5e').text(v);
+  });
+}
+
+// ─── VISUAL STATE ────────────────────────────────────────────────────────────
+
+function setPaperOpacity(ids, dur = 350) {
+  // ids: [] = all full, 'all' = all dim, or array of ids to dim
+  gRoot.selectAll('.paper-g').each(function() {
+    const g = d3.select(this);
+    const id = this.className.baseVal.match(/paper-g-(\S+)/)?.[1];
+    const dim = ids === 'all' ? true : (Array.isArray(ids) && ids.includes(id));
+    g.transition().duration(dur).style('opacity', dim ? 0.07 : 1);
+  });
+}
+
+function setAuthorOpacity(ids, dur = 350) {
+  aRoot.selectAll('.author-g').each(function() {
+    const g = d3.select(this);
+    const id = this.className.baseVal.match(/author-g-(\S+)/)?.[1];
+    const dim = ids === 'all' ? true : (Array.isArray(ids) && ids.includes(id));
+    g.transition().duration(dur).style('opacity', dim ? 0.08 : 1);
+  });
+}
+
+function setEdgesVisible(on, dur = 350) {
+  gRoot.selectAll('.edge').transition().duration(dur).attr('opacity', on ? 0.85 : 0);
+}
+
+function animateEdgesIn() {
+  gRoot.selectAll('.edge').each(function(d, i) {
+    d3.select(this).attr('opacity', 0)
+      .transition().duration(380).delay(i * 130).attr('opacity', 0.85);
+  });
+}
+
+function setGlowPapers(ids) {
+  gRoot.selectAll('.paper-g').each(function() {
+    const id = this.className.baseVal.match(/paper-g-(\S+)/)?.[1];
+    const glow = ids && ids.includes(id);
+    const col = glow ? CLUSTER_COLOR[PAPERS.find(p=>p.id===id).cluster] : null;
+    d3.select(this).select('circle.p-main-' + id)
+      .attr('filter', glow ? `drop-shadow(0 0 9px ${col})` : null);
+  });
+}
+
+function clearEdgePulse() {
+  if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; }
+  gRoot.selectAll('.edge').attr('opacity', 0.85); // restore
+}
+
+function pulseEdge(eid) {
+  clearEdgePulse();
+  const el = gRoot.select(`.eid-${eid}`);
+  let up = true;
+  pulseTimer = setInterval(() => {
+    el.transition().duration(550).attr('opacity', up ? 1 : 0.25);
+    up = !up;
+  }, 600);
+}
+
+// Trails
+function showTrailFor(authorId, animate = false) {
+  const ag = aRoot.select(`.author-g-${authorId}`);
+  if (animate) {
+    ag.selectAll('.trail-dot').transition().duration(350).delay((d,i)=>i*100).attr('opacity',1);
+    ag.selectAll('.trail-line').transition().duration(500).delay(250).attr('opacity',1);
+    ag.selectAll('.trail-arrow').transition().duration(350).delay(700).attr('opacity',1);
+  } else {
+    ag.selectAll('.trail-dot,.trail-line,.trail-arrow').attr('opacity',1);
+  }
+}
+
+function hideAllTrails() {
+  aRoot.selectAll('.trail-dot,.trail-line,.trail-arrow').attr('opacity',0);
+}
+
+function showAllTrails() {
+  aRoot.selectAll('.trail-dot,.trail-line,.trail-arrow').transition().duration(400).attr('opacity',1);
+}
+
+// ─── CROSS-PANEL OVERLAY ─────────────────────────────────────────────────────
+
+function clearLinks() { overlay.selectAll('.xlink').remove(); }
+
+function drawLinksForAuthor(authorId, animate = false) {
+  clearLinks();
+  const a = AUTHORS.find(x => x.id === authorId);
+  if (!a) return;
+  const ap = authorScreen(authorId);
+  if (!ap) return;
+  a.papers.forEach((pid, i) => {
+    const pp = paperScreen(pid);
+    if (!pp) return;
+    overlay.append('line').attr('class','xlink')
+      .attr('x1', pp.x).attr('y1', pp.y)
+      .attr('x2', ap.x).attr('y2', ap.y)
+      .attr('stroke','#c49428').attr('stroke-width',1.5)
+      .attr('stroke-dasharray','5,4')
+      .attr('opacity', animate ? 0 : 0.5)
+      .call(line => animate && line.transition().duration(450).delay(i*120).attr('opacity',0.5));
+  });
+}
+
+function drawLinksForPaper(paperId, animate = false) {
+  clearLinks();
+  const pp = paperScreen(paperId);
+  if (!pp) return;
+  AUTHORS.filter(a => a.papers.includes(paperId)).forEach((a, i) => {
+    const ap = authorScreen(a.id);
+    if (!ap) return;
+    overlay.append('line').attr('class','xlink')
+      .attr('x1', pp.x).attr('y1', pp.y)
+      .attr('x2', ap.x).attr('y2', ap.y)
+      .attr('stroke','#c49428').attr('stroke-width',1.5)
+      .attr('stroke-dasharray','5,4')
+      .attr('opacity', animate ? 0 : 0.5)
+      .call(line => animate && line.transition().duration(350).delay(i*100).attr('opacity',0.5));
+  });
+}
+
+// ─── WALKTHROUGH ─────────────────────────────────────────────────────────────
+
+function applyStep(s, prevS) {
+  const st = STEPS[s];
+  clearLinks();
+  clearEdgePulse();
+  setGlowPapers(null);
+  hideAllTrails();
+
+  document.getElementById('wt-title').textContent = st.title;
+  document.getElementById('wt-body').innerHTML    = st.html;
+  document.getElementById('wt-indicator').textContent = `${s+1} / ${STEPS.length}`;
+  document.getElementById('wt-prev').disabled = s === 0;
+  const nextBtn = document.getElementById('wt-next');
+  nextBtn.textContent = s === STEPS.length - 1 ? 'Explore →' : '→';
+
+  // Papers
+  setPaperOpacity(st.dimPapers || []);
+
+  // Authors
+  setAuthorOpacity(st.dimAuthors || []);
+
+  // Edges
+  if (st.animateEdges) {
+    animateEdgesIn();
+  } else {
+    setEdgesVisible(st.edges || false);
+  }
+
+  // Glow
+  if (st.glowPapers) setGlowPapers(st.glowPapers);
+
+  // Pulse edge
+  if (st.pulseEdge) {
+    setTimeout(() => pulseEdge(st.pulseEdge), 400);
+  }
+
+  // Trails
+  if (st.showAllTrails) {
+    showAllTrails();
+  } else if (st.animateTrail) {
+    showTrailFor(st.animateTrail, true);
+  } else if (st.showTrail) {
+    st.showTrail.forEach(id => showTrailFor(id, false));
+  }
+
+  // Cross-links
+  if (st.crossLinkAuthor) {
+    setTimeout(() => drawLinksForAuthor(st.crossLinkAuthor, true), 350);
+  }
+}
+
+function nextStep() {
+  if (step < STEPS.length - 1) {
+    step++;
+    applyStep(step, step - 1);
+  } else {
+    enterFreeMode();
+  }
+}
+
+function prevStep() {
+  if (step > 0) { step--; applyStep(step, step + 1); }
+}
+
+function enterFreeMode() {
+  walkthroughOn = false;
+  clearEdgePulse();
+  clearLinks();
+  setGlowPapers(null);
+  hideAllTrails();
+  setPaperOpacity([]);
+  setAuthorOpacity([]);
+  setEdgesVisible(true);
+  gRoot.selectAll('.paper-g').style('cursor','pointer');
+  aRoot.selectAll('.author-g').style('cursor','pointer');
+  document.getElementById('walkthrough').style.display = 'none';
+  const hint = document.getElementById('free-mode-hint');
+  hint.style.display = 'block';
+  setTimeout(() => hint.style.opacity = '0', 3000);
+  setTimeout(() => hint.style.display = 'none', 3500);
+}
+
+document.getElementById('wt-next').addEventListener('click', nextStep);
+document.getElementById('wt-prev').addEventListener('click', prevStep);
+document.getElementById('wt-skip').addEventListener('click', enterFreeMode);
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  nextStep();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    prevStep();
+  if (e.key === 'Escape') {
+    if (walkthroughOn) enterFreeMode();
+    else { pinnedPaper = null; pinnedAuthor = null; clearLinks(); clearHighlights(); }
+  }
+});
+
+// ─── FREE-MODE INTERACTIONS ──────────────────────────────────────────────────
+
+function showTooltip(ev, html) {
+  tooltipEl.innerHTML = html;
+  tooltipEl.classList.add('show');
+  moveTooltip(ev);
+}
+function moveTooltip(ev) {
+  const x = ev.clientX + 14, y = ev.clientY - 8;
+  tooltipEl.style.left = Math.min(x, window.innerWidth - 250) + 'px';
+  tooltipEl.style.top  = Math.max(y, 8) + 'px';
+}
+function hideTooltip() { tooltipEl.classList.remove('show'); }
+
+function clearHighlights() {
+  setPaperOpacity([]); setAuthorOpacity([]);
+  hideAllTrails(); setGlowPapers(null); clearLinks();
+}
+
+function onPaperEnter(ev, p) {
+  if (pinnedPaper || pinnedAuthor) return;
+  showTooltip(ev, `
+    <div class="tt-name">${p.title}</div>
+    <div class="tt-meta">${p.authors.join(', ')}</div>
+    <div class="tt-meta">${p.year} &nbsp;·&nbsp; <span class="tt-gold">${p.cites.toLocaleString()} citations</span></div>
+  `);
+  const relAuthors = AUTHORS.filter(a => a.papers.includes(p.id)).map(a => a.id);
+  const dimAuthors = AUTHORS.map(a => a.id).filter(id => !relAuthors.includes(id));
+  const dimPapers  = PAPERS.map(x => x.id).filter(id => id !== p.id);
+  setPaperOpacity(dimPapers, 200);
+  setAuthorOpacity(dimAuthors, 200);
+  relAuthors.forEach(id => showTrailFor(id));
+  drawLinksForPaper(p.id);
+}
+function onPaperLeave() {
+  if (pinnedPaper || pinnedAuthor) return;
+  hideTooltip(); clearHighlights();
+}
+function onPaperClick(p) {
+  if (pinnedPaper === p.id) { pinnedPaper = null; clearHighlights(); return; }
+  pinnedPaper = p.id; pinnedAuthor = null;
+  const relAuthors = AUTHORS.filter(a => a.papers.includes(p.id)).map(a => a.id);
+  const dimAuthors = AUTHORS.map(a => a.id).filter(id => !relAuthors.includes(id));
+  const dimPapers  = PAPERS.map(x => x.id).filter(id => id !== p.id);
+  setPaperOpacity(dimPapers); setAuthorOpacity(dimAuthors);
+  relAuthors.forEach(id => showTrailFor(id));
+  drawLinksForPaper(p.id);
+}
+
+function onAuthorEnter(ev, a) {
+  if (pinnedPaper || pinnedAuthor) return;
+  showTooltip(ev, `
+    <div class="tt-name">${a.name}</div>
+    <div class="tt-meta">${a.affil}</div>
+    <div class="tt-meta">Focus: <span class="tt-gold">${a.focus}</span></div>
+    <div class="tt-meta">${a.papers.length} paper${a.papers.length>1?'s':''} in this lineage</div>
+  `);
+  const dimPapers  = PAPERS.map(p => p.id).filter(id => !a.papers.includes(id));
+  const dimAuthors = AUTHORS.map(x => x.id).filter(id => id !== a.id);
+  setPaperOpacity(dimPapers, 200); setAuthorOpacity(dimAuthors, 200);
+  showTrailFor(a.id);
+  drawLinksForAuthor(a.id);
+}
+function onAuthorLeave() {
+  if (pinnedPaper || pinnedAuthor) return;
+  hideTooltip(); clearHighlights();
+}
+function onAuthorClick(a) {
+  if (pinnedAuthor === a.id) { pinnedAuthor = null; clearHighlights(); return; }
+  pinnedAuthor = a.id; pinnedPaper = null;
+  const dimPapers  = PAPERS.map(p => p.id).filter(id => !a.papers.includes(id));
+  const dimAuthors = AUTHORS.map(x => x.id).filter(id => id !== a.id);
+  setPaperOpacity(dimPapers); setAuthorOpacity(dimAuthors);
+  showTrailFor(a.id); drawLinksForAuthor(a.id);
+}
+
+// ─── INIT & RESIZE ───────────────────────────────────────────────────────────
+
+function render() {
+  drawGenealogy();
+  drawAuthorPanel();
+}
+
+function init() {
+  render();
+  applyStep(0, null);
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    render();
+    if (walkthroughOn) applyStep(step, null);
+    else { setEdgesVisible(true); }
+    if (pinnedAuthor) drawLinksForAuthor(pinnedAuthor);
+    if (pinnedPaper)  drawLinksForPaper(pinnedPaper);
+  }, 80);
+});
+
+init();
+</script>
+</body>
+</html>
