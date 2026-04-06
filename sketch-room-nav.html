@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Room Nav — Concept Sketch</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #403151;
+  color: #F1F0DE;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Room container ───────────────────────────── */
+#room {
+  display: flex;
+  height: 100vh;
+  transition: opacity .3s;
+}
+
+/* ── Left: Explainer ──────────────────────────── */
+#explainer {
+  flex: 1;
+  padding: 48px 48px 48px 56px;
+  overflow-y: auto;
+  max-width: 600px;
+}
+#concept-name {
+  font-size: 36px; font-weight: 600; color: #C49428;
+  margin-bottom: 6px;
+}
+#concept-subtitle {
+  font-size: 14px; color: #74508B; margin-bottom: 24px;
+  font-style: italic;
+}
+#concept-text {
+  font-size: 18px; color: #F1F0DE; line-height: 1.75;
+}
+#concept-text a {
+  color: #9B6BBA; text-decoration: none;
+  border-bottom: 1px dotted #74508B;
+  cursor: pointer;
+}
+#concept-text a:hover { color: #F1F0DE; border-bottom-color: #F1F0DE; }
+
+/* ── Right: Resource bands ────────────────────── */
+#bands {
+  width: 380px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  border-left: 1px solid #4D355D;
+}
+
+.band {
+  flex: 1;
+  padding: 20px 24px;
+  display: flex; flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s, flex .3s;
+  position: relative;
+  overflow: hidden;
+}
+.band:hover { filter: brightness(1.15); }
+
+.band-noob   { background: #4D355D; }
+.band-mid    { background: #3a2845; }
+.band-expert { background: #271B2F; }
+
+.band-icon { font-size: 22px; margin-bottom: 6px; }
+.band-label { font-size: 16px; font-weight: 600; color: #F1F0DE; margin-bottom: 3px; }
+.band-meta { font-size: 13px; color: #B490CB; }
+.band-source { font-size: 11px; color: #74508B; margin-top: 4px; }
+
+/* Expanded band */
+.band.expanded {
+  flex: 3;
+  cursor: default;
+}
+.band-extras {
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s ease, margin .3s;
+  margin-top: 0;
+}
+.band.expanded .band-extras {
+  max-height: 300px;
+  margin-top: 12px;
+}
+.band-extra-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255,255,255,.06);
+  font-size: 13px; color: #B490CB;
+  cursor: pointer; transition: color .12s;
+}
+.band-extra-item:hover { color: #F1F0DE; }
+.band-extra-icon { font-size: 16px; flex-shrink: 0; }
+.band-extra-meta { font-size: 11px; color: #74508B; margin-left: auto; }
+
+/* ── Doorways ─────────────────────────────────── */
+#doorways {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; gap: 0;
+  border-top: 1px solid #4D355D;
+  z-index: 10;
+}
+.doorway {
+  flex: 1;
+  padding: 14px 20px;
+  background: #271B2F;
+  cursor: pointer;
+  transition: background .12s;
+  border-right: 1px solid #4D355D;
+  text-align: center;
+}
+.doorway:last-child { border-right: none; }
+.doorway:hover { background: #4D355D; }
+.doorway-name { font-size: 14px; color: #F1F0DE; font-weight: 500; }
+.doorway-rel { font-size: 10px; color: #74508B; margin-top: 2px; }
+
+/* ── Back button ──────────────────────────────── */
+#back-btn {
+  position: fixed; top: 16px; left: 16px;
+  background: none; border: 1px solid #4D355D;
+  color: #74508B; padding: 5px 12px;
+  border-radius: 6px; font-size: 12px;
+  cursor: pointer; z-index: 10;
+  transition: all .12s; font-family: inherit;
+  display: none;
+}
+#back-btn:hover { border-color: #9B6BBA; color: #F1F0DE; }
+</style>
+</head>
+<body>
+
+<button id="back-btn" onclick="goBack()">← Back</button>
+
+<div id="room">
+  <div id="explainer">
+    <div id="concept-name"></div>
+    <div id="concept-subtitle"></div>
+    <div id="concept-text"></div>
+  </div>
+  <div id="bands"></div>
+</div>
+
+<div id="doorways"></div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const ROOMS = {
+  transformers: {
+    name: 'Transformers',
+    subtitle: 'the architecture behind ChatGPT',
+    text: `Before Transformers, AI models that processed language had to read words one at a time, like a person scanning a sentence left to right. This made them slow and forgetful — by the time they reached the end of a long paragraph, they'd often lost track of the beginning.<br><br>Transformers changed that completely. Instead of reading sequentially, a Transformer looks at every word in a passage simultaneously and figures out which words are most important to each other. The word "it" in a sentence might strongly connect to "the cat" three sentences earlier — a Transformer can see that connection instantly.<br><br>This ability is called <a onclick="navigateTo('self-attention')">self-attention</a>, and it's the core innovation. It lets Transformers process language in parallel (making them fast) while keeping track of long-range connections (making them smart).<br><br>Transformers are the foundation of every major AI language model: <a onclick="navigateTo('gpt')">GPT</a>, <a onclick="navigateTo('bert')">BERT</a>, Claude, Gemini, Llama. They also power image generation, protein folding prediction, and many other breakthroughs. It's not an exaggeration to say they changed the entire field.`,
+    bands: [
+      { level: 'noob', icon: '🎥', label: 'Watch', meta: '30 min · video', source: '3Blue1Brown',
+        url: 'https://www.youtube.com/watch?v=wjZofJX0v4M',
+        extras: [
+          { icon: '📝', label: 'Our plain-English explainer', meta: '5 min read' },
+          { icon: '🔧', label: 'Bycroft: LLM Visualization', meta: 'interactive', url: 'https://bbycroft.net/llm' },
+        ]},
+      { level: 'mid', icon: '📝', label: 'Read', meta: '15 min · read', source: 'Jay Alammar',
+        url: 'https://jalammar.github.io/illustrated-transformer/',
+        extras: [
+          { icon: '📝', label: 'Lilian Weng: Transformer Family', meta: '25 min read' },
+          { icon: '🎥', label: 'Karpathy: Build GPT from scratch', meta: '2 hr video' },
+        ]},
+      { level: 'expert', icon: '📄', label: 'Research', meta: '120k citations · paper', source: 'Vaswani et al. 2017',
+        url: 'https://arxiv.org/abs/1706.03762',
+        extras: [
+          { icon: '⚡', label: 'O(n²) memory complexity', meta: 'Consensus' },
+          { icon: '⚡', label: 'Outperform RNNs w/ sufficient data', meta: 'Contested' },
+          { icon: '❓', label: 'Why they generalize', meta: 'Gap' },
+        ]},
+    ],
+    doorways: [
+      { id: 'self-attention', name: 'Self-Attention', rel: 'core component' },
+      { id: 'gpt', name: 'GPT', rel: 'built on this' },
+      { id: 'bert', name: 'BERT', rel: 'built on this' },
+      { id: 'attention', name: 'Attention', rel: 'prerequisite' },
+    ],
+  },
+  'self-attention': {
+    name: 'Self-Attention',
+    subtitle: 'how Transformers decide what matters',
+    text: `Self-attention is the mechanism that makes <a onclick="navigateTo('transformers')">Transformers</a> work. It answers a simple question: for each word in a sentence, which other words should it pay attention to?<br><br>Think of it like a group conversation. When someone says "she picked up the ball and threw it," your brain instantly connects "it" to "ball" and "she" to whoever was mentioned earlier. Self-attention does the same thing, but mathematically — it computes a score between every pair of words to figure out which connections matter most.<br><br>The "self" part means it's looking within the same text (as opposed to comparing two different texts). Every word gets to look at every other word and decide how much to care about it.`,
+    bands: [
+      { level: 'noob', icon: '🎥', label: 'Watch', meta: '10 min · video', source: '3Blue1Brown (chapter)',
+        extras: [] },
+      { level: 'mid', icon: '📝', label: 'Read', meta: '8 min · read', source: 'Jay Alammar (section)',
+        extras: [] },
+      { level: 'expert', icon: '📄', label: 'Research', meta: 'see Transformers paper', source: 'Vaswani et al.',
+        extras: [
+          { icon: '⚡', label: 'Quadratic memory bottleneck', meta: 'Consensus' },
+        ]},
+    ],
+    doorways: [
+      { id: 'transformers', name: 'Transformers', rel: 'used in' },
+      { id: 'attention', name: 'Attention', rel: 'builds on' },
+    ],
+  },
+  gpt: {
+    name: 'GPT',
+    subtitle: 'Generative Pre-trained Transformer',
+    text: `GPT is an AI that predicts the next word. That's it — that's the core idea. You give it some text, and it guesses what comes next. Do that billions of times with internet text, and it learns an enormous amount about language, facts, and reasoning.<br><br>The "Generative" means it creates text. "Pre-trained" means it learns from a huge dataset before being specialized. "<a onclick="navigateTo('transformers')">Transformer</a>" is the architecture it uses.<br><br>GPT is the technology behind ChatGPT. The key insight was that simple next-word prediction, scaled up massively, produces surprisingly capable and general-purpose AI systems.`,
+    bands: [
+      { level: 'noob', icon: '🎥', label: 'Watch', meta: '25 min · video', source: '3Blue1Brown',
+        extras: [] },
+      { level: 'mid', icon: '📝', label: 'Read', meta: '20 min · read', source: 'OpenAI blog',
+        extras: [] },
+      { level: 'expert', icon: '📄', label: 'Research', meta: '45k citations', source: 'Radford et al. 2018',
+        extras: [] },
+    ],
+    doorways: [
+      { id: 'transformers', name: 'Transformers', rel: 'built on' },
+      { id: 'bert', name: 'BERT', rel: 'alternative' },
+    ],
+  },
+  bert: {
+    name: 'BERT',
+    subtitle: 'Bidirectional Encoder Representations from Transformers',
+    text: `While <a onclick="navigateTo('gpt')">GPT</a> reads text left to right (predicting the next word), BERT reads in both directions at once. It masks random words in a sentence and tries to fill in the blanks, learning to understand context from both sides.<br><br>This makes BERT especially good at understanding language — answering questions, classifying text, detecting sentiment — rather than generating it. BERT powered Google Search for years.`,
+    bands: [
+      { level: 'noob', icon: '📝', label: 'Read', meta: '10 min', source: 'Google AI blog',
+        extras: [] },
+      { level: 'mid', icon: '📝', label: 'Read', meta: '15 min', source: 'Jay Alammar',
+        extras: [] },
+      { level: 'expert', icon: '📄', label: 'Research', meta: '95k citations', source: 'Devlin et al. 2018',
+        extras: [] },
+    ],
+    doorways: [
+      { id: 'transformers', name: 'Transformers', rel: 'built on' },
+      { id: 'gpt', name: 'GPT', rel: 'alternative' },
+    ],
+  },
+  attention: {
+    name: 'Attention',
+    subtitle: 'the mechanism that started it all',
+    text: `Before <a onclick="navigateTo('self-attention')">self-attention</a>, there was plain attention. The original idea (2014) was simple: when translating a sentence from French to English, the model should be able to "look back" at the French words while generating each English word, focusing on the most relevant ones.<br><br>This solved a huge problem with earlier approaches that tried to compress an entire sentence into a single fixed-size vector. Attention lets the model selectively focus on different parts of the input for each part of the output.`,
+    bands: [
+      { level: 'noob', icon: '📝', label: 'Read', meta: '5 min', source: 'Our explainer',
+        extras: [] },
+      { level: 'mid', icon: '📝', label: 'Read', meta: '10 min', source: 'Distill.pub',
+        extras: [] },
+      { level: 'expert', icon: '📄', label: 'Research', meta: '40k citations', source: 'Bahdanau et al. 2014',
+        extras: [] },
+    ],
+    doorways: [
+      { id: 'self-attention', name: 'Self-Attention', rel: 'evolved into' },
+      { id: 'transformers', name: 'Transformers', rel: 'used in' },
+    ],
+  },
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+let currentRoom = 'transformers';
+let history = [];
+let expandedBand = null;
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+
+function renderRoom(id) {
+  const room = ROOMS[id];
+  if (!room) return;
+  currentRoom = id;
+  expandedBand = null;
+
+  document.getElementById('concept-name').textContent = room.name;
+  document.getElementById('concept-subtitle').textContent = room.subtitle;
+  document.getElementById('concept-text').innerHTML = room.text;
+
+  // Bands
+  const bandsEl = document.getElementById('bands');
+  bandsEl.innerHTML = '';
+  room.bands.forEach((b, i) => {
+    const cls = b.level === 'noob' ? 'band-noob' : b.level === 'mid' ? 'band-mid' : 'band-expert';
+    const band = document.createElement('div');
+    band.className = `band ${cls}`;
+    band.dataset.idx = i;
+
+    let extrasHTML = '';
+    if (b.extras && b.extras.length) {
+      extrasHTML = `<div class="band-extras">${b.extras.map(e =>
+        `<div class="band-extra-item"${e.url ? ` onclick="window.open('${e.url}','_blank')"` : ''}>
+          <span class="band-extra-icon">${e.icon}</span>
+          <span>${e.label}</span>
+          <span class="band-extra-meta">${e.meta}</span>
+        </div>`
+      ).join('')}</div>`;
+    }
+
+    band.innerHTML = `
+      <div class="band-icon">${b.icon}</div>
+      <div class="band-label">${b.label}</div>
+      <div class="band-meta">${b.meta}</div>
+      ${b.source ? `<div class="band-source">${b.source}</div>` : ''}
+      ${extrasHTML}
+    `;
+
+    band.addEventListener('click', (e) => {
+      if (e.target.closest('.band-extra-item')) return;
+      if (expandedBand === i) {
+        // Clicking expanded band → open the resource
+        if (b.url) window.open(b.url, '_blank');
+      } else {
+        // Expand this band
+        bandsEl.querySelectorAll('.band').forEach(el => el.classList.remove('expanded'));
+        band.classList.add('expanded');
+        expandedBand = i;
+      }
+    });
+
+    bandsEl.appendChild(band);
+  });
+
+  // Doorways
+  const doorsEl = document.getElementById('doorways');
+  doorsEl.innerHTML = '';
+  room.doorways.forEach(d => {
+    const door = document.createElement('div');
+    door.className = 'doorway';
+    door.innerHTML = `<div class="doorway-name">${d.name}</div><div class="doorway-rel">${d.rel}</div>`;
+    door.addEventListener('click', () => navigateTo(d.id));
+    doorsEl.appendChild(door);
+  });
+
+  // Back button
+  document.getElementById('back-btn').style.display = history.length > 0 ? 'block' : 'none';
+
+  // Scroll explainer to top
+  document.getElementById('explainer').scrollTop = 0;
+}
+
+function navigateTo(id) {
+  if (!ROOMS[id]) return;
+  history.push(currentRoom);
+  renderRoom(id);
+}
+
+function goBack() {
+  if (history.length === 0) return;
+  const prev = history.pop();
+  renderRoom(prev);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+renderRoom('transformers');
+</script>
+</body>
+</html>
