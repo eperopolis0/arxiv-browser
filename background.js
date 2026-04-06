@@ -132,19 +132,12 @@ async function doFetchAndCache() {
     ]);
     const rawPapers = await fetchArxivBatch(count);
 
-    // Drop papers arXiv announced more than 2 days ago.
-    // We filter on `updated` (arXiv announcement/processing date), NOT `published`
-    // (submission date). A paper submitted Friday gets published=Fri but updated=Mon
-    // when arXiv announces it — so a 2-day window correctly keeps weekend papers
-    // without needing a wider calendar cutoff.
-    const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const freshPapers = rawPapers.filter(p => {
-      const upd = (p.updated || p.published || '').slice(0, 10);
-      return !upd || upd >= cutoff;
-    });
-    if (freshPapers.length < rawPapers.length) {
-      console.log(`[arXiv] Date filter: dropped ${rawPapers.length - freshPapers.length} stale papers (updated before ${cutoff}).`);
-    }
+    // No date filter — we already fetch exactly `count` papers from today's listing,
+    // so all rawPapers are today's batch. The `updated` field in arXiv's Atom feed
+    // is the author's last revision date (e.g. Friday for a paper announced Monday),
+    // not arXiv's announcement date, so a cutoff filter incorrectly removes everything
+    // on Mondays and after long weekends.
+    const freshPapers = rawPapers;
 
     // S2 affiliation lookup — non-fatal; missing → prestige 2 (neutral)
     const prestigeMap = await fetchS2Affiliations(freshPapers);
@@ -182,12 +175,16 @@ async function doFetchAndCache() {
   } catch (err) {
     console.error('[arXiv] Fetch failed:', err.message);
     const is429 = err.message.includes('429');
+    const is503 = err.message.includes('503');
+    // 429: 3-min cooldown (rate limit). 503: 45s retry (arXiv overloaded, common
+    // on Monday mornings when papers drop). Both use fetchRetryAfter so newtab
+    // shows a countdown and auto-retries rather than leaving the user stuck.
+    const retryDelay = is429 ? 3 * 60 * 1000 : is503 ? 45 * 1000 : 0;
     await setStorage({
       fetchError: err.message,
       fetchInProgress: false,
       fetchStartedAt: null,
-      // On 429: 3-minute cooldown. newtab.js polls this and shows a countdown.
-      ...(is429 ? { fetchRetryAfter: Date.now() + 3 * 60 * 1000 } : {})
+      ...(retryDelay ? { fetchRetryAfter: Date.now() + retryDelay } : {})
     });
   }
 }
@@ -321,7 +318,7 @@ const PRESTIGE_TIER3 = [
   'mila','université de montréal','university of toronto',
   'princeton university',
   'max planck institute',
-  'tsinghua university',
+  'tsinghua university','tsinghua',
   'peking university',
 ];
 

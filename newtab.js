@@ -233,17 +233,28 @@ function classifyPaper(title, summary, cat) {
   }
   return best || 'General ML';
 }
+function stripLatex(text) {
+  if (!text) return text;
+  return text
+    .replace(/\\(?:emph|textbf|textit|texttt|text|mathrm|mathbf|mathit)\{([^}]*)\}/g, '$1')
+    .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')  // any other \cmd{content} → content
+    .replace(/\\[a-zA-Z]+\s*/g, '')              // bare \commands → remove
+    .replace(/[{}]/g, '');                        // stray braces
+}
+
 function processRawPapers(rawPapers) {
   if (!rawPapers.length) return [];
   return rawPapers.map(p => {
+    const title   = stripLatex(p.title   || '');
+    const summary = stripLatex(p.summary || '');
     const cat = (p.categories||[]).find(c=>c.startsWith('cs.'))||p.categories?.[0]||'cs.AI';
-    const cluster = classifyPaper(p.title, p.summary||'', cat);
-    return { id:p.arxivId, title:p.title, gist:(p.summary||'').slice(0,200).replace(/\s+/g,' ').toLowerCase(),
-      cat, format:classifyFormat(p.title,p.summary||''), applied:scoreApplied(p.title,p.summary||''),
-      relevance:scoreRelevance(cat,p.title,p.summary||''), upvotes:p.upvotes||0, trending:p.trending||false,
+    const cluster = classifyPaper(title, summary, cat);
+    return { id:p.arxivId, title, gist:summary.slice(0,200).replace(/\s+/g,' ').toLowerCase(),
+      cat, format:classifyFormat(title, summary), applied:scoreApplied(title, summary),
+      relevance:scoreRelevance(cat, title, summary), upvotes:p.upvotes||0, trending:p.trending||false,
       starred:false, clusters:[cluster], _absLink:p.absLink||'https://arxiv.org/abs/'+p.arxivId,
       _pdfLink:p.pdfLink||'https://arxiv.org/pdf/'+p.arxivId,
-      _authors:(p.authors||[]).slice(0,3).join(', '), _summary:p.summary||'' };
+      _authors:(p.authors||[]).slice(0,3).join(', '), _summary:summary };
   });
 }
 
@@ -384,8 +395,9 @@ async function loadAndRender() {
     // we'd loop forever re-triggering failed fetches.
     const today = new Date().toISOString().slice(0, 10);
     if (data.lastFetch !== today && !data.fetchInProgress) {
-      // Always attempt a refresh for stale papers — even if a previous fetch
-      // failed overnight. Clear the error so doFetchAndCache gets a clean run.
+      // Silently trigger a background refresh for stale papers.
+      // storage.onChanged will re-render this tab when new papers arrive.
+      document.getElementById('header-date').textContent = (data.lastFetch || '—') + ' ↻';
       chrome.storage.local.set({ lastFetch: null, fetchError: null }, () => {
         chrome.runtime.sendMessage({ action: 'refresh' });
       });
@@ -421,7 +433,17 @@ async function loadAndRender() {
   // early if a 429 cooldown is detected.
   for (let attempt = 0; attempt < 150; attempt++) {
     await new Promise(r => setTimeout(r, 2000));
-    const d = await new Promise(r => chrome.storage.local.get(['processedPapers','papers','fetchError','fetchInProgress','fetchRetryAfter'], r));
+    const d = await new Promise(r => chrome.storage.local.get(['processedPapers','papers','fetchError','fetchInProgress','fetchRetryAfter','fetchStartedAt'], r));
+
+    // Detect dead service worker: fetchInProgress stuck true but fetchStartedAt
+    // is >90s old — the worker was killed mid-fetch. Break the lock and retry.
+    if (d.fetchInProgress && d.fetchStartedAt && (Date.now() - d.fetchStartedAt) > 90_000) {
+      console.warn('[arXiv] Service worker appears dead — breaking stale lock and retrying.');
+      await new Promise(r => chrome.storage.local.set({ fetchInProgress: false, fetchStartedAt: null }, r));
+      chrome.runtime.sendMessage({ action: 'refresh' });
+      showLoading('Retrying fetch\u2026');
+      continue;
+    }
 
     // 429 cooldown detected — hand off to countdown, exit polling
     if (d.fetchRetryAfter && Date.now() < d.fetchRetryAfter) {
@@ -917,15 +939,15 @@ function showTip(evt, p) {
 
 function moveTip(evt) {
   const pad=14, tw=tipEl.offsetWidth, th=tipEl.offsetHeight;
-  let lx = evt.clientX+pad, ly = evt.clientY-pad;
-  if (lx+tw > window.innerWidth-8)  lx = evt.clientX-tw-pad;
+  let lx = evt.clientX-tw-pad, ly = evt.clientY-pad;
+  if (lx < 8) lx = evt.clientX+pad; // fall back to right if no room on left
   if (ly+th > window.innerHeight-8) ly = evt.clientY-th-pad;
   if (ly < 8) ly = 8;  // don't clip behind top bar
   tipEl.style.left = lx+'px'; tipEl.style.top = ly+'px';
 }
 
 document.addEventListener('click', e => {
-  if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card')) {
+  if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card') && !e.target.closest('#sidebar-toggle') && !e.target.closest('#sidebar-show')) {
     pinned = null; tipEl.style.display = 'none';
     dotsG?.selectAll('path.pdot').attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
     resetClusterHighlight();
@@ -1082,7 +1104,7 @@ function extractExcerpt(text) {
   if (!allMatches.length) {
     // Fallback: highlight the first complete sentence in gold, no gap sentence
     const sentM = /[.!?](?:\s|$)/.exec(text);
-    const split = sentM ? sentM.index + 1 : text.length;
+    const split = sentM ? sentM.index + 1 : Math.min(200, text.length);
     return { before: '', gap: '', excerpt: text.slice(0, split), after: text.slice(split) };
   }
 
@@ -1180,45 +1202,9 @@ function renderSidebar() {
 
   // Wire event listeners once — the list element itself is stable
   if (!_sidebarWired) {
-    listEl.addEventListener('mouseover', sidebarMouseover);
-    listEl.addEventListener('mouseout', sidebarMouseout);
     listEl.addEventListener('click', sidebarClick);
     _sidebarWired = true;
   }
-}
-
-function sidebarMouseover(e) {
-  const card = e.target.closest('.sb-card');
-  if (!card || pinned) return;
-  if (card.contains(e.relatedTarget)) return; // still within same card — ignore child transitions
-  const d = PAPERS.find(p => p.id === card.dataset.id);
-  if (!d) return;
-  card.classList.add('sb-active');
-  const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
-  base.l = Math.min(0.88, base.l + 0.32);
-  dotsG.selectAll('path.pdot').filter(dd => dd === d)
-    .attr('fill', base.formatHex()).attr('fill-opacity', 1).raise();
-  highlightClusters(d.clusters);
-  // Show tooltip at the dot's screen position
-  const svgRect = document.getElementById('chart').getBoundingClientRect();
-  const t = d3.zoomTransform(svg.node());
-  const dotScreenX = svgRect.left + t.applyX(xSc(d._x));
-  const dotScreenY = svgRect.top  + t.applyY(ySc(d._y));
-  showTip({ clientX: dotScreenX, clientY: dotScreenY }, d);
-}
-
-function sidebarMouseout(e) {
-  const card = e.target.closest('.sb-card');
-  if (!card || pinned) return;
-  if (card.contains(e.relatedTarget)) return; // moved to child — not a real exit
-  const d = PAPERS.find(p => p.id === card.dataset.id);
-  if (!d) return;
-  card.classList.remove('sb-active');
-  dotsG.selectAll('path.pdot').filter(dd => dd === d)
-    .attr('fill', CAT_COLOR[d.cat] || '#94A3B8')
-    .attr('fill-opacity', dotOpacity(d));
-  resetClusterHighlight();
-  tipEl.style.display = 'none';
 }
 
 function sidebarClick(e) {
@@ -1452,10 +1438,22 @@ function draw() {
           .filter(dd => dd === d).raise();
         highlightClusters(d.clusters);
         showTip(evt, d);
-        // Scroll sidebar to the matching card
-        const sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
-          .find(c => c.dataset.id === d.id);
-        if (sbCard) sbCard.scrollIntoView({ behavior: 'instant', block: 'center' });
+        // Expand sidebar if collapsed, then scroll to card
+        const sbEl = document.getElementById('sidebar');
+        const scrollToCard = () => {
+          const sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
+            .find(c => c.dataset.id === d.id);
+          if (sbCard) sbCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+        if (sbEl.classList.contains('collapsed')) {
+          sbEl.classList.remove('collapsed');
+          document.getElementById('sidebar-show').style.display = 'none';
+          draw();
+          startTipTracking();
+          sbEl.addEventListener('transitionend', scrollToCard, { once: true });
+        } else {
+          scrollToCard();
+        }
 
         // If prestige is not yet confirmed as frontier, verify via HTML fetch.
         if (d.prestige !== 3) verifyPrestige(d, true);
@@ -1513,15 +1511,67 @@ function updateAxisNote() {
 // ═══════════════════════════════════════════════════════
 // SIDEBAR TOGGLE
 // ═══════════════════════════════════════════════════════
+
+// Track the tooltip to the pinned dot each frame while the sidebar slides.
+let _slideRaf = null;
+
+function _trackTipDuringSlide() {
+  if (!pinned || tipEl.style.display === 'none') { _slideRaf = null; return; }
+  const svgRect = document.getElementById('chart').getBoundingClientRect();
+  const t = d3.zoomTransform(svg.node());
+  const dotScreenX = svgRect.left + t.applyX(xSc(pinned._x));
+  const dotScreenY = svgRect.top  + t.applyY(ySc(pinned._y));
+  moveTip({ clientX: dotScreenX, clientY: dotScreenY });
+  _slideRaf = requestAnimationFrame(_trackTipDuringSlide);
+}
+
+function startTipTracking() {
+  if (_slideRaf) cancelAnimationFrame(_slideRaf);
+  _slideRaf = requestAnimationFrame(_trackTipDuringSlide);
+}
+
+function stopTipTracking() {
+  if (_slideRaf) { cancelAnimationFrame(_slideRaf); _slideRaf = null; }
+  // Sync lastTipEvt to the dot's final screen position so future showTip calls
+  // (e.g. from prestige verification completing) don't jump to the old cursor spot.
+  if (pinned && tipEl.style.display !== 'none') {
+    const svgRect = document.getElementById('chart').getBoundingClientRect();
+    const t = d3.zoomTransform(svg.node());
+    lastTipEvt = {
+      clientX: svgRect.left + t.applyX(xSc(pinned._x)),
+      clientY: svgRect.top  + t.applyY(ySc(pinned._y)),
+    };
+  }
+}
+
+const sidebarEl = document.getElementById('sidebar');
+sidebarEl.addEventListener('transitionend', stopTipTracking);
+
 document.getElementById('sidebar-toggle').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.add('collapsed');
-  document.getElementById('sidebar-show').style.display = '';
-  draw(); // re-measure SVG now that chart-area is wider
+  sidebarEl.classList.add('collapsed');
+  document.getElementById('sidebar-show').style.display = 'inline';
+  draw();
+  startTipTracking();
 });
 document.getElementById('sidebar-show').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.remove('collapsed');
+  sidebarEl.classList.remove('collapsed');
   document.getElementById('sidebar-show').style.display = 'none';
   draw();
+  startTipTracking();
+});
+
+// ═══════════════════════════════════════════════════════
+// LIVE UPDATE — re-render any open tab when new papers land in storage
+// ═══════════════════════════════════════════════════════
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  const incoming = changes.processedPapers?.newValue;
+  if (!incoming?.length) return;
+  // Only re-render if this is genuinely new data (different date or more papers)
+  const today = new Date().toISOString().slice(0, 10);
+  const newDate = changes.lastFetch?.newValue ?? today;
+  if (PAPERS.length > 0 && newDate === document.getElementById('header-date').textContent && incoming.length === PAPERS.length) return;
+  chrome.storage.local.get(['lastFetch'], ({ lastFetch }) => renderPapers(incoming, lastFetch));
 });
 
 // ═══════════════════════════════════════════════════════
@@ -1533,7 +1583,14 @@ document.getElementById('refresh-btn').addEventListener('click', () => {
   btn.classList.add('spinning');
   // Clear cached data so loadAndRender enters the polling loop instead of
   // instantly re-rendering stale papers. Background will re-fetch everything.
-  chrome.storage.local.set({ fetchInProgress: false, processedPapers: [], papers: [] }, () => {
+  // Hard reset of all fetch locks and rate-limit state so doFetchAndCache
+  // gets a clean run. processedPapers intentionally kept — stale papers are
+  // better than a blank spinner; storage.onChanged will re-render when done.
+  chrome.storage.local.set({
+    fetchInProgress: false, fetchStartedAt: null,
+    fetchRetryAfter: null, fetchError: null,
+    lastFetch: null, papers: [],
+  }, () => {
     chrome.runtime.sendMessage({ action: 'refresh' });
     loadAndRender(); // shows loading overlay + elapsed timer + polls for completion
   });

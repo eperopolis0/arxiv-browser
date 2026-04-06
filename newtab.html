@@ -344,10 +344,13 @@
     font-weight: 300;
     margin-bottom: 8px;
   }
-  .sb-card:hover .sb-gist, .sb-card.sb-active .sb-gist { color: rgba(232,217,188,0.82); }
-  /* Gap and excerpt override the gist base color — always visible */
-  .sb-gap     { color: rgba(232,217,188,0.82); }
-  .sb-excerpt { color: rgba(196,148,40,0.85); }
+  /* Only active (clicked) cards get bright text — hover gets background tint only */
+  .sb-card.sb-active .sb-gist { color: rgba(232,217,188,0.82); }
+  /* Gap and excerpt are dim until card is active */
+  .sb-gap     { color: rgba(232,217,188,0.30); }
+  .sb-excerpt { color: rgba(232,217,188,0.30); }
+  .sb-card.sb-active .sb-gap     { color: rgba(232,217,188,0.82); }
+  .sb-card.sb-active .sb-excerpt { color: rgba(196,148,40,0.85); }
   .sb-clusters {
     display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px;
   }
