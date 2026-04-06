@@ -27,6 +27,9 @@ body {
   padding: 48px 48px 48px 56px;
   overflow-y: auto;
   min-width: 0;
+  transition: all .35s ease;
+  transform: translateX(0);
+  opacity: 1;
 }
 #concept-name {
   font-size: 36px; font-weight: 600; color: #C49428;
@@ -77,13 +80,24 @@ body {
 .band-source { font-size: 13px; color: #74508B; margin-top: 4px; }
 .band-preview { font-size: 13px; color: #9B6BBA; margin-top: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* Band content (shown when expanded) */
+/* Band thumbnail (collapsed preview) */
+.band-thumb {
+  margin-top: 10px; border-radius: 6px; overflow: hidden;
+  max-height: 100px;
+}
+.band-thumb img { width: 100%; display: block; border-radius: 6px; }
+
+/* Band content (full, shown when expanded) */
 .band-content { display: none; margin-top: 16px; flex: 1; min-height: 0; }
 
 /* ── Expanded state (90% takeover) ────────────── */
 #room.band-expanded #explainer {
-  width: 0; padding: 0; overflow: hidden; flex: 0;
-  opacity: 0; transition: all .35s ease;
+  flex: 0 0 0px;
+  padding: 0; overflow: hidden;
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: all .35s ease;
+  margin-left: -1px;
 }
 #room.band-expanded #bands {
   width: 100%; border-left: none;
@@ -101,7 +115,8 @@ body {
 }
 #room.band-expanded .band .band-preview,
 #room.band-expanded .band .band-source,
-#room.band-expanded .band .band-meta { display: none; }
+#room.band-expanded .band .band-meta,
+#room.band-expanded .band .band-thumb { display: none; }
 #room.band-expanded .band .band-icon { margin-bottom: 0; font-size: 18px; }
 #room.band-expanded .band .band-label { margin-bottom: 0; font-size: 13px; }
 
@@ -118,7 +133,11 @@ body {
 #room.band-expanded .band.active .band-meta { display: block; font-size: 14px; }
 #room.band-expanded .band.active .band-icon { margin-bottom: 6px; font-size: 24px; }
 #room.band-expanded .band.active .band-label { margin-bottom: 3px; font-size: 18px; }
-#room.band-expanded .band.active .band-content { display: flex; flex-direction: column; flex: 1; }
+#room.band-expanded .band.active .band-thumb { display: none; }
+#room.band-expanded .band.active .band-content {
+  display: flex; flex-direction: column; flex: 1;
+}
+#room.band-expanded .band.active .band-preview { display: none; }
 
 /* Back to overview button */
 .band-back {
@@ -324,13 +343,20 @@ function renderRoom(id) {
       contentHTML = `<div class="paper-abstract">${b.abstract}</div><a href="${b.url}" target="_blank" class="paper-link">Open on arXiv →</a>`;
     }
 
+    // Thumbnail for collapsed preview
+    let thumbHTML = '';
+    if (b.ytId) {
+      thumbHTML = `<div class="band-thumb"><img src="https://img.youtube.com/vi/${b.ytId}/mqdefault.jpg" alt=""></div>`;
+    }
+
     band.innerHTML = `
       <div class="band-back" onclick="event.stopPropagation();collapseAll()">← Overview</div>
       <div class="band-icon">${b.icon}</div>
       <div class="band-label">${b.label}</div>
       <div class="band-meta">${b.meta}</div>
       ${b.source ? `<div class="band-source">${b.source}</div>` : ''}
-      ${b.preview ? `<div class="band-preview">${b.preview}</div>` : ''}
+      ${thumbHTML}
+      ${b.preview && !b.ytId ? `<div class="band-preview">${b.preview}</div>` : ''}
       <div class="band-content">${contentHTML}</div>
     `;
 
