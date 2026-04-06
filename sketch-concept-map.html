@@ -746,36 +746,23 @@ function exploreNeighborhood(id) {
 let lastRevealedId = null;
 
 function zoomToExplored(duration) {
-  const pts = [...explored].map(id => cMap[id]).filter(Boolean);
-  if (pts.length === 0) return;
-
-  // If we just revealed a single node, center on it with a tight zoom
-  // Otherwise fit all explored nodes
   const target = lastRevealedId && cMap[lastRevealedId] ? cMap[lastRevealedId] : null;
-
-  // Compute bounding box of explored nodes
-  const pad = 80;
-  const minX = Math.min(...pts.map(p=>p.x)) - pad;
-  const maxX = Math.max(...pts.map(p=>p.x)) + pad;
-  const minY = Math.min(...pts.map(p=>p.y)) - pad;
-  const maxY = Math.max(...pts.map(p=>p.y)) + pad;
-  const bw = maxX - minX || 200, bh = maxY - minY || 200;
-
-  // If we just revealed one node and there are many explored, center on it
-  // Otherwise fit all explored
   let scale, tx, ty;
-  if (target && pts.length > 5) {
-    scale = 2.2;
+
+  if (target) {
+    // Tight zoom on just the revealed node
+    scale = 2.5;
     tx = W/2 - target.x * scale;
     ty = H/2 - target.y * scale;
   } else {
-    // Fit to viewport (account for header). Zoom tighter for small sets.
-    const viewW = W - 40, viewH = H - 120;
-    const minScale = pts.length <= 5 ? 1.8 : 1;
-    scale = Math.max(Math.min(viewW / bw, viewH / bh, 2.5), minScale);
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    // Fallback: center on middle of explored set (initial state)
+    const pts = [...explored].map(id => cMap[id]).filter(Boolean);
+    if (pts.length === 0) return;
+    const cx = pts.reduce((s,p) => s+p.x, 0) / pts.length;
+    const cy = pts.reduce((s,p) => s+p.y, 0) / pts.length;
+    scale = 2;
     tx = W/2 - cx * scale;
-    ty = (H/2 + 30) - cy * scale; // +30 to account for header
+    ty = H/2 - cy * scale;
   }
 
   mapG.transition().duration(duration || 600)
