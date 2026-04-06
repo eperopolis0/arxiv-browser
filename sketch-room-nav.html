@@ -51,6 +51,7 @@ body {
   width: 280px; flex-shrink: 0;
   display: flex; flex-direction: column;
   border-left: 1px solid #4D355D;
+  transition: width .35s ease;
 }
 
 .band {
@@ -59,45 +60,94 @@ body {
   display: flex; flex-direction: column;
   justify-content: center;
   cursor: pointer;
-  transition: background .15s, flex .3s;
+  transition: all .35s ease;
   position: relative;
   overflow: hidden;
 }
-.band:hover { filter: brightness(1.15); }
+.band:hover { filter: brightness(1.12); }
 
 .band-noob   { background: #4D355D; }
 .band-mid    { background: #3a2845; }
 .band-expert { background: #271B2F; }
 
-.band-icon { font-size: 22px; margin-bottom: 6px; }
+/* Band preview (collapsed state) */
+.band-icon { font-size: 24px; margin-bottom: 6px; }
 .band-label { font-size: 16px; font-weight: 600; color: #F1F0DE; margin-bottom: 3px; }
-.band-meta { font-size: 13px; color: #B490CB; }
-.band-source { font-size: 11px; color: #74508B; margin-top: 4px; }
+.band-meta { font-size: 14px; color: #B490CB; }
+.band-source { font-size: 13px; color: #74508B; margin-top: 4px; }
+.band-preview { font-size: 13px; color: #9B6BBA; margin-top: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* Expanded band */
-.band.expanded {
-  flex: 3;
+/* Band content (shown when expanded) */
+.band-content { display: none; margin-top: 16px; flex: 1; min-height: 0; }
+
+/* ── Expanded state (90% takeover) ────────────── */
+#room.band-expanded #explainer {
+  width: 0; padding: 0; overflow: hidden; flex: 0;
+  opacity: 0; transition: all .35s ease;
+}
+#room.band-expanded #bands {
+  width: 100%; border-left: none;
+}
+
+/* Collapsed band = thin tab strip */
+#room.band-expanded .band {
+  flex: 0 0 44px;
+  padding: 10px 14px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  justify-content: flex-start;
+}
+#room.band-expanded .band .band-preview,
+#room.band-expanded .band .band-source,
+#room.band-expanded .band .band-meta { display: none; }
+#room.band-expanded .band .band-icon { margin-bottom: 0; font-size: 18px; }
+#room.band-expanded .band .band-label { margin-bottom: 0; font-size: 13px; }
+
+/* The active expanded band */
+#room.band-expanded .band.active {
+  flex: 1;
+  padding: 24px 32px;
+  flex-direction: column;
+  align-items: stretch;
   cursor: default;
 }
-.band-extras {
-  max-height: 0; overflow: hidden;
-  transition: max-height .3s ease, margin .3s;
-  margin-top: 0;
+#room.band-expanded .band.active .band-preview { display: none; }
+#room.band-expanded .band.active .band-source { display: block; }
+#room.band-expanded .band.active .band-meta { display: block; font-size: 14px; }
+#room.band-expanded .band.active .band-icon { margin-bottom: 6px; font-size: 24px; }
+#room.band-expanded .band.active .band-label { margin-bottom: 3px; font-size: 18px; }
+#room.band-expanded .band.active .band-content { display: flex; flex-direction: column; flex: 1; }
+
+/* Back to overview button */
+.band-back {
+  display: none; font-size: 12px; color: #74508B;
+  cursor: pointer; margin-bottom: 12px; transition: color .12s;
 }
-.band.expanded .band-extras {
-  max-height: 300px;
-  margin-top: 12px;
+.band-back:hover { color: #F1F0DE; }
+#room.band-expanded .band.active .band-back { display: block; }
+
+/* YouTube embed */
+.yt-embed {
+  width: 100%; aspect-ratio: 16/9; border: none; border-radius: 8px;
+  background: #000;
 }
-.band-extra-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0;
-  border-top: 1px solid rgba(255,255,255,.06);
-  font-size: 13px; color: #B490CB;
-  cursor: pointer; transition: color .12s;
+/* Blog iframe */
+.blog-embed {
+  width: 100%; flex: 1; border: none; border-radius: 8px;
+  background: #FFF; min-height: 400px;
 }
-.band-extra-item:hover { color: #F1F0DE; }
-.band-extra-icon { font-size: 16px; flex-shrink: 0; }
-.band-extra-meta { font-size: 11px; color: #74508B; margin-left: auto; }
+/* Paper abstract */
+.paper-abstract {
+  font-size: 15px; color: #D7C4E3; line-height: 1.65; margin-bottom: 16px;
+}
+.paper-link {
+  display: inline-block; font-size: 14px; color: #9B6BBA;
+  border: 1px solid #4D355D; padding: 6px 14px; border-radius: 6px;
+  text-decoration: none; transition: all .12s;
+}
+.paper-link:hover { color: #F1F0DE; border-color: #9B6BBA; }
 
 /* ── Breadcrumb trail ──────────────────────────── */
 #breadcrumbs {
@@ -143,24 +193,17 @@ const ROOMS = {
     text: `Before Transformers, AI models that processed language had to read words one at a time, like a person scanning a sentence left to right. This made them slow and forgetful — by the time they reached the end of a long paragraph, they'd often lost track of the beginning.<br><br>Transformers changed that completely. Instead of reading sequentially, a Transformer looks at every word in a passage simultaneously and figures out which words are most important to each other. The word "it" in a sentence might strongly connect to "the cat" three sentences earlier — a Transformer can see that connection instantly.<br><br>This ability is called <a onclick="navigateTo('self-attention')">self-attention</a>, and it's the core innovation. It lets Transformers process language in parallel (making them fast) while keeping track of long-range connections (making them smart).<br><br>Transformers are the foundation of every major AI language model: <a onclick="navigateTo('gpt')">GPT</a>, <a onclick="navigateTo('bert')">BERT</a>, Claude, Gemini, Llama. They also power image generation, protein folding prediction, and many other breakthroughs. It's not an exaggeration to say they changed the entire field.`,
     bands: [
       { level: 'noob', icon: '🎥', label: 'Watch', meta: '30 min · video', source: '3Blue1Brown',
-        url: 'https://www.youtube.com/watch?v=wjZofJX0v4M',
-        extras: [
-          { icon: '📝', label: 'Our plain-English explainer', meta: '5 min read' },
-          { icon: '🔧', label: 'Bycroft: LLM Visualization', meta: 'interactive', url: 'https://bbycroft.net/llm' },
-        ]},
+        preview: 'Visual walkthrough of how GPT works, starting from zero',
+        ytId: 'wjZofJX0v4M',
+        url: 'https://www.youtube.com/watch?v=wjZofJX0v4M' },
       { level: 'mid', icon: '📝', label: 'Read', meta: '15 min · read', source: 'Jay Alammar',
-        url: 'https://jalammar.github.io/illustrated-transformer/',
-        extras: [
-          { icon: '📝', label: 'Lilian Weng: Transformer Family', meta: '25 min read' },
-          { icon: '🎥', label: 'Karpathy: Build GPT from scratch', meta: '2 hr video' },
-        ]},
+        preview: 'Step-by-step diagrams of every Transformer component',
+        embedUrl: 'https://jalammar.github.io/illustrated-transformer/',
+        url: 'https://jalammar.github.io/illustrated-transformer/' },
       { level: 'expert', icon: '📄', label: 'Research', meta: '120k citations · paper', source: 'Vaswani et al. 2017',
-        url: 'https://arxiv.org/abs/1706.03762',
-        extras: [
-          { icon: '⚡', label: 'O(n²) memory complexity', meta: 'Consensus' },
-          { icon: '⚡', label: 'Outperform RNNs w/ sufficient data', meta: 'Contested' },
-          { icon: '❓', label: 'Why they generalize', meta: 'Gap' },
-        ]},
+        preview: 'The dominant sequence transduction models are based on complex recurrent or convolutional neural networks...',
+        abstract: 'The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train.',
+        url: 'https://arxiv.org/abs/1706.03762' },
     ],
     doorways: [
       { id: 'self-attention', name: 'Self-Attention', rel: 'core component' },
@@ -254,6 +297,7 @@ function renderRoom(id) {
   if (!room) return;
   currentRoom = id;
   expandedBand = null;
+  document.getElementById('room').classList.remove('band-expanded');
 
   document.getElementById('concept-name').textContent = room.name;
   document.getElementById('concept-subtitle').textContent = room.subtitle;
@@ -262,42 +306,41 @@ function renderRoom(id) {
   // Bands
   const bandsEl = document.getElementById('bands');
   bandsEl.innerHTML = '';
+  const roomEl = document.getElementById('room');
+
   room.bands.forEach((b, i) => {
     const cls = b.level === 'noob' ? 'band-noob' : b.level === 'mid' ? 'band-mid' : 'band-expert';
     const band = document.createElement('div');
     band.className = `band ${cls}`;
     band.dataset.idx = i;
 
-    let extrasHTML = '';
-    if (b.extras && b.extras.length) {
-      extrasHTML = `<div class="band-extras">${b.extras.map(e =>
-        `<div class="band-extra-item"${e.url ? ` onclick="window.open('${e.url}','_blank')"` : ''}>
-          <span class="band-extra-icon">${e.icon}</span>
-          <span>${e.label}</span>
-          <span class="band-extra-meta">${e.meta}</span>
-        </div>`
-      ).join('')}</div>`;
+    // Build content for expanded view
+    let contentHTML = '';
+    if (b.ytId) {
+      contentHTML = `<iframe class="yt-embed" src="https://www.youtube.com/embed/${b.ytId}?rel=0" allowfullscreen loading="lazy"></iframe>`;
+    } else if (b.embedUrl) {
+      contentHTML = `<iframe class="blog-embed" src="${b.embedUrl}" loading="lazy"></iframe>`;
+    } else if (b.abstract) {
+      contentHTML = `<div class="paper-abstract">${b.abstract}</div><a href="${b.url}" target="_blank" class="paper-link">Open on arXiv →</a>`;
     }
 
     band.innerHTML = `
+      <div class="band-back" onclick="event.stopPropagation();collapseAll()">← Overview</div>
       <div class="band-icon">${b.icon}</div>
       <div class="band-label">${b.label}</div>
       <div class="band-meta">${b.meta}</div>
       ${b.source ? `<div class="band-source">${b.source}</div>` : ''}
-      ${extrasHTML}
+      ${b.preview ? `<div class="band-preview">${b.preview}</div>` : ''}
+      <div class="band-content">${contentHTML}</div>
     `;
 
-    band.addEventListener('click', (e) => {
-      if (e.target.closest('.band-extra-item')) return;
-      if (expandedBand === i) {
-        // Clicking expanded band → open the resource
-        if (b.url) window.open(b.url, '_blank');
-      } else {
-        // Expand this band
-        bandsEl.querySelectorAll('.band').forEach(el => el.classList.remove('expanded'));
-        band.classList.add('expanded');
-        expandedBand = i;
-      }
+    band.addEventListener('click', () => {
+      if (band.classList.contains('active')) return;
+      // Expand this band to 90%
+      expandedBand = i;
+      roomEl.classList.add('band-expanded');
+      bandsEl.querySelectorAll('.band').forEach(el => el.classList.remove('active'));
+      band.classList.add('active');
     });
 
     bandsEl.appendChild(band);
@@ -308,6 +351,13 @@ function renderRoom(id) {
 
   // Scroll explainer to top
   document.getElementById('explainer').scrollTop = 0;
+}
+
+function collapseAll() {
+  const roomEl = document.getElementById('room');
+  roomEl.classList.remove('band-expanded');
+  document.querySelectorAll('.band').forEach(el => el.classList.remove('active'));
+  expandedBand = null;
 }
 
 function renderBreadcrumbs() {
