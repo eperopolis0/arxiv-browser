@@ -975,8 +975,8 @@ function showConcept(id) {
   const c = cMap[id];
   if (!c) return;
 
-  // Reveal through fog
-  exploreNeighborhood(id);
+  // Reveal just this node through fog (ultra-minimal — no neighborhood)
+  exploreNode(id);
 
   // Zoom to center on this node (tight, left of panel)
   const scale = 2.2;
@@ -1075,10 +1075,14 @@ function showConcept(id) {
 
     if (pastIntro) {
       panel.classList.add('expanded');
-      svg.node().style.opacity = Math.max(0, 1 - (scrollPct * 2));
+      const fade = Math.max(0, 1 - (scrollPct * 2.5));
+      svg.node().style.opacity = fade;
+      svg.node().style.transform = `scale(${0.8 + fade * 0.2})`;
+      svg.node().style.transformOrigin = '0 50%';
     } else {
       panel.classList.remove('expanded');
       svg.node().style.opacity = '1';
+      svg.node().style.transform = '';
     }
 
     // Update active TOC link
@@ -1106,9 +1110,11 @@ function closeConceptPanel() {
   const panel = document.getElementById('concept-panel');
   panel.classList.remove('open', 'expanded');
   svg.node().style.opacity = '1';
+  svg.node().style.transform = '';
   document.getElementById('cp-body').onscroll = null;
   resetHighlights();
-  zoomReset(600);
+  userHasPanned = false;
+  zoomToExplored(600);
 }
 
 // Alias for old references
