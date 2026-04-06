@@ -778,10 +778,8 @@ function zoomToExplored(duration) {
     ty = (H/2 + 30) - cy * scale; // +30 to account for header
   }
 
-  svg.transition().duration(duration || 600).call(
-    zoomBehavior.transform.bind(null, svg),
-    d3.zoomIdentity.translate(tx, ty).scale(scale)
-  );
+  mapG.transition().duration(duration || 600)
+    .attr('transform', `translate(${tx},${ty}) scale(${scale})`);
 }
 
 function applyFog() {
@@ -982,10 +980,7 @@ function showConcept(id) {
   const freeCenter = nodeIsRight ? (W - panelW/2) * 0.55 + panelW : W * 0.55;
   const tx = freeCenter - cx2 * scale;
   const ty = H * 0.52 - cy2 * scale;
-  svg.transition().duration(800).call(
-    zoomBehavior.transform.bind(null, svg),
-    d3.zoomIdentity.translate(tx, ty).scale(scale)
-  );
+  zoomTo(tx, ty, scale, 800);
 
   // Fog-aware highlight: focused + neighbors bright, other explored dim, rest fogged
   nodeG.select('circle')
@@ -1066,10 +1061,7 @@ function toggleIPAuthors(idx) {
 function closeInfoPanel() {
   document.getElementById('info-panel').style.display = 'none';
   resetHighlights();
-  svg.transition().duration(600).call(
-    zoomBehavior.transform.bind(null, svg),
-    d3.zoomIdentity
-  );
+  zoomReset(600);
 }
 
 // ─── SHAPE 2: EDGE ZOOM ─────────────────────────────────────────────────────
@@ -1085,10 +1077,7 @@ function showEdge(q) {
   const cx = (s.x+t.x)/2, cy = (s.y+t.y)/2;
   const scale = 1.8;
   const tx = W/2 - cx*scale, ty = H/2 - cy*scale;
-  svg.transition().duration(800).call(
-    zoomBehavior.transform.bind(null, svg),
-    d3.zoomIdentity.translate(tx, ty).scale(scale)
-  );
+  zoomTo(tx, ty, scale, 800);
 
   setTimeout(() => {
     // Highlight both nodes + edge
@@ -1122,10 +1111,7 @@ function showEdge(q) {
 function closeClaimPanel() {
   document.getElementById('claim-panel').style.display = 'none';
   resetHighlights();
-  svg.transition().duration(600).call(
-    zoomBehavior.transform.bind(null, svg),
-    d3.zoomIdentity
-  );
+  zoomReset(600);
 }
 
 // ─── SHAPE 3: PATH ──────────────────────────────────────────────────────────
@@ -1207,10 +1193,7 @@ function zoomToPathNode(i) {
   if (!c) return;
   const scale = 2;
   const tx = W/2 - c.x*scale, ty = H/2 - c.y*scale;
-  svg.transition().duration(600).call(
-    zoomBehavior.transform.bind(null, svg),
-    d3.zoomIdentity.translate(tx, ty).scale(scale)
-  );
+  zoomTo(tx, ty, scale, 600);
 }
 
 function pathNext() {
@@ -1240,10 +1223,7 @@ function closePath() {
   document.getElementById('path-card').style.display = 'none';
   svg.selectAll('.path-marker').remove();
   resetHighlights();
-  svg.transition().duration(600).call(
-    zoomBehavior.transform.bind(null, svg),
-    d3.zoomIdentity
-  );
+  zoomReset(600);
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -1253,11 +1233,25 @@ function resetHighlights() {
 }
 
 // Enable zoom on the SVG — store the behavior so programmatic zoom works
-const zoomBehavior = d3.zoom().scaleExtent([0.5, 4]).on('zoom', e => {
+// Zoom helper — applies transform to mapG directly
+function zoomTo(tx, ty, scale, duration) {
+  if (duration) {
+    mapG.transition().duration(duration)
+      .attr('transform', `translate(${tx},${ty}) scale(${scale})`);
+  } else {
+    mapG.attr('transform', `translate(${tx},${ty}) scale(${scale})`);
+  }
+}
+function zoomReset(duration) {
+  zoomTo(0, 0, 1, duration || 600);
+}
+
+// Manual zoom via mouse wheel / drag
+svg.call(d3.zoom().scaleExtent([0.5, 4]).on('zoom', e => {
   if (e.sourceEvent) userHasPanned = true;
-  mapG.attr('transform', e.transform.toString());
-});
-svg.call(zoomBehavior);
+  const t = e.transform;
+  mapG.attr('transform', `translate(${t.x},${t.y}) scale(${t.k})`);
+}));
 </script>
 </body>
 </html>
