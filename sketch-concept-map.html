@@ -660,7 +660,7 @@ nodeG.append('text')
   .attr('pointer-events','none');
 
 // Legend
-const leg = svg.append('g').attr('transform',`translate(${W-148},20)`);
+const leg = svg.append('g').attr('transform',`translate(${W-148},20)`).style('display','none');
 leg.append('rect').attr('width',140).attr('height',250).attr('rx',8).attr('fill','#271B2F').attr('stroke','#4D355D');
 leg.append('text').attr('x',10).attr('y',18).attr('fill','#74508B').attr('font-size',10).attr('font-family','sans-serif').text('CLUSTERS');
 Object.entries(CLUSTER_LABELS).forEach(([k,v],i) => {
@@ -1202,7 +1202,8 @@ function showPath(q) {
   document.getElementById('pc-dots').innerHTML =
     q.nodes.map((_,i) => `<div class="pc-dot${i===0?' active':''}"></div>`).join('');
   updatePathStep();
-  zoomToPathNode(0);
+  // Auto-open concept card for the first step
+  showConcept(q.nodes[0]);
 }
 
 function addPathBadge(id, idx) {
@@ -1258,13 +1259,13 @@ function pathNext() {
     closePath(); return;
   }
   pathState.current++;
-  // Reveal next node through fog
   const nextId = pathState.nodes[pathState.current];
   exploreNode(nextId);
   addPathBadge(nextId, pathState.current);
   applyPathFog();
   updatePathStep();
-  zoomToPathNode(pathState.current);
+  // Open concept card for this step
+  showConcept(nextId);
 }
 
 function pathPrev() {
