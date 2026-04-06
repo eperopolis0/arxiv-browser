@@ -16,7 +16,8 @@ body {
 /* ── Room container ───────────────────────────── */
 #room {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 40px);
+  margin-top: 40px;
   transition: opacity .3s;
 }
 
@@ -25,7 +26,7 @@ body {
   flex: 1;
   padding: 48px 48px 48px 56px;
   overflow-y: auto;
-  max-width: 600px;
+  min-width: 0;
 }
 #concept-name {
   font-size: 36px; font-weight: 600; color: #C49428;
@@ -47,7 +48,7 @@ body {
 
 /* ── Right: Resource bands ────────────────────── */
 #bands {
-  width: 380px; flex-shrink: 0;
+  width: 280px; flex-shrink: 0;
   display: flex; flex-direction: column;
   border-left: 1px solid #4D355D;
 }
@@ -98,43 +99,30 @@ body {
 .band-extra-icon { font-size: 16px; flex-shrink: 0; }
 .band-extra-meta { font-size: 11px; color: #74508B; margin-left: auto; }
 
-/* ── Doorways ─────────────────────────────────── */
-#doorways {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  display: flex; gap: 0;
-  border-top: 1px solid #4D355D;
-  z-index: 10;
-}
-.doorway {
-  flex: 1;
-  padding: 14px 20px;
+/* ── Breadcrumb trail ──────────────────────────── */
+#breadcrumbs {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 4px;
+  padding: 10px 24px;
   background: #271B2F;
-  cursor: pointer;
-  transition: background .12s;
-  border-right: 1px solid #4D355D;
-  text-align: center;
+  border-bottom: 1px solid #4D355D;
+  z-index: 10;
+  overflow-x: auto;
+  min-height: 40px;
 }
-.doorway:last-child { border-right: none; }
-.doorway:hover { background: #4D355D; }
-.doorway-name { font-size: 14px; color: #F1F0DE; font-weight: 500; }
-.doorway-rel { font-size: 10px; color: #74508B; margin-top: 2px; }
-
-/* ── Back button ──────────────────────────────── */
-#back-btn {
-  position: fixed; top: 16px; left: 16px;
-  background: none; border: 1px solid #4D355D;
-  color: #74508B; padding: 5px 12px;
-  border-radius: 6px; font-size: 12px;
-  cursor: pointer; z-index: 10;
-  transition: all .12s; font-family: inherit;
-  display: none;
+.crumb {
+  font-size: 13px; color: #74508B;
+  cursor: pointer; transition: color .12s;
+  white-space: nowrap; flex-shrink: 0;
 }
-#back-btn:hover { border-color: #9B6BBA; color: #F1F0DE; }
+.crumb:hover { color: #F1F0DE; }
+.crumb.active { color: #C49428; font-weight: 600; cursor: default; }
+.crumb-sep { color: #4D355D; font-size: 11px; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
-<button id="back-btn" onclick="goBack()">← Back</button>
+<div id="breadcrumbs"></div>
 
 <div id="room">
   <div id="explainer">
@@ -144,8 +132,6 @@ body {
   </div>
   <div id="bands"></div>
 </div>
-
-<div id="doorways"></div>
 
 <script>
 // ─── DATA ────────────────────────────────────────────────────────────────────
@@ -317,28 +303,37 @@ function renderRoom(id) {
     bandsEl.appendChild(band);
   });
 
-  // Doorways
-  const doorsEl = document.getElementById('doorways');
-  doorsEl.innerHTML = '';
-  room.doorways.forEach(d => {
-    const door = document.createElement('div');
-    door.className = 'doorway';
-    door.innerHTML = `<div class="doorway-name">${d.name}</div><div class="doorway-rel">${d.rel}</div>`;
-    door.addEventListener('click', () => navigateTo(d.id));
-    doorsEl.appendChild(door);
-  });
-
-  // Back button
-  document.getElementById('back-btn').style.display = history.length > 0 ? 'block' : 'none';
+  // Breadcrumbs
+  renderBreadcrumbs();
 
   // Scroll explainer to top
   document.getElementById('explainer').scrollTop = 0;
+}
+
+function renderBreadcrumbs() {
+  const el = document.getElementById('breadcrumbs');
+  const trail = [...history, currentRoom];
+  el.innerHTML = trail.map((id, i) => {
+    const room = ROOMS[id];
+    const name = room ? room.name : id;
+    const isActive = i === trail.length - 1;
+    const sep = i < trail.length - 1 ? '<span class="crumb-sep">→</span>' : '';
+    return `<span class="crumb${isActive ? ' active' : ''}" onclick="${isActive ? '' : `jumpTo(${i})`}">${name}</span>${sep}`;
+  }).join('');
 }
 
 function navigateTo(id) {
   if (!ROOMS[id]) return;
   history.push(currentRoom);
   renderRoom(id);
+}
+
+function jumpTo(idx) {
+  const trail = [...history, currentRoom];
+  const targetId = trail[idx];
+  // Trim history to that point
+  history = trail.slice(0, idx);
+  renderRoom(targetId);
 }
 
 function goBack() {
