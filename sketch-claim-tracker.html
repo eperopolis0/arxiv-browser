@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Claim Tracker — Concept Sketch</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #403151;
+  color: #F1F0DE;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+#header {
+  height: 36px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px;
+  background: #271B2F;
+  border-bottom: 1px solid #4D355D;
+}
+#wordmark { font-size: 12px; font-weight: 600; color: #C49428; letter-spacing: .03em; }
+.hdr-badge { font-size: 9px; background: #4D355D; color: #74508B; padding: 2px 7px; border-radius: 8px; text-transform: uppercase; letter-spacing: .06em; }
+#back-btn {
+  background: none; border: 1px solid #4D355D; color: #74508B;
+  padding: 3px 10px; border-radius: 12px; font-size: 11px;
+  cursor: pointer; transition: all .12s; display: none; margin-left: 6px;
+}
+#back-btn:hover { border-color: #9B6BBA; color: #B490CB; }
+
+/* ── Corkboard ────────────────────────────────────────────── */
+#corkboard {
+  position: relative; width: 100%;
+  height: calc(100vh - 36px);
+  overflow-x: auto; overflow-y: hidden;
+}
+
+/* HOW/WHY zone split */
+#zone-how {
+  position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  background: #2a2f4a;
+  z-index: 0;
+}
+#zone-why {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
+  background: #3a2030;
+  z-index: 0;
+}
+#zone-divider {
+  position: absolute; top: 50%; left: 0; right: 0;
+  height: 1px; background: #4D355D;
+  z-index: 0;
+}
+.zone-lbl {
+  position: absolute; z-index: 1;
+  font-size: 22px; font-weight: 600; letter-spacing: .18em;
+  text-transform: uppercase; color: #74508B;
+  pointer-events: none;
+}
+#lbl-how { top: 14px; left: 24px; color: #4373A3; }
+#lbl-why { bottom: 14px; left: 24px; color: #A93F2E; }
+
+#strings-svg {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 2;
+}
+.string-hit { pointer-events: stroke; cursor: pointer; }
+
+/* ── Center concept card ──────────────────────────────────── */
+.center-card {
+  position: absolute; width: 760px;
+  background: #271B2F;
+  border: 1.5px solid rgba(196,148,40,.5);
+  border-radius: 12px;
+  padding: 0;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 50px rgba(196,148,40,.06);
+  display: flex;
+  overflow: visible;
+}
+.center-left {
+  flex: 1; padding: 24px 28px;
+  border-right: 1px solid #4D355D;
+}
+.center-right {
+  width: 310px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  overflow: visible;
+}
+.papers-header {
+  font-size: 10px; color: #74508B; text-transform: uppercase;
+  letter-spacing: .12em; padding: 10px 16px 0;
+}
+.center-name { font-size: 32px; font-weight: 600; color: #C49428; margin-bottom: 8px; }
+.center-def { font-size: 16px; color: #FFFFFF; line-height: 1.55; margin-bottom: 14px; }
+.center-intro { font-size: 16px; color: #D7C4E3; line-height: 1.55; }
+
+/* Paper cards in right panel */
+.paper-card {
+  flex: 1; padding: 12px 16px;
+  border-bottom: 1px solid #4D355D;
+  transition: background .12s;
+  position: relative;
+  overflow: visible;
+}
+.paper-card:last-child { border-bottom: none; }
+.paper-card:hover { background: #352548; }
+.paper-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.paper-avatar {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #FFFFFF; flex-shrink: 0;
+}
+.paper-info { flex: 1; min-width: 0; }
+.paper-title {
+  font-size: 14px; color: #F1F0DE; line-height: 1.35;
+  cursor: pointer; text-decoration: none; display: block;
+}
+.paper-title:hover { text-decoration: underline; color: #FFFFFF; }
+.paper-meta { font-size: 12px; color: #B490CB; margin-top: 2px; }
+.paper-affil { font-size: 11px; color: #74508B; }
+.paper-expand {
+  color: #74508B; font-size: 16px; flex-shrink: 0;
+  cursor: pointer; transition: color .12s; background: none;
+  border: 1px solid #4D355D; border-radius: 4px;
+  padding: 2px 8px;
+}
+.paper-expand:hover { color: #F1F0DE; border-color: #74508B; }
+
+/* Author slide-out (horizontal, extends right of the entire card) */
+.paper-authors {
+  position: absolute;
+  left: 100%; top: 50%;
+  margin-left: 12px;
+  display: flex; gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  transform: translateY(-50%) translateX(-10px);
+  z-index: 20;
+}
+.paper-authors.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
+}
+.author-chip {
+  display: flex; flex-direction: column; align-items: center;
+  width: 56px; text-align: center;
+  text-decoration: none; transition: opacity .15s;
+}
+.author-chip:hover .author-av { box-shadow: 0 0 8px rgba(196,148,40,.3); }
+.author-av {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #FFFFFF;
+  margin-bottom: 3px; transition: box-shadow .12s;
+}
+.author-name { font-size: 10px; color: #F1F0DE; line-height: 1.2; white-space: nowrap; }
+.author-affil { font-size: 8px; color: #B490CB; line-height: 1.15; }
+.author-affil-line { display: block; white-space: nowrap; }
+.author-cite { font-size: 8px; color: #74508B; line-height: 1.15; margin-top: 1px; }
+
+/* ── Claim cards (HOW/WHY) ────────────────────────────────── */
+.claim-card {
+  position: absolute; width: 340px;
+  background: #271B2F;
+  border: 1px solid #4D355D;
+  border-radius: 6px;
+  padding: 10px 12px 10px 18px;
+  z-index: 4;
+  transition: background .15s, border-color .15s, box-shadow .2s;
+}
+.claim-card:hover {
+  background: #4D355D;
+}
+.claim-card.how-card { border-color: #5899DA; }
+.claim-card.how-card:hover { border-color: #90BFE4; box-shadow: 0 0 14px #5899DA20; }
+.claim-card.why-card { border-color: #E1543E; }
+.claim-card.why-card:hover { border-color: #EC7D6C; box-shadow: 0 0 14px #E1543E20; }
+
+/* Satellite context cards */
+.sat-card {
+  position: absolute; width: 280px;
+  background: #271B2F;
+  border: 1px solid #4D355D;
+  border-radius: 6px;
+  padding: 8px 10px 8px 14px;
+  z-index: 3;
+  transition: background .15s, border-color .15s;
+}
+.sat-card:hover { background: #4D355D; border-color: #74508B; }
+
+.card-accent {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  width: 4px; border-radius: 6px 0 0 6px;
+}
+
+.card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.type-badge {
+  font-size: 12px; font-weight: 700; padding: 3px 8px;
+  border-radius: 4px; letter-spacing: .04em;
+}
+.status-pill {
+  font-size: 12px; padding: 2px 8px; border-radius: 8px;
+  font-weight: 500; letter-spacing: .02em; cursor: help;
+}
+.s-consensus   { background: #1B2B17; color: #6DAB5A; border: 1px solid #2a4828; }
+.s-emerging    { background: #3D2E0E; color: #F3B839; border: 1px solid #4a3818; }
+.s-contested   { background: #381510; color: #E1543E; border: 1px solid #4a2820; }
+.s-conditional { background: #162637; color: #5899DA; border: 1px solid #2a3858; }
+.s-weak        { background: #271B2F; color: #74508B; border: 1px solid #4D355D; }
+
+.card-text {
+  font-size: 16px; color: #F1F0DE; line-height: 1.5;
+}
+.sat-card .card-text { font-size: 16px; color: #D7C4E3; }
+.sat-card .type-badge { font-size: 10px; color: #F1F0DE !important; }
+
+/* Evidence spectrum bar */
+.evidence-bar {
+  display: flex; height: 7px; border-radius: 4px;
+  overflow: hidden; margin-top: 8px; background: #4D355D;
+}
+.eb-seg { min-width: 5px; cursor: pointer; transition: opacity .12s; }
+.eb-seg:hover { opacity: .75; }
+.eb-against { background: #E1543E; }
+.eb-mixed   { background: #F3B839; }
+.eb-for     { background: #6DAB5A; }
+.eb-label { font-size: 12px; color: #B490CB; margin-top: 4px; }
+
+.card-orcid { display: flex; gap: 4px; margin-top: 4px; }
+.orcid-chip {
+  background: #1B2B17; border: 1px solid #2a4828; color: #6DAB5A;
+  font-size: 8px; padding: 1px 5px; border-radius: 6px; font-weight: 700;
+}
+
+/* Gap card */
+.gap-card {
+  border-style: dashed !important;
+  border-color: #74508B !important;
+}
+.gap-card .card-text { color: #74508B; font-style: italic; }
+.extract-btn-sm {
+  background: none; border: 1px solid #4D355D; color: #74508B;
+  padding: 4px 10px; border-radius: 3px; font-size: 10px;
+  cursor: pointer; margin-top: 6px; transition: all .12s;
+}
+.extract-btn-sm:hover { border-color: #9B6BBA; color: #B490CB; background: #4D355D; }
+
+/* ── Concept endpoint pills ───────────────────────────────── */
+.concept-pill {
+  position: absolute; z-index: 4;
+  background: #271B2F; border: 1px solid #4D355D;
+  color: #B490CB; font-size: 11px; font-weight: 500;
+  padding: 4px 12px; border-radius: 14px;
+  cursor: pointer; transition: all .15s;
+  transform: translate(-50%, -50%);
+}
+.concept-pill:hover { border-color: #9B6BBA; color: #F1F0DE; background: #4D355D; }
+
+/* ── Bar segment popover ──────────────────────────────────── */
+#bar-popover {
+  position: absolute;
+  width: 280px;
+  background: #271B2F;
+  border: 1px solid #4D355D;
+  border-radius: 6px;
+  padding: 8px 10px;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity .15s;
+  pointer-events: none;
+}
+#bar-popover.visible { opacity: 1; }
+.pop-stance-label {
+  font-size: 9px; font-weight: 700; letter-spacing: .06em;
+  padding: 1px 5px; border-radius: 3px; margin-bottom: 5px;
+  display: inline-block;
+}
+.pop-for     { background: #1B2B17; color: #6DAB5A; }
+.pop-mixed   { background: #3D2E0E; color: #F3B839; }
+.pop-against { background: #381510; color: #E1543E; }
+.pop-paper {
+  font-size: 10px; color: #F1F0DE; line-height: 1.4;
+  padding: 3px 0; border-bottom: 1px solid #4D355D;
+}
+.pop-paper:last-child { border-bottom: none; }
+.pop-meta { color: #74508B; font-size: 9px; }
+.tier-chip {
+  display: inline-block; font-size: 7px; padding: 1px 3px;
+  border-radius: 2px; margin-left: 2px; vertical-align: middle;
+  background: #4D355D; color: #B490CB;
+}
+
+/* ── String tooltip ───────────────────────────────────────── */
+#string-tooltip {
+  position: absolute;
+  background: #271B2F; border: 1px solid #4D355D;
+  color: #F1F0DE; font-size: 10px;
+  padding: 4px 10px; border-radius: 4px;
+  pointer-events: none; opacity: 0;
+  transition: opacity .15s; z-index: 20;
+  white-space: nowrap;
+}
+#string-tooltip.visible { opacity: 1; }
+
+/* ── Board title (intersect) ──────────────────────────────── */
+#board-title {
+  position: absolute; top: 14px; left: 32px;
+  z-index: 6; pointer-events: none; display: none;
+}
+#concept-name { font-size: 26px; font-weight: 600; color: #C49428; line-height: 1.2; }
+.concept-arrow { color: #4D355D; margin: 0 10px; font-weight: 300; }
+#concept-desc { font-size: 11px; color: #74508B; margin-top: 4px; line-height: 1.4; }
+
+/* ── Empty state ──────────────────────────────────────────── */
+#empty-state {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; display: none; z-index: 6;
+}
+#empty-state p { font-size: 14px; color: #74508B; margin-bottom: 6px; }
+#empty-state .hint { font-size: 11px; color: #4D355D; margin-bottom: 12px; }
+.extract-btn {
+  background: none; border: 1px solid #4D355D; color: #74508B;
+  padding: 8px 16px; border-radius: 4px; font-size: 12px;
+  cursor: pointer; transition: all .12s;
+}
+.extract-btn:hover { border-color: #9B6BBA; color: #B490CB; background: #4D355D; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #4D355D; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span id="wordmark">Claim Tracker</span>
+  <span class="hdr-badge">Concept Sketch</span>
+  <button id="back-btn" onclick="goBack()">← Back</button>
+</div>
+
+<div id="corkboard">
+  <div id="zone-how"></div>
+  <div id="zone-why"></div>
+  <div id="zone-divider"></div>
+  <span class="zone-lbl" id="lbl-how">HOW</span>
+  <span class="zone-lbl" id="lbl-why">WHY</span>
+  <svg id="strings-svg"></svg>
+  <div id="center-card" class="center-card"></div>
+  <div id="board-title">
+    <div id="concept-name"></div>
+    <div id="concept-desc"></div>
+  </div>
+  <div id="cards-container"></div>
+  <div id="pills-container"></div>
+  <div id="string-tooltip"></div>
+  <div id="bar-popover"></div>
+  <div id="empty-state">
+    <p>No claims yet connecting <span id="es-a" style="color:#B490CB"></span> and <span id="es-b" style="color:#B490CB"></span>.</p>
+    <div class="hint">Extraction takes ~45 seconds</div>
+    <button class="extract-btn" onclick="alert('In production: triggers extraction.')">Extract claims →</button>
+  </div>
+</div>
+
+<script>
+// ─── BRAND ───────────────────────────────────────────────────────────────────
+
+const B = {
+  bg:'#403151', card:'#271B2F', cardHover:'#4D355D',
+  gold:'#C49428', text:'#F1F0DE', textSec:'#B490CB', textMuted:'#74508B',
+  purpleBase:'#9B6BBA', purpleLight:'#B490CB', purpleDark:'#74508B', purpleDeep:'#4D355D',
+  green:'#6DAB5A', yellow:'#F3B839', red:'#E1543E',
+};
+
+const STATUS_LABEL = { consensus:'Consensus', emerging:'Emerging', contested:'Contested', conditional:'Conditional', weak:'Weak evidence' };
+const STATUS_CLASS = { consensus:'s-consensus', emerging:'s-emerging', contested:'s-contested', conditional:'s-conditional', weak:'s-weak' };
+const STATUS_TIPS  = {
+  consensus:'Widely replicated, strong independent evidence',
+  emerging:'Recent findings, limited but growing evidence',
+  contested:'Conflicting evidence across studies',
+  conditional:'Supported with significant caveats or dependencies',
+  weak:'Preliminary, few studies, low confidence',
+};
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const CONCEPT = { name:'RLHF', desc:'Reinforcement Learning from Human Feedback — trains models using human preference signals to align behavior.' };
+
+const KEY_AUTHORS = [
+  { initials:'DA', name:'Dario Amodei', affil:'OpenAI → Anthropic', color:'#E47D43', url:'https://scholar.google.com/citations?user=3LkGEo4AAAAJ' },
+  { initials:'PC', name:'Paul Christiano', affil:'OpenAI → ARC', color:'#5899DA', url:'https://scholar.google.com/citations?user=FlgBhKEAAAAJ' },
+  { initials:'LO', name:'Long Ouyang', affil:'OpenAI', color:'#6DAB5A', url:'https://scholar.google.com/citations?user=8VAOMAÉAAAAJ' },
+  { initials:'DZ', name:'Daniel Ziegler', affil:'OpenAI', color:'#9B6BBA', url:'https://scholar.google.com/citations?user=AFseNEkAAAAJ' },
+];
+
+// Center definition
+const CENTER = {
+  id:'c1',
+  text:'RLHF trains a reward model on human preference rankings, then optimizes the base LLM against that reward via reinforcement learning.',
+  status:'consensus', orcid:['A.Z.','K.L.'],
+  evidence:[
+    { stance:'for', title:'Learning to summarize from human feedback', authors:'Stiennon et al.', year:2020, tier:3, url:'https://arxiv.org/abs/2009.01325', cites:'2.1k',
+      team:[
+        { name:'Nisan Stiennon', initials:'NS', affil:'OpenAI', color:'#6DAB5A', cites:'1.2k' },
+        { name:'Long Ouyang', initials:'LO', affil:'OpenAI', color:'#F3B839', cites:'8.4k' },
+        { name:'Jeff Wu', initials:'JW', affil:'OpenAI', color:'#5899DA', cites:'3.1k' },
+        { name:'Daniel Ziegler', initials:'DZ', affil:'OpenAI', color:'#9B6BBA', cites:'2.8k' },
+        { name:'Ryan Lowe', initials:'RL', affil:'OpenAI', color:'#74508B', cites:'1.5k' },
+        { name:'Chris Olah', initials:'CO', affil:'OpenAI → Anthropic', color:'#B490CB', cites:'12k' },
+        { name:'Dario Amodei', initials:'DA', affil:'OpenAI → Anthropic', color:'#E47D43', cites:'15k' },
+      ]},
+    { stance:'for', title:'InstructGPT', authors:'Ouyang et al.', year:2022, tier:3, url:'https://arxiv.org/abs/2203.02155', cites:'8.4k',
+      team:[
+        { name:'Long Ouyang', initials:'LO', affil:'OpenAI', color:'#F3B839', cites:'8.4k' },
+        { name:'Jeff Wu', initials:'JW', affil:'OpenAI', color:'#5899DA', cites:'3.1k' },
+        { name:'Xu Jiang', initials:'XJ', affil:'OpenAI', color:'#74508B', cites:'890' },
+        { name:'Ryan Lowe', initials:'RL', affil:'OpenAI', color:'#6DAB5A', cites:'1.5k' },
+        { name:'Jan Leike', initials:'JL', affil:'OpenAI → Anthropic', color:'#9B6BBA', cites:'4.2k' },
+        { name:'Sam McCandlish', initials:'SM', affil:'OpenAI → Anthropic', color:'#E47D43', cites:'6.8k' },
+      ]},
+    { stance:'for', title:'Fine-Tuning LMs from Human Preferences', authors:'Ziegler et al.', year:2019, tier:3, url:'https://arxiv.org/abs/1909.08593', cites:'1.8k',
+      team:[
+        { name:'Daniel Ziegler', initials:'DZ', affil:'OpenAI', color:'#9B6BBA', cites:'2.8k' },
+        { name:'Nisan Stiennon', initials:'NS', affil:'OpenAI', color:'#6DAB5A', cites:'1.2k' },
+        { name:'Jeff Wu', initials:'JW', affil:'OpenAI', color:'#5899DA', cites:'3.1k' },
+        { name:'Tom Brown', initials:'TB', affil:'OpenAI', color:'#74508B', cites:'45k' },
+        { name:'Dario Amodei', initials:'DA', affil:'OpenAI → Anthropic', color:'#E47D43', cites:'15k' },
+      ]},
+  ]
+};
+
+// Satellite context cards
+const SATELLITES = [
+  { id:'c2', label:'Key finding', pos:[.72,.48],
+    text:'RLHF substantially improves human-rated helpfulness and instruction-following compared to supervised fine-tuning alone.',
+    status:'consensus', orcid:['P.B.'],
+    evidence:[
+      { stance:'for', title:'InstructGPT human preference results', authors:'Ouyang et al.', year:2022, tier:3 },
+      { stance:'for', title:'Sparrow: rule-following via RLHF', authors:'Glaese et al.', year:2022, tier:3 },
+      { stance:'mixed', title:'RLHF gains are dataset-composition sensitive', authors:'Bai et al.', year:2022, tier:3 },
+    ]},
+];
+
+// HOW claims (top half)
+const HOW_CLAIMS = [
+  { id:'c3', pos:[.28,.14], endpoint:{ name:'Training Stability', pos:[.28,.03] },
+    text:'RLHF gains diminish after 2–3 rounds of preference collection on the same distribution, suggesting reward model overfitting.',
+    status:'emerging', orcid:[],
+    evidence:[
+      { stance:'for', title:'Scaling Laws for Reward Model Overoptimization', authors:'Gao et al.', year:2023, tier:3, cites:'680' },
+      { stance:'for', title:'Effects of Reward Misspecification', authors:'Pan et al.', year:2022, tier:2, cites:'310' },
+      { stance:'mixed', title:'Iterative RLHF recovers with diverse feedback', authors:'Xiong et al.', year:2024, tier:2, cites:'45' },
+    ]},
+  { id:'c5', pos:[.58,.14], endpoint:{ name:'Model Evaluation', pos:[.58,.03] },
+    text:'RLHF improves benchmark helpfulness scores by 20–40% over SFT baselines, though gains are model- and benchmark-dependent.',
+    status:'conditional', orcid:['M.C.'],
+    evidence:[
+      { stance:'for', title:'InstructGPT benchmark results', authors:'Ouyang et al.', year:2022, tier:3, cites:'8.4k' },
+      { stance:'mixed', title:'Benchmark gains vary with RLHF hyperparameters', authors:'Zheng et al.', year:2023, tier:2, cites:'220' },
+      { stance:'mixed', title:'RLHF may degrade performance on reasoning tasks', authors:'Schulman et al.', year:2023, tier:3, cites:'540' },
+    ]},
+];
+
+// WHY claims (bottom half)
+const WHY_CLAIMS = [
+  { id:'c6', pos:[.32,.82], endpoint:{ name:'Sycophancy', pos:[.22,.95], hasData:true },
+    text:'RLHF reduces calibration by reinforcing confident-sounding outputs over accurate ones, as the reward model treats expressed confidence as a helpfulness signal.',
+    status:'contested', orcid:[],
+    evidence:[
+      { stance:'for', title:'RLHF leads to sycophancy and overconfident outputs', authors:'Perez et al.', year:2023, tier:2, cites:'420' },
+      { stance:'for', title:'Reward model hacking amplifies confident language', authors:'Kambhampati et al.', year:2023, tier:2, cites:'180' },
+      { stance:'against', title:'RLHF does not reliably worsen calibration vs. SFT', authors:'Kadavath et al.', year:2022, tier:3, cites:'1.1k' },
+    ]},
+];
+
+const GAP = {
+  id:'gap1', pos:[.64,.85], isGap:true,
+  endpoint:{ name:'Sycophancy', pos:[.55,.95], hasData:true },
+  text:'Why RLHF generalizes (or fails to generalize) beyond its training distribution — the mechanistic explanation remains unclear.',
+};
+
+// Strings
+const CLAIM_LINKS = [
+  { from:'center', to:'c3', label:'Definition → Diminishing returns' },
+  { from:'center', to:'c5', label:'Definition → Benchmarks' },
+  { from:'center', to:'c6', label:'Definition → Calibration' },
+  { from:'center', to:'gap1', label:'Definition → Open question' },
+];
+
+// Intersection data
+const INTERSECT_SYCOPHANCY = [
+  { id:'x1', relType:'CAUSES', relColor:B.red, pos:[.18,.45],
+    text:'RLHF-trained models exhibit sycophantic behavior — agreeing with stated user positions even when those positions are factually incorrect.',
+    status:'contested', orcid:[],
+    evidence:[
+      { stance:'for', title:'Sycophancy to Subtly Wrong Information in LLMs', authors:'Perez et al.', year:2023, tier:2 },
+      { stance:'for', title:'RLHF reward hacking manifests as preference mirroring', authors:'Sharma et al.', year:2023, tier:2 },
+      { stance:'against', title:'Sycophancy rates similar in SFT and RLHF at matched capability', authors:'Ramirez et al.', year:2024, tier:2 },
+    ]},
+  { id:'x2', relType:'PREDICTS', relColor:B.purpleBase, pos:[.50,.25],
+    text:'Sycophancy severity correlates with number of RLHF training rounds — more optimization against a fixed reward model amplifies the effect.',
+    status:'weak', orcid:[],
+    evidence:[
+      { stance:'for', title:'Scaling Laws for Reward Model Overoptimization', authors:'Gao et al.', year:2023, tier:3 },
+      { stance:'for', title:'Iterative RLHF and reward hacking dynamics', authors:'Moskovitz et al.', year:2023, tier:2 },
+    ]},
+  { id:'x3', relType:'MITIGATES', relColor:B.green, pos:[.18,.78],
+    text:'Constitutional AI reduces sycophancy relative to standard RLHF without sacrificing helpfulness, by training with explicit principles.',
+    status:'emerging', orcid:[],
+    evidence:[
+      { stance:'for', title:'Constitutional AI: Harmlessness from AI Feedback', authors:'Bai et al., Anthropic', year:2022, tier:3 },
+      { stance:'mixed', title:'CAI reduces sycophancy but may introduce refusal artifacts', authors:'Huang et al.', year:2024, tier:2 },
+    ]},
+  { id:'x4', relType:'ENABLES', relColor:B.purpleLight, pos:[.55,.72],
+    text:'The discovery of RLHF-induced sycophancy has catalyzed a subfield focused on measuring and mitigating preference-optimization artifacts.',
+    status:'emerging', orcid:[],
+    evidence:[
+      { stance:'for', title:'Measuring sycophancy in language models', authors:'Perez et al.', year:2023, tier:2 },
+      { stance:'for', title:'Towards Understanding Sycophancy', authors:'Wei et al.', year:2023, tier:3 },
+    ]},
+];
+const INTERSECT_LINKS = [
+  { from:'x1', to:'x2', label:'Causes → Predicts severity' },
+  { from:'x1', to:'x3', label:'Causes → Mitigated by CAI' },
+  { from:'x1', to:'x4', label:'Causes → Enables new research' },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+let mode = 'concept';
+let intersectWith = null;
+let intersectHasData = false;
+
+// ─── LAYOUT ──────────────────────────────────────────────────────────────────
+
+function bs() {
+  const b = document.getElementById('corkboard');
+  return { W: b.clientWidth, H: b.clientHeight };
+}
+function pos(frac) {
+  const { W, H } = bs();
+  return { x: frac[0]*W, y: frac[1]*H };
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+
+function renderAll() {
+  const isConcept = mode === 'concept';
+  // Zone visibility
+  ['zone-how','zone-why','zone-divider','lbl-how','lbl-why'].forEach(id => {
+    document.getElementById(id).style.display = isConcept ? '' : 'none';
+  });
+  renderCenter();
+  renderCards();
+  renderPills();
+  renderStrings();
+  renderEmptyState();
+  document.getElementById('back-btn').style.display = isConcept ? 'none' : 'inline-block';
+}
+
+function renderCenter() {
+  const el = document.getElementById('center-card');
+  const title = document.getElementById('board-title');
+  if (mode === 'concept') {
+    const c = pos([.46, .50]);
+    el.style.display = ''; el.style.left = c.x+'px'; el.style.top = c.y+'px';
+    const orcids = CENTER.orcid.map(o => `<span class="orcid-chip">${o}</span>`).join(' ');
+    el.innerHTML = `
+      <div class="center-left">
+        <div class="center-name">${CONCEPT.name}</div>
+        <div class="center-def">${CONCEPT.desc}</div>
+        <div class="center-intro">RLHF works by first collecting human comparisons of model outputs, then training a reward model to predict which output humans prefer, and finally using reinforcement learning (PPO) to optimize the language model against that reward signal. It was the key technique behind ChatGPT and similar assistants.</div>
+      </div>
+      <div class="center-right">
+        <div class="papers-header">Foundational Papers</div>
+        ${CENTER.evidence.map((p, i) => {
+          const lead = p.team?.[0] || { initials:'??', color:B.purpleBase, name:p.authors, affil:'' };
+          return `<div class="paper-card" data-idx="${i}">
+            <div class="paper-row">
+              <div class="paper-avatar" style="background:${lead.color}">${lead.initials}</div>
+              <div class="paper-info">
+                <a href="${p.url||'#'}" target="_blank" class="paper-title">${p.title}</a>
+                <div class="paper-meta">${lead.name}${lead.affil ? ` <span class="paper-affil">· ${lead.affil}</span>` : ''} · ${p.year}${p.cites ? ` · ${p.cites} citations` : ''}</div>
+              </div>
+              <button class="paper-expand" onclick="event.stopPropagation();toggleAuthors(${i})">→</button>
+            </div>
+            <div class="paper-authors" id="paper-authors-${i}">
+              ${(p.team||[]).map(a => {
+                const parts = a.affil.split(' → ');
+                const affilHTML = parts.length > 1
+                  ? `<span class="author-affil-line">${parts[0]} →</span><span class="author-affil-line">${parts[1]}</span>`
+                  : `<span class="author-affil-line">${a.affil}</span>`;
+                return `<span class="author-chip">
+                  <span class="author-av" style="background:${a.color}">${a.initials}</span>
+                  <span class="author-name">${a.name.split(' ')[1] || a.name}</span>
+                  <span class="author-affil">${affilHTML}</span>
+                  <span class="author-cite">${a.cites || '?'} citations</span>
+                </span>`;
+              }).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    title.style.display = 'none';
+  } else {
+    el.style.display = 'none';
+    title.style.display = 'block';
+    document.getElementById('concept-name').innerHTML =
+      `${CONCEPT.name}<span class="concept-arrow">↔</span>${intersectWith}`;
+    document.getElementById('concept-desc').textContent = intersectHasData
+      ? `${INTERSECT_SYCOPHANCY.length} claims connect these concepts` : 'No claims indexed yet';
+  }
+}
+
+// ─── CARDS ───────────────────────────────────────────────────────────────────
+
+function renderCards() {
+  const ct = document.getElementById('cards-container');
+  ct.innerHTML = '';
+  if (mode === 'concept') {
+    // Satellites removed — concept card now self-contained
+    HOW_CLAIMS.forEach(c => makeClaimCard(ct, c, 'how'));
+    WHY_CLAIMS.forEach(c => makeClaimCard(ct, c, 'why'));
+    makeGapCard(ct);
+  } else if (intersectHasData) {
+    INTERSECT_SYCOPHANCY.forEach(c => {
+      const p = pos(c.pos);
+      makeIntersectCard(ct, c, p.x, p.y);
+    });
+  }
+}
+
+function evidenceBarHTML(evidence, cardId) {
+  if (!evidence || !evidence.length) return '';
+  let fw=0, mw=0, aw=0;
+  evidence.forEach(e => {
+    const w = e.tier||1;
+    if (e.stance==='for') fw+=w; else if (e.stance==='mixed') mw+=w; else if (e.stance==='against') aw+=w;
+  });
+  const t = fw+mw+aw;
+  const pf=(fw/t)*100, pm=(mw/t)*100, pa=(aw/t)*100;
+  const fc=evidence.filter(e=>e.stance==='for').length;
+  const mc=evidence.filter(e=>e.stance==='mixed').length;
+  const ac=evidence.filter(e=>e.stance==='against').length;
+  const parts=[]; if(ac) parts.push(`${ac} against`); if(mc) parts.push(`${mc} mixed`); if(fc) parts.push(`${fc} for`);
+  return `
+    <div class="evidence-bar">
+      ${pa>0?`<div class="eb-seg eb-against" style="width:${pa}%" data-card="${cardId}" data-stance="against"></div>`:''}
+      ${pm>0?`<div class="eb-seg eb-mixed" style="width:${pm}%" data-card="${cardId}" data-stance="mixed"></div>`:''}
+      ${pf>0?`<div class="eb-seg eb-for" style="width:${pf}%" data-card="${cardId}" data-stance="for"></div>`:''}
+    </div>
+    <div class="eb-label">${parts.join(' · ')}</div>`;
+}
+
+function makeSatCard(ct, s) {
+  const p = pos(s.pos);
+  const card = document.createElement('div');
+  card.className = 'sat-card'; card.id = `card-${s.id}`;
+  card.style.left = (p.x-140)+'px'; card.style.top = (p.y-70)+'px';
+  card.innerHTML = `
+    <div class="card-accent" style="background:${B.purpleDark}"></div>
+    <div class="card-top">
+      <span class="type-badge" style="background:${B.purpleDeep};color:${B.purpleDark}">${s.label}</span>
+      <span class="status-pill ${STATUS_CLASS[s.status]}" title="${STATUS_TIPS[s.status]}">${STATUS_LABEL[s.status]}</span>
+    </div>
+    <div class="card-text">${s.text}</div>
+    ${evidenceBarHTML(s.evidence, s.id)}`;
+  attachBarHover(card, s.evidence);
+  ct.appendChild(card);
+}
+
+function makeClaimCard(ct, c, zone) {
+  const p = pos(c.pos);
+  const borderCol = zone==='how' ? '#5899DA' : '#E1543E';
+  const card = document.createElement('div');
+  card.className = `claim-card ${zone}-card`; card.id = `card-${c.id}`;
+  card.style.left = (p.x-170)+'px'; card.style.top = (p.y-80)+'px';
+  const orcids = (c.orcid||[]).map(o=>`<span class="orcid-chip">${o}</span>`).join(' ');
+  card.innerHTML = `
+    <div class="card-accent" style="background:${borderCol}"></div>
+    <div class="card-top">
+      <span class="status-pill ${STATUS_CLASS[c.status]}" title="${STATUS_TIPS[c.status]}">${STATUS_LABEL[c.status]}</span>
+    </div>
+    <div class="card-text">${c.text}</div>
+    ${evidenceBarHTML(c.evidence, c.id)}
+    ${orcids?`<div class="card-orcid">${orcids}</div>`:''}`;
+  attachBarHover(card, c.evidence);
+  ct.appendChild(card);
+}
+
+function makeGapCard(ct) {
+  const p = pos(GAP.pos);
+  const card = document.createElement('div');
+  card.className = 'claim-card why-card gap-card'; card.id = `card-${GAP.id}`;
+  card.style.left = (p.x-170)+'px'; card.style.top = (p.y-60)+'px';
+  card.innerHTML = `
+    <div class="card-top">
+      <span class="type-badge" style="background:${B.red}15;color:${B.red};border:1px solid ${B.red}25">GAP</span>
+    </div>
+    <div class="card-text">${GAP.text}</div>
+    <button class="extract-btn-sm" onclick="event.stopPropagation();alert('In production: triggers extraction.')">Extract claims →</button>`;
+  ct.appendChild(card);
+}
+
+function makeIntersectCard(ct, c, cx, cy) {
+  const card = document.createElement('div');
+  card.className = 'claim-card'; card.id = `card-${c.id}`;
+  card.style.left = (cx-148)+'px'; card.style.top = (cy-80)+'px';
+  card.style.borderColor = c.relColor;
+  card.innerHTML = `
+    <div class="card-accent" style="background:${c.relColor}"></div>
+    <div class="card-top">
+      <span class="type-badge" style="background:${c.relColor}20;color:${c.relColor};border:1px solid ${c.relColor}30">${c.relType}</span>
+      <span class="status-pill ${STATUS_CLASS[c.status]}" title="${STATUS_TIPS[c.status]}">${STATUS_LABEL[c.status]}</span>
+    </div>
+    <div class="card-text">${c.text}</div>
+    ${evidenceBarHTML(c.evidence, c.id)}`;
+  attachBarHover(card, c.evidence);
+  ct.appendChild(card);
+}
+
+// ─── BAR SEGMENT HOVER ───────────────────────────────────────────────────────
+
+let barPinned = false;
+
+function attachBarHover(cardEl, evidence) {
+  cardEl.addEventListener('mouseover', e => {
+    if (barPinned) return;
+    const seg = e.target.closest('.eb-seg');
+    if (!seg) return;
+    showBarPopover(seg, seg.dataset.stance, evidence);
+  });
+  cardEl.addEventListener('mouseout', e => {
+    if (barPinned) return;
+    if (e.target.closest('.eb-seg')) hideBarPopover();
+  });
+  cardEl.addEventListener('click', e => {
+    const seg = e.target.closest('.eb-seg');
+    if (!seg) return;
+    e.stopPropagation();
+    barPinned = true;
+    showBarPopover(seg, seg.dataset.stance, evidence, true);
+  });
+}
+
+function scholarUrl(title) {
+  return 'https://scholar.google.com/scholar?q=' + encodeURIComponent(title);
+}
+
+function showBarPopover(segEl, stance, evidence, pinned) {
+  const papers = (evidence||[]).filter(p => p.stance === stance).sort((a,b) => (b.tier||1)-(a.tier||1));
+  if (!papers.length) return;
+
+  const pop = document.getElementById('bar-popover');
+  const boardRect = document.getElementById('corkboard').getBoundingClientRect();
+  const rect = segEl.getBoundingClientRect();
+  pop.style.left = (rect.left - boardRect.left) + 'px';
+  pop.style.top  = (rect.top - boardRect.top - 14) + 'px';
+  pop.style.transform = 'translateY(-100%)';
+  pop.style.boxShadow = '0 4px 20px rgba(0,0,0,.4)';
+  if (pinned) pop.style.pointerEvents = 'auto';
+  else pop.style.pointerEvents = 'none';
+
+  const cls = stance==='for'?'pop-for':stance==='mixed'?'pop-mixed':'pop-against';
+  const lbl = stance.toUpperCase();
+  pop.innerHTML = `<span class="pop-stance-label ${cls}">${lbl}</span>` +
+    papers.map(p => `<div class="pop-paper"><a href="${p.url||scholarUrl(p.title)}" target="_blank" style="color:#F1F0DE;text-decoration:none;border-bottom:1px solid #4D355D">${p.title}</a><span class="tier-chip">${['','★','★★','★★★'][p.tier]}</span>${p.cites ? `<span style="font-size:8px;color:#74508B;margin-left:4px">${p.cites} cites</span>` : ''}<div class="pop-meta">${p.authors} · ${p.year}</div></div>`).join('') +
+    (pinned ? '<div style="font-size:8px;color:#74508B;margin-top:6px;text-align:right">click outside to close</div>' : '');
+  pop.classList.add('visible');
+}
+
+function hideBarPopover() {
+  const pop = document.getElementById('bar-popover');
+  pop.classList.remove('visible');
+  pop.style.pointerEvents = 'none';
+  barPinned = false;
+}
+
+// Click outside to unpin bar popover
+document.getElementById('corkboard').addEventListener('click', () => {
+  if (barPinned) hideBarPopover();
+});
+
+// ─── CONCEPT PILLS ───────────────────────────────────────────────────────────
+
+function renderPills() {
+  const ct = document.getElementById('pills-container');
+  ct.innerHTML = '';
+  if (mode !== 'concept') return;
+
+  const allEndpoints = [...HOW_CLAIMS, ...WHY_CLAIMS, GAP].filter(c => c.endpoint);
+  const seen = new Set();
+  allEndpoints.forEach(c => {
+    if (seen.has(c.endpoint.name)) return;
+    seen.add(c.endpoint.name);
+    const p = pos(c.endpoint.pos);
+    const pill = document.createElement('div');
+    pill.className = 'concept-pill';
+    pill.style.left = p.x+'px'; pill.style.top = p.y+'px';
+    pill.textContent = c.endpoint.name;
+    pill.addEventListener('click', () => navigateTo(c.endpoint.name, c.endpoint.hasData));
+    ct.appendChild(pill);
+  });
+}
+
+// ─── STRINGS ─────────────────────────────────────────────────────────────────
+
+function renderStrings() {
+  const svg = document.getElementById('strings-svg');
+  let html = '';
+  const centerPos = pos([.46, .50]);
+
+  if (mode === 'concept') {
+    // Center → HOW/WHY cards
+    CLAIM_LINKS.forEach((link, i) => {
+      const to = link.to === 'c5' ? HOW_CLAIMS.find(c=>c.id===link.to)
+               : link.to === 'c6' ? WHY_CLAIMS.find(c=>c.id===link.to) : GAP;
+      if (!to) return;
+      const tp = pos(to.pos);
+      const d = `M${centerPos.x},${centerPos.y} L${tp.x},${tp.y}`;
+      const mx = (centerPos.x+tp.x)/2, my = (centerPos.y+tp.y)/2;
+      html += `<path id="slink-${i}" d="${d}" fill="none" stroke="${B.purpleDark}" stroke-width="2.5" stroke-linecap="round"/>`;
+      html += `<path class="string-hit" data-idx="${i}" data-label="${link.label}" data-mx="${mx}" data-my="${my}" d="${d}" fill="none" stroke="transparent" stroke-width="18"/>`;
+    });
+
+    // HOW/WHY cards → endpoint pills
+    [...HOW_CLAIMS, ...WHY_CLAIMS, GAP].filter(c=>c.endpoint).forEach(c => {
+      const cp = pos(c.pos), ep = pos(c.endpoint.pos);
+      const dash = c.isGap ? ' stroke-dasharray="6 4"' : '';
+      html += `<path d="M${cp.x},${cp.y} L${ep.x},${ep.y}" fill="none" stroke="${B.purpleDark}" stroke-width="2"${dash} stroke-linecap="round"/>`;
+    });
+
+    // (Satellites removed — papers integrated into center card)
+  } else if (intersectHasData) {
+    INTERSECT_LINKS.forEach((link, i) => {
+      const a = pos(INTERSECT_SYCOPHANCY.find(c=>c.id===link.from).pos);
+      const b = pos(INTERSECT_SYCOPHANCY.find(c=>c.id===link.to).pos);
+      const d = `M${a.x},${a.y} L${b.x},${b.y}`;
+      const mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+      html += `<path id="slink-${i}" d="${d}" fill="none" stroke="${B.purpleDark}" stroke-width="2.5" stroke-linecap="round"/>`;
+      html += `<path class="string-hit" data-idx="${i}" data-label="${link.label}" data-mx="${mx}" data-my="${my}" d="${d}" fill="none" stroke="transparent" stroke-width="18"/>`;
+    });
+  }
+
+  svg.innerHTML = html;
+
+  svg.querySelectorAll('.string-hit').forEach(hit => {
+    const idx = hit.dataset.idx, label = hit.dataset.label;
+    const mx = +hit.dataset.mx, my = +hit.dataset.my;
+    hit.addEventListener('mouseenter', () => {
+      const v = document.getElementById(`slink-${idx}`);
+      if (v) { v.setAttribute('stroke', B.purpleLight); v.setAttribute('stroke-width', '3.5'); }
+      const tip = document.getElementById('string-tooltip');
+      tip.textContent = label; tip.style.left = mx+'px'; tip.style.top = (my-22)+'px';
+      tip.classList.add('visible');
+    });
+    hit.addEventListener('mouseleave', () => {
+      const v = document.getElementById(`slink-${idx}`);
+      if (v) { v.setAttribute('stroke', B.purpleDark); v.setAttribute('stroke-width', '2.5'); }
+      document.getElementById('string-tooltip').classList.remove('visible');
+    });
+  });
+}
+
+function renderEmptyState() {
+  const el = document.getElementById('empty-state');
+  if (mode === 'intersect' && !intersectHasData) {
+    el.style.display = 'block';
+    document.getElementById('es-a').textContent = CONCEPT.name;
+    document.getElementById('es-b').textContent = intersectWith;
+  } else el.style.display = 'none';
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+
+function navigateTo(concept, hasData) {
+  intersectWith = concept;
+  intersectHasData = !!hasData;
+  mode = 'intersect';
+  renderAll();
+}
+function toggleAuthors(idx) {
+  const el = document.getElementById(`paper-authors-${idx}`);
+  if (el) el.classList.toggle('open');
+}
+
+function goBack() {
+  mode = 'concept'; intersectWith = null;
+  renderAll();
+}
+
+let rt;
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderAll, 80); });
+
+renderAll();
+</script>
+</body>
+</html>

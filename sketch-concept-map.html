@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Concept Map — AI/ML</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #403151; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+#tooltip {
+  position: fixed; max-width: 300px;
+  background: #271B2F; border: 1px solid #4D355D;
+  color: #F1F0DE; font-size: 13px; line-height: 1.5;
+  padding: 12px 16px; border-radius: 8px;
+  pointer-events: none; opacity: 0;
+  transition: opacity .15s; z-index: 100;
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+}
+#tooltip.visible { opacity: 1; }
+.tt-name { font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+.tt-cluster { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.tt-def { color: #B490CB; }
+.tt-year { font-size: 11px; color: #74508B; margin-top: 6px; }
+
+#edge-tooltip {
+  position: fixed; max-width: 300px;
+  background: #271B2F; border: 1px solid #4D355D;
+  color: #F1F0DE; font-size: 12px; line-height: 1.5;
+  padding: 10px 14px; border-radius: 8px;
+  pointer-events: none; opacity: 0;
+  transition: opacity .15s; z-index: 100;
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+}
+#edge-tooltip.visible { opacity: 1; }
+
+/* ── Persistent header bar ─────────────────────── */
+#header-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 180;
+  background: #271B2F;
+  border-bottom: 1px solid #4D355D;
+  display: none;
+  flex-direction: column;
+  padding: 10px 16px 8px;
+}
+#header-bar.visible { display: flex; }
+#hdr-row1 { display: flex; align-items: center; gap: 12px; }
+#hdr-wordmark { font-size: 14px; font-weight: 600; color: #C49428; letter-spacing: .03em; flex-shrink: 0; }
+#hdr-search {
+  flex: 1;
+  padding: 12px 18px; font-size: 18px;
+  color: #F1F0DE; background: #403151;
+  border: 1px solid #4D355D; border-radius: 10px;
+  outline: none; font-family: inherit;
+}
+#hdr-search::placeholder { color: #74508B; }
+#hdr-search:focus { border-color: #9B6BBA; }
+#hdr-home {
+  background: none; border: 1px solid #4D355D; color: #74508B;
+  padding: 6px 14px; border-radius: 6px; font-size: 12px;
+  cursor: pointer; transition: all .12s; font-family: inherit; flex-shrink: 0;
+}
+#hdr-home:hover { border-color: #9B6BBA; color: #B490CB; }
+#hdr-prompts {
+  display: flex; gap: 16px; padding: 6px 0 0 0; margin-left: 100px;
+}
+.hdr-prompt {
+  font-size: 12px; color: #74508B; cursor: pointer;
+  transition: color .12s; text-decoration: none;
+}
+.hdr-prompt:hover { color: #B490CB; }
+
+/* ── Entry overlay ─────────────────────────────── */
+#overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(39,27,47,.6);
+  backdrop-filter: blur(2px);
+  transition: opacity .4s;
+}
+#overlay.hidden { opacity: 0; pointer-events: none; }
+#search-box {
+  width: 640px; padding: 18px 24px;
+  font-size: 22px; color: #F1F0DE;
+  background: #271B2F; border: 1.5px solid #4D355D;
+  border-radius: 12px; outline: none;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+#search-box::placeholder { color: #74508B; }
+#search-box:focus { border-color: #9B6BBA; }
+#sample-prompts { margin-top: 16px; text-align: center; }
+#sample-prompts .sp-label { font-size: 14px; color: #74508B; margin-bottom: 10px; }
+.sp-link {
+  display: block; font-size: 18px; color: #B490CB;
+  cursor: pointer; padding: 4px 0;
+  transition: color .12s; text-decoration: none;
+}
+.sp-link:hover { color: #F1F0DE; }
+#skip-link {
+  margin-top: 24px; font-size: 11px; color: #4D355D;
+  cursor: pointer; transition: color .12s;
+}
+#skip-link:hover { color: #74508B; }
+
+/* ── Full concept card (two-panel) ──────────────── */
+#info-panel {
+  position: fixed; z-index: 150;
+  top: 100px;
+  width: 760px;
+  background: #271B2F;
+  border: 1.5px solid rgba(196,148,40,.5);
+  border-radius: 12px;
+  box-shadow: 0 8px 60px rgba(0,0,0,.6);
+  display: none;
+  overflow: visible;
+}
+#info-panel .ip-close {
+  position: absolute; top: 10px; right: 14px;
+  background: none; border: none; color: #4D355D; font-size: 18px;
+  cursor: pointer; z-index: 5;
+}
+#info-panel .ip-close:hover { color: #B490CB; }
+.ip-inner { display: flex; }
+.ip-left { flex: 1; padding: 24px 28px; border-right: 1px solid #4D355D; }
+.ip-right { width: 310px; flex-shrink: 0; display: flex; flex-direction: column; overflow: visible; }
+.ip-name { font-size: 32px; font-weight: 600; color: #C49428; margin-bottom: 8px; }
+.ip-def { font-size: 16px; color: #FFFFFF; line-height: 1.55; margin-bottom: 14px; }
+.ip-intro { font-size: 16px; color: #D7C4E3; line-height: 1.55; }
+.ip-papers-hdr { font-size: 10px; color: #74508B; text-transform: uppercase; letter-spacing: .12em; padding: 10px 16px 0; }
+.ip-paper {
+  flex: 1; padding: 12px 16px;
+  border-bottom: 1px solid #4D355D;
+  transition: background .12s;
+  position: relative; overflow: visible;
+}
+.ip-paper:last-child { border-bottom: none; }
+.ip-paper:hover { background: #352548; }
+.ip-paper-row { display: flex; align-items: center; gap: 10px; }
+.ip-avatar {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #FFFFFF; flex-shrink: 0;
+}
+.ip-paper-info { flex: 1; min-width: 0; }
+.ip-paper-title { font-size: 14px; color: #F1F0DE; line-height: 1.35; text-decoration: none; display: block; }
+.ip-paper-title:hover { text-decoration: underline; color: #FFF; }
+.ip-paper-meta { font-size: 12px; color: #B490CB; margin-top: 2px; }
+.ip-expand {
+  color: #74508B; font-size: 16px; flex-shrink: 0;
+  cursor: pointer; background: none; border: 1px solid #4D355D;
+  border-radius: 4px; padding: 2px 8px; transition: color .12s;
+}
+.ip-expand:hover { color: #F1F0DE; border-color: #74508B; }
+.ip-authors {
+  position: absolute; left: 100%; top: 50%; margin-left: 12px;
+  display: flex; gap: 6px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  transform: translateY(-50%) translateX(-10px); z-index: 20;
+}
+.ip-authors.open { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
+.ip-auth-chip {
+  display: flex; flex-direction: column; align-items: center;
+  width: 56px; text-align: center;
+}
+.ip-auth-av {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #FFF; margin-bottom: 3px;
+}
+.ip-auth-name { font-size: 10px; color: #F1F0DE; line-height: 1.2; white-space: nowrap; }
+.ip-auth-affil { font-size: 8px; color: #B490CB; line-height: 1.15; }
+.ip-auth-affil-line { display: block; white-space: nowrap; }
+.ip-auth-cite { font-size: 8px; color: #74508B; line-height: 1.15; margin-top: 1px; }
+
+/* ── Claim card (edge zoom) ────────────────────── */
+#claim-panel {
+  position: fixed; z-index: 150;
+  background: #271B2F; border: 1px solid #4D355D;
+  border-radius: 10px; padding: 16px 20px;
+  max-width: 400px; box-shadow: 0 4px 30px rgba(0,0,0,.5);
+  display: none;
+}
+#claim-panel .cp-type { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+#claim-panel .cp-text { font-size: 14px; color: #F1F0DE; line-height: 1.55; margin-bottom: 10px; }
+#claim-panel .cp-bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; background: #4D355D; margin-bottom: 6px; }
+#claim-panel .cp-meta { font-size: 11px; color: #74508B; }
+#claim-panel .cp-close {
+  position: absolute; top: 8px; right: 12px;
+  background: none; border: none; color: #4D355D; font-size: 16px;
+  cursor: pointer;
+}
+#claim-panel .cp-close:hover { color: #B490CB; }
+
+/* ── Path step card ────────────────────────────── */
+#path-card {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 150;
+  background: #271B2F; border: 1px solid #4D355D;
+  border-radius: 10px; padding: 14px 22px;
+  width: 520px; box-shadow: 0 4px 30px rgba(0,0,0,.5);
+  display: none;
+}
+#path-card .pc-step { font-size: 10px; color: #74508B; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+#path-card .pc-name { font-size: 18px; font-weight: 600; color: #C49428; margin-bottom: 4px; }
+#path-card .pc-desc { font-size: 14px; color: #F1F0DE; line-height: 1.5; margin-bottom: 12px; }
+#path-card .pc-nav { display: flex; justify-content: space-between; align-items: center; }
+.pc-btn {
+  background: none; border: 1px solid #4D355D; color: #B490CB;
+  padding: 6px 16px; border-radius: 6px; font-size: 12px;
+  cursor: pointer; transition: all .12s; font-family: inherit;
+}
+.pc-btn:hover { border-color: #9B6BBA; color: #F1F0DE; }
+.pc-btn:disabled { opacity: .3; cursor: default; }
+.pc-dots { display: flex; gap: 6px; }
+.pc-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #4D355D; transition: background .15s;
+}
+.pc-dot.active { background: #C49428; }
+
+/* Path node badges */
+.path-badge {
+  font-size: 11px; font-weight: 700;
+  fill: #271B2F;
+}
+.path-badge-bg {
+  fill: #C49428;
+}
+</style>
+</head>
+<body>
+<div id="header-bar">
+  <div id="hdr-row1">
+    <span id="hdr-wordmark">Claim Tracker</span>
+    <input id="hdr-search" type="text" placeholder="Ask anything about AI" autocomplete="off">
+    <button id="hdr-home">Reset map</button>
+  </div>
+  <div id="hdr-prompts">
+    <a class="hdr-prompt" data-q="What is RLHF?">"What is RLHF?"</a>
+    <a class="hdr-prompt" data-q="Does RLHF cause sycophancy?">"Does RLHF cause sycophancy?"</a>
+    <a class="hdr-prompt" data-q="How does ChatGPT actually work?">"How does ChatGPT actually work?"</a>
+  </div>
+</div>
+
+<div id="overlay">
+  <input id="search-box" type="text" placeholder="Ask anything about AI" autocomplete="off">
+  <div id="sample-prompts">
+    <div class="sp-label">or try:</div>
+    <a class="sp-link" data-q="What is RLHF?">"What is RLHF?"</a>
+    <a class="sp-link" data-q="Does RLHF cause sycophancy?">"Does RLHF cause sycophancy?"</a>
+    <a class="sp-link" data-q="How does ChatGPT actually work?">"How does ChatGPT actually work?"</a>
+  </div>
+  <div id="skip-link">or just explore the map →</div>
+</div>
+
+<div id="info-panel">
+  <button class="ip-close" onclick="closeInfoPanel()">×</button>
+  <div class="ip-inner" id="ip-inner"></div>
+</div>
+
+<div id="claim-panel">
+  <button class="cp-close" onclick="closeClaimPanel()">×</button>
+  <div class="cp-type"></div>
+  <div class="cp-text"></div>
+  <div class="cp-bar"></div>
+  <div class="cp-meta"></div>
+</div>
+
+<div id="path-card">
+  <div class="pc-step"></div>
+  <div class="pc-name"></div>
+  <div class="pc-desc"></div>
+  <div class="pc-nav">
+    <button class="pc-btn" id="pc-prev" onclick="pathPrev()">← Prev</button>
+    <div class="pc-dots" id="pc-dots"></div>
+    <button class="pc-btn" id="pc-next" onclick="pathNext()">Next →</button>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+<div id="edge-tooltip"></div>
+<script>
+const CLUSTER_COLORS = {
+  foundations:'#5899DA', architectures:'#9B6BBA', training:'#F3B839',
+  alignment:'#C49428', safety:'#E1543E', prompting:'#6DAB5A',
+  applications:'#E47D43', 'reinforcement-learning':'#B490CB',
+  efficiency:'#74508B', evaluation:'#D7C4E3',
+};
+const CLUSTER_LABELS = {
+  foundations:'Foundations', architectures:'Architectures', training:'Training',
+  alignment:'Alignment', safety:'Safety', prompting:'Prompting',
+  applications:'Applications', 'reinforcement-learning':'RL',
+  efficiency:'Efficiency', evaluation:'Evaluation',
+};
+const EDGE_COLORS = {
+  'builds-on':'#9B6BBA', 'alternative-to':'#5899DA',
+  'causes-problem':'#E1543E', 'component-of':'#F3B839', 'related':'#74508B',
+};
+const EDGE_LABELS = {
+  'builds-on':'Builds on', 'alternative-to':'Alternative to',
+  'causes-problem':'Causes / enables problem', 'component-of':'Component of', 'related':'Related',
+};
+
+const CONCEPTS = [
+  {id:"gradient-descent",name:"Gradient Descent",cluster:"foundations",year:1847,abs:.05,definition:"Optimization algorithm that iteratively updates parameters in the direction that reduces the loss function."},
+  {id:"backpropagation",name:"Backpropagation",cluster:"foundations",year:1986,abs:.1,definition:"Algorithm for computing gradients through a neural network by applying the chain rule backwards from the loss function."},
+  {id:"neural-networks",name:"Neural Networks",cluster:"foundations",year:1958,abs:.15,definition:"Computational models inspired by biological neurons, composed of layers of interconnected nodes that learn to transform inputs into outputs."},
+  {id:"sgd",name:"SGD",cluster:"foundations",year:1951,abs:.08,definition:"Variant of gradient descent using random mini-batches, enabling training on large datasets."},
+  {id:"adam-optimizer",name:"Adam",cluster:"foundations",year:2014,abs:.08,definition:"Adaptive learning rate optimizer, widely used as the default for deep learning."},
+  {id:"dropout",name:"Dropout",cluster:"foundations",year:2014,abs:.12,definition:"Regularization technique that randomly deactivates neurons during training."},
+  {id:"batch-normalization",name:"Batch Norm",cluster:"foundations",year:2015,abs:.1,definition:"Normalizes layer inputs across a mini-batch, stabilizing deep network training."},
+  {id:"embeddings",name:"Embeddings",cluster:"foundations",year:2013,abs:.2,definition:"Dense vector representations capturing semantic similarity in geometric space."},
+  {id:"deep-learning",name:"Deep Learning",cluster:"foundations",year:2006,abs:.2,definition:"Machine learning using neural networks with many layers."},
+  {id:"tokenization",name:"Tokenization",cluster:"foundations",year:2016,abs:.12,definition:"Breaking text into subword units that serve as inputs to language models."},
+  {id:"convolutions",name:"CNNs",cluster:"architectures",year:1998,abs:.2,definition:"Neural networks using spatial filters to detect local patterns in images."},
+  {id:"resnet",name:"ResNet",cluster:"architectures",year:2015,abs:.22,definition:"Architecture using skip connections enabling 100+ layer training."},
+  {id:"recurrent-networks",name:"RNNs",cluster:"architectures",year:1986,abs:.2,definition:"Neural networks with cyclic connections for sequential data."},
+  {id:"lstm",name:"LSTM",cluster:"architectures",year:1997,abs:.22,definition:"Gated recurrent architecture for long sequences."},
+  {id:"attention",name:"Attention",cluster:"architectures",year:2014,abs:.3,definition:"Mechanism allowing models to dynamically focus on relevant input parts."},
+  {id:"self-attention",name:"Self-Attention",cluster:"architectures",year:2017,abs:.28,definition:"Attention within a single sequence — the core transformer operation."},
+  {id:"transformers",name:"Transformers",cluster:"architectures",year:2017,abs:.35,definition:"Architecture based entirely on self-attention. Foundation of modern LLMs."},
+  {id:"positional-encoding",name:"Positional Enc.",cluster:"architectures",year:2017,abs:.18,definition:"Injecting sequence position information into transformers."},
+  {id:"gpt",name:"GPT",cluster:"architectures",year:2018,abs:.45,definition:"Autoregressive language model that predicts the next token."},
+  {id:"bert",name:"BERT",cluster:"architectures",year:2018,abs:.4,definition:"Bidirectional transformer for understanding tasks."},
+  {id:"gans",name:"GANs",cluster:"architectures",year:2014,abs:.35,definition:"Generator vs discriminator framework for realistic output generation."},
+  {id:"diffusion-models",name:"Diffusion",cluster:"architectures",year:2020,abs:.35,definition:"Generative models reversing a noising process to produce images."},
+  {id:"vision-transformers",name:"ViT",cluster:"architectures",year:2020,abs:.35,definition:"Transformers applied to image patches instead of text tokens."},
+  {id:"clip",name:"CLIP",cluster:"architectures",year:2021,abs:.45,definition:"Image-text model enabling zero-shot image classification."},
+  {id:"multimodal",name:"Multimodal",cluster:"architectures",year:2021,abs:.5,definition:"Models processing text, images, audio, and video together."},
+  {id:"mixture-of-experts",name:"MoE",cluster:"architectures",year:2017,abs:.25,definition:"Only a subset of parameters activated per input for efficiency."},
+  {id:"contrastive-learning",name:"Contrastive",cluster:"training",year:2020,abs:.25,definition:"Self-supervised learning by pulling similar examples together."},
+  {id:"pre-training",name:"Pre-training",cluster:"training",year:2018,abs:.35,definition:"Training on large general data before task specialization."},
+  {id:"fine-tuning",name:"Fine-tuning",cluster:"training",year:2018,abs:.4,definition:"Adapting a pre-trained model to a specific task."},
+  {id:"transfer-learning",name:"Transfer Learning",cluster:"training",year:2010,abs:.4,definition:"Using knowledge from one task to improve another."},
+  {id:"foundation-models",name:"Foundation Models",cluster:"training",year:2021,abs:.5,definition:"Large pre-trained models adapted to many downstream tasks."},
+  {id:"scaling-laws",name:"Scaling Laws",cluster:"training",year:2020,abs:.55,definition:"Performance improves predictably with more data, compute, and parameters."},
+  {id:"sft",name:"SFT",cluster:"training",year:2022,abs:.45,definition:"Fine-tuning on instruction-response pairs."},
+  {id:"lora",name:"LoRA",cluster:"training",year:2021,abs:.3,definition:"Parameter-efficient fine-tuning with low-rank matrices."},
+  {id:"emergent-abilities",name:"Emergent Abilities",cluster:"training",year:2022,abs:.7,definition:"Capabilities appearing suddenly at certain model scales."},
+  {id:"quantization",name:"Quantization",cluster:"efficiency",year:2016,abs:.15,definition:"Reducing model precision to decrease memory and compute."},
+  {id:"distillation",name:"Distillation",cluster:"efficiency",year:2015,abs:.3,definition:"Training a small model to mimic a larger one."},
+  {id:"reinforcement-learning",name:"RL",cluster:"reinforcement-learning",year:1992,abs:.3,definition:"Learning by receiving rewards or penalties from an environment."},
+  {id:"ppo",name:"PPO",cluster:"reinforcement-learning",year:2017,abs:.25,definition:"Policy gradient RL algorithm used in RLHF."},
+  {id:"rlhf",name:"RLHF",cluster:"alignment",year:2020,abs:.55,definition:"Training models using human preference signals to align behavior."},
+  {id:"dpo",name:"DPO",cluster:"alignment",year:2023,abs:.5,definition:"Direct preference optimization without a separate reward model."},
+  {id:"reward-modeling",name:"Reward Model",cluster:"alignment",year:2020,abs:.4,definition:"Predicting human preferences to guide RL training."},
+  {id:"reward-hacking",name:"Reward Hacking",cluster:"alignment",year:2022,abs:.75,definition:"Exploiting reward model flaws to get high reward without satisfying intent."},
+  {id:"constitutional-ai",name:"Constitutional AI",cluster:"alignment",year:2022,abs:.6,definition:"AI self-critiques outputs according to principles."},
+  {id:"rlaif",name:"RLAIF",cluster:"alignment",year:2023,abs:.5,definition:"Using AI-generated preferences instead of human ones."},
+  {id:"prompting",name:"Prompting",cluster:"prompting",year:2020,abs:.6,definition:"Crafting input text to elicit desired model behavior."},
+  {id:"in-context-learning",name:"In-Context Learning",cluster:"prompting",year:2020,abs:.65,definition:"Learning new tasks from examples in the prompt alone."},
+  {id:"chain-of-thought",name:"Chain-of-Thought",cluster:"prompting",year:2022,abs:.65,definition:"Step-by-step reasoning that improves math and logic performance."},
+  {id:"hallucination",name:"Hallucination",cluster:"safety",year:2020,abs:.85,definition:"Generating confident but factually incorrect information."},
+  {id:"sycophancy",name:"Sycophancy",cluster:"safety",year:2023,abs:.85,definition:"Agreeing with users even when they are factually wrong."},
+  {id:"calibration",name:"Calibration",cluster:"evaluation",year:2017,abs:.7,definition:"How well expressed confidence matches actual accuracy."},
+  {id:"ai-safety",name:"AI Safety",cluster:"safety",year:2014,abs:.8,definition:"Ensuring advanced AI behaves as intended without causing harm."},
+  {id:"interpretability",name:"Interpretability",cluster:"safety",year:2020,abs:.6,definition:"Reverse-engineering how neural networks process information."},
+  {id:"superposition",name:"Superposition",cluster:"safety",year:2022,abs:.45,definition:"Networks encode more features than dimensions via overlapping directions."},
+  {id:"sparse-autoencoders",name:"SAEs",cluster:"safety",year:2023,abs:.4,definition:"Decomposing activations into interpretable features."},
+  {id:"retrieval-augmented-generation",name:"RAG",cluster:"applications",year:2020,abs:.7,definition:"Grounding model responses in retrieved documents."},
+  {id:"agentic-ai",name:"Agentic AI",cluster:"applications",year:2023,abs:.8,definition:"AI that autonomously plans, uses tools, and takes actions."},
+  {id:"tool-use",name:"Tool Use",cluster:"applications",year:2023,abs:.75,definition:"Models invoking external tools like search and code execution."},
+];
+
+const EDGES = [
+  {s:"gradient-descent",t:"backpropagation",type:"component-of"},
+  {s:"backpropagation",t:"neural-networks",type:"component-of"},
+  {s:"gradient-descent",t:"sgd",type:"builds-on"},
+  {s:"sgd",t:"adam-optimizer",type:"builds-on"},
+  {s:"neural-networks",t:"deep-learning",type:"builds-on"},
+  {s:"dropout",t:"neural-networks",type:"component-of"},
+  {s:"batch-normalization",t:"resnet",type:"component-of"},
+  {s:"neural-networks",t:"convolutions",type:"builds-on"},
+  {s:"convolutions",t:"resnet",type:"builds-on"},
+  {s:"neural-networks",t:"recurrent-networks",type:"builds-on"},
+  {s:"recurrent-networks",t:"lstm",type:"builds-on"},
+  {s:"attention",t:"lstm",type:"builds-on"},
+  {s:"attention",t:"self-attention",type:"builds-on"},
+  {s:"self-attention",t:"transformers",type:"component-of"},
+  {s:"attention",t:"transformers",type:"component-of"},
+  {s:"positional-encoding",t:"transformers",type:"component-of"},
+  {s:"transformers",t:"gpt",type:"builds-on"},
+  {s:"transformers",t:"bert",type:"builds-on"},
+  {s:"tokenization",t:"transformers",type:"component-of"},
+  {s:"embeddings",t:"transformers",type:"related"},
+  {s:"gans",t:"diffusion-models",type:"alternative-to"},
+  {s:"transformers",t:"vision-transformers",type:"builds-on"},
+  {s:"convolutions",t:"vision-transformers",type:"alternative-to"},
+  {s:"clip",t:"vision-transformers",type:"builds-on"},
+  {s:"clip",t:"multimodal",type:"component-of"},
+  {s:"clip",t:"contrastive-learning",type:"builds-on"},
+  {s:"transformers",t:"mixture-of-experts",type:"builds-on"},
+  {s:"transformers",t:"scaling-laws",type:"related"},
+  {s:"gpt",t:"pre-training",type:"related"},
+  {s:"pre-training",t:"fine-tuning",type:"builds-on"},
+  {s:"pre-training",t:"foundation-models",type:"builds-on"},
+  {s:"foundation-models",t:"scaling-laws",type:"related"},
+  {s:"fine-tuning",t:"lora",type:"builds-on"},
+  {s:"fine-tuning",t:"sft",type:"builds-on"},
+  {s:"dpo",t:"fine-tuning",type:"builds-on"},
+  {s:"sft",t:"rlhf",type:"builds-on"},
+  {s:"ppo",t:"rlhf",type:"component-of"},
+  {s:"reward-modeling",t:"rlhf",type:"component-of"},
+  {s:"reinforcement-learning",t:"ppo",type:"builds-on"},
+  {s:"rlhf",t:"dpo",type:"alternative-to"},
+  {s:"rlhf",t:"constitutional-ai",type:"alternative-to"},
+  {s:"constitutional-ai",t:"rlaif",type:"builds-on"},
+  {s:"rlaif",t:"rlhf",type:"alternative-to"},
+  {s:"reward-modeling",t:"reward-hacking",type:"causes-problem"},
+  {s:"rlhf",t:"reward-hacking",type:"causes-problem"},
+  {s:"rlhf",t:"sycophancy",type:"causes-problem"},
+  {s:"reward-hacking",t:"sycophancy",type:"causes-problem"},
+  {s:"hallucination",t:"sycophancy",type:"related"},
+  {s:"calibration",t:"hallucination",type:"related"},
+  {s:"ai-safety",t:"interpretability",type:"related"},
+  {s:"interpretability",t:"sparse-autoencoders",type:"builds-on"},
+  {s:"interpretability",t:"superposition",type:"related"},
+  {s:"scaling-laws",t:"emergent-abilities",type:"related"},
+  {s:"emergent-abilities",t:"in-context-learning",type:"related"},
+  {s:"emergent-abilities",t:"chain-of-thought",type:"related"},
+  {s:"in-context-learning",t:"prompting",type:"related"},
+  {s:"chain-of-thought",t:"prompting",type:"related"},
+  {s:"embeddings",t:"retrieval-augmented-generation",type:"component-of"},
+  {s:"hallucination",t:"retrieval-augmented-generation",type:"related"},
+  {s:"agentic-ai",t:"tool-use",type:"related"},
+  {s:"chain-of-thought",t:"agentic-ai",type:"related"},
+  {s:"distillation",t:"quantization",type:"related"},
+  {s:"lora",t:"quantization",type:"related"},
+];
+
+// ─── SETUP ───────────────────────────────────────────────────────────────────
+
+const W = window.innerWidth, H = window.innerHeight;
+const PAD = { l: 80, r: 160, t: 50, b: 40 };
+
+function yearToX(year) {
+  const eras = [[1847,.02],[1990,.08],[2010,.15],[2014,.28],[2017,.42],[2020,.58],[2022,.76],[2024,.94]];
+  for (let i = 1; i < eras.length; i++) {
+    if (year <= eras[i][0]) {
+      const [y0,x0] = eras[i-1], [y1,x1] = eras[i];
+      return PAD.l + (x0 + (year-y0)/(y1-y0) * (x1-x0)) * (W-PAD.l-PAD.r);
+    }
+  }
+  return PAD.l + .94*(W-PAD.l-PAD.r);
+}
+function absToY(a) { return (H-PAD.b) - a*(H-PAD.t-PAD.b); }
+
+// Positions with jitter
+const used = [];
+CONCEPTS.forEach(c => {
+  let x = yearToX(c.year), y = absToY(c.abs);
+  for (let i = 0; i < 15; i++) {
+    if (!used.some(p => Math.hypot(x-p[0], y-p[1]) < 28)) break;
+    x += (Math.random()-.5)*36; y += (Math.random()-.5)*28;
+  }
+  used.push([x,y]); c.x = x; c.y = y;
+});
+
+const deg = {}, neighbors = {}, cMap = {};
+CONCEPTS.forEach(c => { deg[c.id]=0; neighbors[c.id]=new Set(); cMap[c.id]=c; });
+EDGES.forEach(e => { deg[e.s]=(deg[e.s]||0)+1; deg[e.t]=(deg[e.t]||0)+1; neighbors[e.s].add(e.t); neighbors[e.t].add(e.s); });
+
+// ─── DRAW ────────────────────────────────────────────────────────────────────
+
+const svg = d3.select('body').append('svg')
+  .attr('width', W).attr('height', H)
+  .style('position','absolute').style('top',0).style('left',0);
+
+// Era bands
+const eraData = [
+  {l:'Classics',x0:yearToX(1847),x1:yearToX(1990)},
+  {l:'Deep Learning',x0:yearToX(1990),x1:yearToX(2014)},
+  {l:'Attention',x0:yearToX(2014),x1:yearToX(2017)},
+  {l:'Transformers',x0:yearToX(2017),x1:yearToX(2020)},
+  {l:'LLMs',x0:yearToX(2020),x1:yearToX(2022)},
+  {l:'Now',x0:yearToX(2022),x1:yearToX(2024)},
+];
+eraData.forEach((e,i) => {
+  svg.append('rect').attr('x',e.x0).attr('y',PAD.t).attr('width',e.x1-e.x0).attr('height',H-PAD.t-PAD.b)
+    .attr('fill', i%2===0 ? '#382648' : '#3E2C52');
+  svg.append('text').attr('x',(e.x0+e.x1)/2).attr('y',H-PAD.b+14)
+    .attr('text-anchor','middle').attr('fill','#4D355D').attr('font-size',10).attr('font-family','sans-serif').text(e.l);
+});
+
+// Theory ↔ Practice labels
+svg.append('text').attr('x',12).attr('y',PAD.t+18).attr('fill','#E1543E').attr('font-size',14).attr('font-weight',600).attr('opacity',.5).text('PRACTICE');
+svg.append('text').attr('x',12).attr('y',PAD.t+32).attr('fill','#74508B').attr('font-size',9).text('applications, behaviors');
+svg.append('text').attr('x',12).attr('y',H-PAD.b-14).attr('fill','#5899DA').attr('font-size',14).attr('font-weight',600).attr('opacity',.5).text('THEORY');
+svg.append('text').attr('x',12).attr('y',H-PAD.b-2).attr('fill','#74508B').attr('font-size',9).text('foundations, algorithms');
+
+// Divider
+svg.append('line').attr('x1',PAD.l).attr('x2',W-PAD.r).attr('y1',absToY(.5)).attr('y2',absToY(.5))
+  .attr('stroke','#4D355D').attr('stroke-width',1).attr('stroke-dasharray','4 3');
+
+// Edges
+EDGES.forEach((e,i) => {
+  const s = cMap[e.s], t = cMap[e.t];
+  if (!s || !t) return;
+  const col = EDGE_COLORS[e.type]||'#74508B';
+  const dash = e.type==='causes-problem' ? '5 3' : 'none';
+  const op = e.type==='related' ? .12 : .3;
+  svg.append('line').attr('x1',s.x).attr('y1',s.y).attr('x2',t.x).attr('y2',t.y)
+    .attr('stroke',col).attr('stroke-width', e.type==='component-of'?3:1.5)
+    .attr('stroke-opacity',op).attr('stroke-dasharray',dash).attr('class','edge').attr('data-idx',i);
+
+  if (e.type==='builds-on'||e.type==='causes-problem') {
+    const dx=t.x-s.x, dy=t.y-s.y, len=Math.hypot(dx,dy);
+    if(len<1)return;
+    const r=6+(deg[t.id]||0)*1.2+4, ax=t.x-dx/len*r, ay=t.y-dy/len*r;
+    const px=-dy/len*3.5, py=dx/len*3.5;
+    svg.append('polygon').attr('points',`${ax},${ay} ${ax-dx/len*7+px},${ay-dy/len*7+py} ${ax-dx/len*7-px},${ay-dy/len*7-py}`)
+      .attr('fill',col).attr('fill-opacity',op+.1).attr('class','edge').attr('data-idx',i);
+  }
+  if (e.type==='alternative-to') {
+    [s,t].forEach(n => {
+      const o=n===s?t:s, dx=n.x-o.x, dy=n.y-o.y, len=Math.hypot(dx,dy);
+      if(len<1)return;
+      const r=6+(deg[n.id]||0)*1.2+4, ax=n.x-dx/len*r, ay=n.y-dy/len*r;
+      const px=-dy/len*3, py=dx/len*3;
+      svg.append('polygon').attr('points',`${ax},${ay} ${ax-dx/len*6+px},${ay-dy/len*6+py} ${ax-dx/len*6-px},${ay-dy/len*6-py}`)
+        .attr('fill',col).attr('fill-opacity',.25).attr('class','edge').attr('data-idx',i);
+    });
+  }
+
+  // Hit area
+  svg.append('line').attr('x1',s.x).attr('y1',s.y).attr('x2',t.x).attr('y2',t.y)
+    .attr('stroke','transparent').attr('stroke-width',12).style('cursor','pointer')
+    .on('mouseenter', ev => {
+      const et = document.getElementById('edge-tooltip');
+      et.innerHTML = `<div style="font-size:10px;font-weight:700;color:${col};text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${EDGE_LABELS[e.type]||'Related'}</div>${s.name} → ${t.name}`;
+      positionTip(et, ev);
+      et.classList.add('visible');
+    })
+    .on('mouseleave', () => document.getElementById('edge-tooltip').classList.remove('visible'));
+});
+
+// Nodes
+const nodeG = svg.selectAll('.node').data(CONCEPTS).join('g')
+  .attr('transform', d => `translate(${d.x},${d.y})`);
+
+nodeG.append('circle')
+  .attr('r', d => 6 + (deg[d.id]||0)*1.2)
+  .attr('fill', d => CLUSTER_COLORS[d.cluster])
+  .attr('fill-opacity', .9)
+  .attr('stroke', d => CLUSTER_COLORS[d.cluster])
+  .attr('stroke-width', 1.5).attr('stroke-opacity', .3);
+
+// Show labels only for top-connected nodes; rest appear on hover
+const topN = Object.entries(deg).sort((a,b)=>b[1]-a[1]).slice(0,15).map(e=>e[0]);
+const topSet = new Set(topN);
+
+nodeG.append('text')
+  .text(d => d.name)
+  .attr('dy', d => 6 + (deg[d.id]||0)*1.2 + 14)
+  .attr('text-anchor','middle').attr('fill','#F1F0DE')
+  .attr('font-size', d => topSet.has(d.id) ? 12 : 9)
+  .attr('font-family','sans-serif')
+  .attr('opacity', d => topSet.has(d.id) ? .7 : 0)
+  .attr('pointer-events','none');
+
+// Legend
+const leg = svg.append('g').attr('transform',`translate(${W-148},20)`);
+leg.append('rect').attr('width',140).attr('height',250).attr('rx',8).attr('fill','#271B2F').attr('stroke','#4D355D');
+leg.append('text').attr('x',10).attr('y',18).attr('fill','#74508B').attr('font-size',10).attr('font-family','sans-serif').text('CLUSTERS');
+Object.entries(CLUSTER_LABELS).forEach(([k,v],i) => {
+  leg.append('circle').attr('cx',18).attr('cy',34+i*18).attr('r',5).attr('fill',CLUSTER_COLORS[k]);
+  leg.append('text').attr('x',28).attr('y',38+i*18).attr('fill','#B490CB').attr('font-size',10).attr('font-family','sans-serif').text(v);
+});
+
+// Hover
+function positionTip(el, ev) {
+  el.style.left = (ev.clientX + 16) + 'px';
+  // Check if tooltip would go below viewport
+  const tipH = el.offsetHeight || 120;
+  if (ev.clientY + tipH + 10 > window.innerHeight) {
+    el.style.top = (ev.clientY - tipH - 10) + 'px';
+  } else {
+    el.style.top = (ev.clientY - 10) + 'px';
+  }
+}
+
+const tooltip = document.getElementById('tooltip');
+nodeG.on('mouseenter', (ev,d) => {
+  const col = CLUSTER_COLORS[d.cluster];
+  tooltip.innerHTML = `<div class="tt-name" style="color:${col}">${d.name}</div><div class="tt-cluster" style="color:${col}">${CLUSTER_LABELS[d.cluster]}</div><div class="tt-def">${d.definition}</div><div class="tt-year">~${d.year}</div>`;
+  positionTip(tooltip, ev);
+  tooltip.classList.add('visible');
+  const nb = neighbors[d.id];
+  nodeG.select('circle').attr('fill-opacity', n => n.id===d.id||nb.has(n.id)?1:.06).attr('stroke-opacity', n => n.id===d.id||nb.has(n.id)?.8:.03);
+  nodeG.select('text').attr('opacity', n => n.id===d.id||nb.has(n.id)?1:.04)
+    .attr('font-size', n => n.id===d.id||nb.has(n.id)?14:9);
+  svg.selectAll('.edge').attr('opacity', function(){ const idx=+this.dataset?.idx; if(isNaN(idx))return .04; const e=EDGES[idx]; return e&&(e.s===d.id||e.t===d.id)?1:.04; });
+})
+.on('mousemove', ev => positionTip(tooltip, ev))
+.on('mouseleave', () => {
+  tooltip.classList.remove('visible');
+  nodeG.select('circle').attr('fill-opacity',.9).attr('stroke-opacity',.3);
+  nodeG.select('text').attr('opacity', n => topSet.has(n.id) ? .7 : 0).attr('font-size', n => topSet.has(n.id) ? 12 : 9);
+  svg.selectAll('.edge').attr('opacity',null);
+});
+
+// ─── ENTRY EXPERIENCE ────────────────────────────────────────────────────────
+
+// Dim map on load
+svg.attr('opacity', .3);
+
+// Concept detail data (for full card)
+const CONCEPT_DETAIL = {
+  rlhf: {
+    intro: 'RLHF works by first collecting human comparisons of model outputs, then training a reward model to predict which output humans prefer, and finally using reinforcement learning (PPO) to optimize the language model against that reward signal. It was the key technique behind ChatGPT and similar assistants.',
+    papers: [
+      { title:'Learning to summarize from human feedback', url:'https://arxiv.org/abs/2009.01325', year:2020, cites:'2.1k',
+        team:[
+          {name:'Nisan Stiennon',initials:'NS',affil:'OpenAI',color:'#6DAB5A',cites:'1.2k'},
+          {name:'Long Ouyang',initials:'LO',affil:'OpenAI',color:'#F3B839',cites:'8.4k'},
+          {name:'Jeff Wu',initials:'JW',affil:'OpenAI',color:'#5899DA',cites:'3.1k'},
+          {name:'Daniel Ziegler',initials:'DZ',affil:'OpenAI',color:'#9B6BBA',cites:'2.8k'},
+          {name:'Ryan Lowe',initials:'RL',affil:'OpenAI',color:'#74508B',cites:'1.5k'},
+          {name:'Chris Olah',initials:'CO',affil:'OpenAI → Anthropic',color:'#B490CB',cites:'12k'},
+          {name:'Dario Amodei',initials:'DA',affil:'OpenAI → Anthropic',color:'#E47D43',cites:'15k'},
+        ]},
+      { title:'InstructGPT', url:'https://arxiv.org/abs/2203.02155', year:2022, cites:'8.4k',
+        team:[
+          {name:'Long Ouyang',initials:'LO',affil:'OpenAI',color:'#F3B839',cites:'8.4k'},
+          {name:'Jeff Wu',initials:'JW',affil:'OpenAI',color:'#5899DA',cites:'3.1k'},
+          {name:'Xu Jiang',initials:'XJ',affil:'OpenAI',color:'#74508B',cites:'890'},
+          {name:'Jan Leike',initials:'JL',affil:'OpenAI → Anthropic',color:'#9B6BBA',cites:'4.2k'},
+          {name:'Sam McCandlish',initials:'SM',affil:'OpenAI → Anthropic',color:'#E47D43',cites:'6.8k'},
+        ]},
+      { title:'Fine-Tuning LMs from Human Preferences', url:'https://arxiv.org/abs/1909.08593', year:2019, cites:'1.8k',
+        team:[
+          {name:'Daniel Ziegler',initials:'DZ',affil:'OpenAI',color:'#9B6BBA',cites:'2.8k'},
+          {name:'Nisan Stiennon',initials:'NS',affil:'OpenAI',color:'#6DAB5A',cites:'1.2k'},
+          {name:'Jeff Wu',initials:'JW',affil:'OpenAI',color:'#5899DA',cites:'3.1k'},
+          {name:'Tom Brown',initials:'TB',affil:'OpenAI',color:'#74508B',cites:'45k'},
+          {name:'Dario Amodei',initials:'DA',affil:'OpenAI → Anthropic',color:'#E47D43',cites:'15k'},
+        ]},
+    ],
+  },
+};
+
+// Query mapping
+const QUERIES = {
+  "What is RLHF?": { type:'concept', target:'rlhf' },
+  "Does RLHF cause sycophancy?": { type:'edge', source:'rlhf', target:'sycophancy',
+    claim:'RLHF-trained models exhibit sycophantic behavior — agreeing with stated user positions even when factually incorrect.',
+    relType:'CAUSES', papers:3 },
+  "How does ChatGPT actually work?": { type:'path',
+    nodes:['transformers','gpt','pre-training','sft','rlhf'],
+    steps:[
+      'The architecture: processes text using self-attention, handling all words simultaneously instead of one at a time.',
+      'The model: predicts the next word, trained on huge amounts of text from the internet.',
+      'The training: reads billions of web pages to learn patterns in language before being specialized.',
+      'The instructions: fine-tuned on examples of humans answering questions, learning to be helpful.',
+      'The alignment: trained using human feedback to be more helpful, accurate, and less harmful.',
+    ]},
+};
+
+// Search + prompts
+document.getElementById('search-box').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleQuery(e.target.value.trim());
+});
+document.querySelectorAll('.sp-link').forEach(el => {
+  el.addEventListener('click', () => {
+    document.getElementById('search-box').value = el.dataset.q;
+    handleQuery(el.dataset.q);
+  });
+});
+document.getElementById('skip-link').addEventListener('click', dismissOverlay);
+
+function handleQuery(text) {
+  if (!text) return;
+  const q = QUERIES[text];
+  if (q) {
+    dismissOverlay();
+    if (q.type === 'concept') showConcept(q.target);
+    else if (q.type === 'edge') showEdge(q);
+    else if (q.type === 'path') showPath(q);
+  } else {
+    // Fuzzy match concept name
+    const lower = text.toLowerCase();
+    const match = CONCEPTS.find(c =>
+      c.name.toLowerCase().includes(lower) || c.id.includes(lower.replace(/\s+/g,'-'))
+    );
+    if (match) { dismissOverlay(); showConcept(match.id); }
+  }
+}
+
+function dismissOverlay() {
+  const ov = document.getElementById('overlay');
+  ov.style.display = 'none';
+  svg.node().style.opacity = '1';
+  document.getElementById('header-bar').classList.add('visible');
+}
+
+// Header prompts
+document.querySelectorAll('.hdr-prompt').forEach(el => {
+  el.addEventListener('click', () => {
+    document.getElementById('hdr-search').value = el.dataset.q;
+    closeAll();
+    handleQuery(el.dataset.q);
+  });
+});
+
+// Header search
+document.getElementById('hdr-search').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    closeAll();
+    handleQuery(e.target.value.trim());
+  }
+});
+document.getElementById('hdr-home').addEventListener('click', () => {
+  closeAll();
+  resetHighlights();
+  svg.transition().duration(600).call(
+    d3.zoom().transform.bind(null, svg),
+    d3.zoomIdentity
+  );
+});
+
+function closeAll() {
+  closeInfoPanel && document.getElementById('info-panel').style.display !== 'none' && closeInfoPanel();
+  closeClaimPanel && document.getElementById('claim-panel').style.display !== 'none' && closeClaimPanel();
+  if (pathState) closePath();
+}
+
+// ─── SHAPE 1: CONCEPT ZOOM ──────────────────────────────────────────────────
+
+function showConcept(id) {
+  const c = cMap[id];
+  if (!c) return;
+
+  // Compute bounding box of node + all neighbors, position card + zoom to avoid overlap
+  const nb = neighbors[id];
+  const pts = [c, ...Array.from(nb).map(nid => cMap[nid]).filter(Boolean)];
+  const minX = Math.min(...pts.map(p=>p.x)), maxX = Math.max(...pts.map(p=>p.x));
+  const minY = Math.min(...pts.map(p=>p.y)), maxY = Math.max(...pts.map(p=>p.y));
+  const nodeCx = (minX + maxX) / 2;
+  // Put card on the opposite side from where the node cluster is
+  const nodeIsRight = nodeCx > W/2;
+  const cardSide = nodeIsRight ? 'left' : 'right';
+  const panel = document.getElementById('info-panel');
+  panel.style.left = cardSide === 'left' ? '24px' : '';
+  panel.style.right = cardSide === 'right' ? '24px' : '';
+
+  const pad = 60;
+  const bw = (maxX - minX) + pad*2, bh = (maxY - minY) + pad*2;
+  // Fit into the NON-card 55% of screen
+  const targetW = W * 0.45, targetH = H - 120;
+  const scale = Math.min(targetW / bw, targetH / bh, 2.5);
+  const cx2 = (minX + maxX) / 2, cy2 = (minY + maxY) / 2;
+  // Center the cluster in the non-card half
+  const panelW = 780;
+  const freeCenter = nodeIsRight ? (W - panelW/2) * 0.55 + panelW : W * 0.55;
+  const tx = freeCenter - cx2 * scale;
+  const ty = H * 0.52 - cy2 * scale;
+  svg.transition().duration(800).call(
+    d3.zoom().transform.bind(null, svg),
+    d3.zoomIdentity.translate(tx, ty).scale(scale)
+  );
+
+  // Highlight node + neighbors (nb already declared above)
+  nodeG.select('circle')
+    .attr('fill-opacity', n => n.id===id||nb.has(n.id)?1:.06)
+    .attr('stroke-opacity', n => n.id===id||nb.has(n.id)?.8:.03);
+  nodeG.select('text')
+    .attr('opacity', n => n.id===id||nb.has(n.id)?1:.04)
+    .attr('font-size', n => n.id===id ? 16 : nb.has(n.id) ? 14 : 9);
+  svg.selectAll('.edge').attr('opacity', function(){
+    const idx=+this.dataset?.idx; if(isNaN(idx))return .04;
+    const e=EDGES[idx]; return e&&(e.s===id||e.t===id)?1:.04;
+  });
+
+  // Build full card (panel already referenced above for positioning)
+  const detail = CONCEPT_DETAIL[id];
+  const inner = document.getElementById('ip-inner');
+
+  if (detail) {
+    inner.innerHTML = `
+      <div class="ip-left">
+        <div class="ip-name">${c.name}</div>
+        <div class="ip-def">${c.definition}</div>
+        <div class="ip-intro">${detail.intro}</div>
+      </div>
+      <div class="ip-right">
+        <div class="ip-papers-hdr">Foundational Papers</div>
+        ${detail.papers.map((p, i) => {
+          const lead = p.team?.[0] || {initials:'??',color:'#74508B'};
+          return `<div class="ip-paper">
+            <div class="ip-paper-row">
+              <div class="ip-avatar" style="background:${lead.color}">${lead.initials}</div>
+              <div class="ip-paper-info">
+                <a href="${p.url||'#'}" target="_blank" class="ip-paper-title">${p.title}</a>
+                <div class="ip-paper-meta">${lead.name}${lead.affil?' <span style="color:#74508B">· '+lead.affil+'</span>':''} · ${p.year}${p.cites?' · '+p.cites+' citations':''}</div>
+              </div>
+              <button class="ip-expand" onclick="event.stopPropagation();toggleIPAuthors(${i})">→</button>
+            </div>
+            <div class="ip-authors" id="ip-authors-${i}">
+              ${(p.team||[]).map(a => {
+                const parts = a.affil.split(' → ');
+                const afHTML = parts.length > 1
+                  ? '<span class="ip-auth-affil-line">'+parts[0]+' →</span><span class="ip-auth-affil-line">'+parts[1]+'</span>'
+                  : '<span class="ip-auth-affil-line">'+a.affil+'</span>';
+                return '<span class="ip-auth-chip"><span class="ip-auth-av" style="background:'+a.color+'">'+a.initials+'</span><span class="ip-auth-name">'+(a.name.split(' ')[1]||a.name)+'</span><span class="ip-auth-affil">'+afHTML+'</span><span class="ip-auth-cite">'+(a.cites||'?')+' citations</span></span>';
+              }).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } else {
+    // Fallback for concepts without detail data
+    inner.innerHTML = `
+      <div class="ip-left" style="padding:24px 28px">
+        <div class="ip-name">${c.name}</div>
+        <div class="ip-def">${c.definition}</div>
+        <div class="ip-intro" style="color:#74508B;margin-top:16px;font-size:13px">Full detail coming soon — this concept hasn't been fully indexed yet.</div>
+      </div>`;
+  }
+
+  panel.style.display = 'block';
+}
+
+function toggleIPAuthors(idx) {
+  const el = document.getElementById(`ip-authors-${idx}`);
+  if (el) el.classList.toggle('open');
+}
+
+function closeInfoPanel() {
+  document.getElementById('info-panel').style.display = 'none';
+  resetHighlights();
+  svg.transition().duration(600).call(
+    d3.zoom().transform.bind(null, svg),
+    d3.zoomIdentity
+  );
+}
+
+// ─── SHAPE 2: EDGE ZOOM ─────────────────────────────────────────────────────
+
+function showEdge(q) {
+  const s = cMap[q.source], t = cMap[q.target];
+  if (!s || !t) return;
+
+  const cx = (s.x+t.x)/2, cy = (s.y+t.y)/2;
+  const scale = 1.8;
+  const tx = W/2 - cx*scale, ty = H/2 - cy*scale;
+  svg.transition().duration(800).call(
+    d3.zoom().transform.bind(null, svg),
+    d3.zoomIdentity.translate(tx, ty).scale(scale)
+  );
+
+  setTimeout(() => {
+    // Highlight both nodes + edge
+    nodeG.select('circle')
+      .attr('fill-opacity', n => n.id===q.source||n.id===q.target?1:.06)
+      .attr('stroke-opacity', n => n.id===q.source||n.id===q.target?.8:.03);
+    nodeG.select('text')
+      .attr('opacity', n => n.id===q.source||n.id===q.target?1:.04)
+      .attr('font-size', n => n.id===q.source||n.id===q.target ? 16 : 9);
+    svg.selectAll('.edge').attr('opacity', function(){
+      const idx=+this.dataset?.idx; if(isNaN(idx))return .04;
+      const e=EDGES[idx];
+      return e&&((e.s===q.source&&e.t===q.target)||(e.s===q.target&&e.t===q.source))?1:.04;
+    });
+
+    // Show claim panel
+    const panel = document.getElementById('claim-panel');
+    panel.querySelector('.cp-type').textContent = q.relType;
+    panel.querySelector('.cp-type').style.color = EDGE_COLORS['causes-problem'];
+    panel.querySelector('.cp-text').textContent = q.claim;
+    panel.querySelector('.cp-bar').innerHTML =
+      '<div style="width:30%;background:#E1543E;min-width:4px"></div>' +
+      '<div style="width:70%;background:#6DAB5A;min-width:4px"></div>';
+    panel.querySelector('.cp-meta').textContent = `${q.papers} papers discuss this relationship`;
+    panel.style.display = 'block';
+    panel.style.left = (W/2 - 200) + 'px';
+    panel.style.top = (H/2 + 40) + 'px';
+  }, 850);
+}
+
+function closeClaimPanel() {
+  document.getElementById('claim-panel').style.display = 'none';
+  resetHighlights();
+  svg.transition().duration(600).call(
+    d3.zoom().transform.bind(null, svg),
+    d3.zoomIdentity
+  );
+}
+
+// ─── SHAPE 3: PATH ──────────────────────────────────────────────────────────
+
+let pathState = null;
+
+function showPath(q) {
+  pathState = { nodes: q.nodes, steps: q.steps, current: 0 };
+
+  // Add numbered badges to path nodes
+  q.nodes.forEach((id, i) => {
+    const c = cMap[id];
+    if (!c) return;
+    svg.append('circle').attr('class','path-badge-bg path-marker')
+      .attr('cx',c.x).attr('cy',c.y-((deg[id]||0)*1.2+6)-10)
+      .attr('r',9);
+    svg.append('text').attr('class','path-badge path-marker')
+      .attr('x',c.x).attr('y',c.y-((deg[id]||0)*1.2+6)-6)
+      .attr('text-anchor','middle').text(i+1);
+  });
+
+  // Draw path edges gold
+  for (let i = 0; i < q.nodes.length-1; i++) {
+    const a = cMap[q.nodes[i]], b = cMap[q.nodes[i+1]];
+    if (!a || !b) continue;
+    svg.append('line').attr('class','path-marker')
+      .attr('x1',a.x).attr('y1',a.y).attr('x2',b.x).attr('y2',b.y)
+      .attr('stroke','#C49428').attr('stroke-width',3).attr('stroke-opacity',.5);
+  }
+
+  // Dim non-path nodes
+  const pathSet = new Set(q.nodes);
+  nodeG.select('circle')
+    .attr('fill-opacity', n => pathSet.has(n.id)?1:.06)
+    .attr('stroke-opacity', n => pathSet.has(n.id)?.8:.03);
+  nodeG.select('text')
+    .attr('opacity', n => pathSet.has(n.id)?1:.04)
+    .attr('font-size', n => pathSet.has(n.id)?14:9);
+  svg.selectAll('.edge').attr('opacity',.04);
+
+  // Show path card
+  const card = document.getElementById('path-card');
+  card.style.display = 'block';
+  document.getElementById('pc-dots').innerHTML =
+    q.nodes.map((_,i) => `<div class="pc-dot${i===0?' active':''}"></div>`).join('');
+  updatePathStep();
+  zoomToPathNode(0);
+}
+
+function updatePathStep() {
+  if (!pathState) return;
+  const i = pathState.current;
+  const c = cMap[pathState.nodes[i]];
+  document.querySelector('.pc-step').textContent = `Step ${i+1} of ${pathState.nodes.length}`;
+  document.querySelector('.pc-name').textContent = c.name;
+  document.querySelector('.pc-desc').textContent = pathState.steps[i];
+  document.getElementById('pc-prev').disabled = i === 0;
+  document.getElementById('pc-next').textContent = i === pathState.nodes.length-1 ? 'Done' : 'Next →';
+  document.querySelectorAll('.pc-dot').forEach((d,j) => d.classList.toggle('active', j===i));
+}
+
+function zoomToPathNode(i) {
+  const c = cMap[pathState.nodes[i]];
+  if (!c) return;
+  const scale = 2;
+  const tx = W/2 - c.x*scale, ty = H/2 - c.y*scale;
+  svg.transition().duration(600).call(
+    d3.zoom().transform.bind(null, svg),
+    d3.zoomIdentity.translate(tx, ty).scale(scale)
+  );
+}
+
+function pathNext() {
+  if (!pathState) return;
+  if (pathState.current >= pathState.nodes.length-1) {
+    closePath(); return;
+  }
+  pathState.current++;
+  updatePathStep();
+  zoomToPathNode(pathState.current);
+}
+
+function pathPrev() {
+  if (!pathState || pathState.current <= 0) return;
+  pathState.current--;
+  updatePathStep();
+  zoomToPathNode(pathState.current);
+}
+
+function closePath() {
+  pathState = null;
+  document.getElementById('path-card').style.display = 'none';
+  svg.selectAll('.path-marker').remove();
+  resetHighlights();
+  svg.transition().duration(600).call(
+    d3.zoom().transform.bind(null, svg),
+    d3.zoomIdentity
+  );
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function resetHighlights() {
+  nodeG.select('circle').attr('fill-opacity',.9).attr('stroke-opacity',.3);
+  nodeG.select('text').attr('opacity', n => topSet.has(n.id) ? .7 : 0).attr('font-size', n => topSet.has(n.id) ? 12 : 9);
+  svg.selectAll('.edge').attr('opacity',null);
+}
+
+// Enable zoom on the SVG
+svg.call(d3.zoom().scaleExtent([0.5, 4]).on('zoom', e => {
+  svg.selectAll('g,line,rect,text,polygon,circle').filter(function() {
+    return this.parentNode === svg.node();
+  }).attr('transform', e.transform);
+}));
+</script>
+</body>
+</html>
