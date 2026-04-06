@@ -1,8 +1,8 @@
 {
   "meta": {
     "generated": "2026-04-05",
-    "version": "0.2",
-    "note": "Seed concept graph with fullName fields for abbreviated concepts."
+    "version": "0.3",
+    "note": "Seed concept graph with fullName, depth (recursive AI prereqs), and background (non-AI knowledge needed 1-5)."
   },
   "concepts": [
     {
@@ -15,7 +15,9 @@
         "deep-learning",
         "activation-functions",
         "universal-approximation"
-      ]
+      ],
+      "depth": 2,
+      "background": 3
     },
     {
       "id": "backpropagation",
@@ -26,7 +28,9 @@
         "neural-networks",
         "gradient-descent",
         "automatic-differentiation"
-      ]
+      ],
+      "depth": 1,
+      "background": 4
     },
     {
       "id": "gradient-descent",
@@ -38,7 +42,9 @@
         "adam-optimizer",
         "learning-rate",
         "sgd"
-      ]
+      ],
+      "depth": 0,
+      "background": 4
     },
     {
       "id": "sgd",
@@ -50,7 +56,9 @@
         "adam-optimizer",
         "batch-normalization"
       ],
-      "fullName": "Stochastic Gradient Descent"
+      "fullName": "Stochastic Gradient Descent",
+      "depth": 1,
+      "background": 4
     },
     {
       "id": "adam-optimizer",
@@ -61,7 +69,9 @@
         "gradient-descent",
         "sgd",
         "learning-rate"
-      ]
+      ],
+      "depth": 2,
+      "background": 5
     },
     {
       "id": "convolutions",
@@ -74,7 +84,9 @@
         "image-recognition",
         "resnet"
       ],
-      "fullName": "Convolutional Neural Networks"
+      "fullName": "Convolutional Neural Networks",
+      "depth": 3,
+      "background": 3
     },
     {
       "id": "resnet",
@@ -86,7 +98,9 @@
         "deep-learning",
         "batch-normalization"
       ],
-      "fullName": "Residual Networks"
+      "fullName": "Residual Networks",
+      "depth": 4,
+      "background": 3
     },
     {
       "id": "recurrent-networks",
@@ -99,7 +113,9 @@
         "sequence-modeling",
         "attention"
       ],
-      "fullName": "Recurrent Neural Networks"
+      "fullName": "Recurrent Neural Networks",
+      "depth": 3,
+      "background": 3
     },
     {
       "id": "lstm",
@@ -111,7 +127,9 @@
         "sequence-modeling",
         "attention"
       ],
-      "fullName": "Long Short-Term Memory"
+      "fullName": "Long Short-Term Memory",
+      "depth": 4,
+      "background": 4
     },
     {
       "id": "attention",
@@ -123,7 +141,9 @@
         "self-attention",
         "recurrent-networks",
         "lstm"
-      ]
+      ],
+      "depth": 5,
+      "background": 3
     },
     {
       "id": "transformers",
@@ -137,7 +157,9 @@
         "scaling-laws",
         "gpt",
         "bert"
-      ]
+      ],
+      "depth": 7,
+      "background": 3
     },
     {
       "id": "self-attention",
@@ -148,7 +170,9 @@
         "attention",
         "transformers",
         "multi-head-attention"
-      ]
+      ],
+      "depth": 6,
+      "background": 3
     },
     {
       "id": "gpt",
@@ -162,7 +186,9 @@
         "scaling-laws",
         "in-context-learning"
       ],
-      "fullName": "Generative Pre-trained Transformer"
+      "fullName": "Generative Pre-trained Transformer",
+      "depth": 8,
+      "background": 2
     },
     {
       "id": "bert",
@@ -175,7 +201,9 @@
         "masked-language-modeling",
         "fine-tuning"
       ],
-      "fullName": "Bidirectional Encoder Representations from Transformers"
+      "fullName": "Bidirectional Encoder Representations from Transformers",
+      "depth": 8,
+      "background": 3
     },
     {
       "id": "diffusion-models",
@@ -187,7 +215,9 @@
         "gans",
         "image-generation",
         "stable-diffusion"
-      ]
+      ],
+      "depth": 0,
+      "background": 4
     },
     {
       "id": "gans",
@@ -199,7 +229,9 @@
         "diffusion-models",
         "image-generation"
       ],
-      "fullName": "Generative Adversarial Networks"
+      "fullName": "Generative Adversarial Networks",
+      "depth": 0,
+      "background": 3
     },
     {
       "id": "deep-learning",
@@ -210,7 +242,9 @@
         "neural-networks",
         "backpropagation",
         "representation-learning"
-      ]
+      ],
+      "depth": 3,
+      "background": 2
     },
     {
       "id": "pre-training",
@@ -223,7 +257,9 @@
         "gpt",
         "bert",
         "foundation-models"
-      ]
+      ],
+      "depth": 9,
+      "background": 1
     },
     {
       "id": "fine-tuning",
@@ -235,7 +271,9 @@
         "transfer-learning",
         "lora",
         "sft"
-      ]
+      ],
+      "depth": 10,
+      "background": 1
     },
     {
       "id": "sft",
@@ -247,7 +285,9 @@
         "rlhf",
         "instruction-following"
       ],
-      "fullName": "Supervised Fine-Tuning"
+      "fullName": "Supervised Fine-Tuning",
+      "depth": 11,
+      "background": 2
     },
     {
       "id": "rlhf",
@@ -262,7 +302,9 @@
         "constitutional-ai",
         "sycophancy"
       ],
-      "fullName": "Reinforcement Learning from Human Feedback"
+      "fullName": "Reinforcement Learning from Human Feedback",
+      "depth": 15,
+      "background": 2
     },
     {
       "id": "dpo",
@@ -274,7 +316,9 @@
         "reward-modeling",
         "fine-tuning"
       ],
-      "fullName": "Direct Preference Optimization"
+      "fullName": "Direct Preference Optimization",
+      "depth": 16,
+      "background": 3
     },
     {
       "id": "constitutional-ai",
@@ -286,7 +330,9 @@
         "rlaif",
         "ai-safety",
         "sycophancy"
-      ]
+      ],
+      "depth": 16,
+      "background": 1
     },
     {
       "id": "rlaif",
@@ -298,7 +344,9 @@
         "constitutional-ai",
         "reward-modeling"
       ],
-      "fullName": "Reinforcement Learning from AI Feedback"
+      "fullName": "Reinforcement Learning from AI Feedback",
+      "depth": 17,
+      "background": 2
     },
     {
       "id": "reward-modeling",
@@ -309,7 +357,9 @@
         "rlhf",
         "dpo",
         "reward-hacking"
-      ]
+      ],
+      "depth": 0,
+      "background": 2
     },
     {
       "id": "reward-hacking",
@@ -321,7 +371,9 @@
         "rlhf",
         "goodharts-law",
         "ai-safety"
-      ]
+      ],
+      "depth": 16,
+      "background": 1
     },
     {
       "id": "ppo",
@@ -333,7 +385,9 @@
         "reinforcement-learning",
         "policy-gradient"
       ],
-      "fullName": "Proximal Policy Optimization"
+      "fullName": "Proximal Policy Optimization",
+      "depth": 1,
+      "background": 4
     },
     {
       "id": "reinforcement-learning",
@@ -345,7 +399,9 @@
         "rlhf",
         "reward-modeling",
         "q-learning"
-      ]
+      ],
+      "depth": 0,
+      "background": 2
     },
     {
       "id": "scaling-laws",
@@ -358,7 +414,9 @@
         "chinchilla",
         "emergent-abilities",
         "foundation-models"
-      ]
+      ],
+      "depth": 0,
+      "background": 2
     },
     {
       "id": "emergent-abilities",
@@ -369,7 +427,9 @@
         "scaling-laws",
         "in-context-learning",
         "chain-of-thought"
-      ]
+      ],
+      "depth": 1,
+      "background": 1
     },
     {
       "id": "in-context-learning",
@@ -381,7 +441,9 @@
         "few-shot-learning",
         "prompting",
         "emergent-abilities"
-      ]
+      ],
+      "depth": 2,
+      "background": 1
     },
     {
       "id": "chain-of-thought",
@@ -393,7 +455,9 @@
         "reasoning",
         "emergent-abilities",
         "tree-of-thought"
-      ]
+      ],
+      "depth": 2,
+      "background": 1
     },
     {
       "id": "prompting",
@@ -404,7 +468,9 @@
         "in-context-learning",
         "chain-of-thought",
         "few-shot-learning"
-      ]
+      ],
+      "depth": 0,
+      "background": 1
     },
     {
       "id": "lora",
@@ -416,7 +482,9 @@
         "parameter-efficient",
         "quantization"
       ],
-      "fullName": "Low-Rank Adaptation"
+      "fullName": "Low-Rank Adaptation",
+      "depth": 11,
+      "background": 4
     },
     {
       "id": "quantization",
@@ -427,7 +495,9 @@
         "lora",
         "distillation",
         "inference-efficiency"
-      ]
+      ],
+      "depth": 1,
+      "background": 3
     },
     {
       "id": "distillation",
@@ -438,7 +508,9 @@
         "quantization",
         "model-compression",
         "transfer-learning"
-      ]
+      ],
+      "depth": 0,
+      "background": 2
     },
     {
       "id": "mixture-of-experts",
@@ -450,7 +522,9 @@
         "scaling-laws",
         "inference-efficiency"
       ],
-      "fullName": "Mixture of Experts"
+      "fullName": "Mixture of Experts",
+      "depth": 8,
+      "background": 2
     },
     {
       "id": "retrieval-augmented-generation",
@@ -462,7 +536,9 @@
         "hallucination",
         "vector-databases"
       ],
-      "fullName": "Retrieval-Augmented Generation"
+      "fullName": "Retrieval-Augmented Generation",
+      "depth": 2,
+      "background": 1
     },
     {
       "id": "embeddings",
@@ -474,7 +550,9 @@
         "retrieval-augmented-generation",
         "word2vec",
         "transformers"
-      ]
+      ],
+      "depth": 0,
+      "background": 3
     },
     {
       "id": "hallucination",
@@ -486,7 +564,9 @@
         "calibration",
         "sycophancy",
         "ai-safety"
-      ]
+      ],
+      "depth": 0,
+      "background": 1
     },
     {
       "id": "sycophancy",
@@ -498,7 +578,9 @@
         "hallucination",
         "constitutional-ai",
         "reward-hacking"
-      ]
+      ],
+      "depth": 16,
+      "background": 1
     },
     {
       "id": "calibration",
@@ -509,7 +591,9 @@
         "hallucination",
         "sycophancy",
         "evaluation"
-      ]
+      ],
+      "depth": 0,
+      "background": 2
     },
     {
       "id": "ai-safety",
@@ -521,7 +605,9 @@
         "constitutional-ai",
         "reward-hacking",
         "interpretability"
-      ]
+      ],
+      "depth": 0,
+      "background": 1
     },
     {
       "id": "interpretability",
@@ -533,7 +619,9 @@
         "neural-networks",
         "sparse-autoencoders",
         "superposition"
-      ]
+      ],
+      "depth": 3,
+      "background": 2
     },
     {
       "id": "superposition",
@@ -544,7 +632,9 @@
         "interpretability",
         "sparse-autoencoders",
         "representation-learning"
-      ]
+      ],
+      "depth": 4,
+      "background": 4
     },
     {
       "id": "sparse-autoencoders",
@@ -556,7 +646,9 @@
         "superposition",
         "representation-learning"
       ],
-      "fullName": "Sparse Autoencoders"
+      "fullName": "Sparse Autoencoders",
+      "depth": 5,
+      "background": 4
     },
     {
       "id": "multimodal",
@@ -568,7 +660,9 @@
         "vision-transformers",
         "clip",
         "diffusion-models"
-      ]
+      ],
+      "depth": 11,
+      "background": 1
     },
     {
       "id": "vision-transformers",
@@ -581,7 +675,9 @@
         "multimodal",
         "clip"
       ],
-      "fullName": "Vision Transformers"
+      "fullName": "Vision Transformers",
+      "depth": 8,
+      "background": 3
     },
     {
       "id": "clip",
@@ -594,7 +690,9 @@
         "vision-transformers",
         "embeddings"
       ],
-      "fullName": "Contrastive Language-Image Pre-training"
+      "fullName": "Contrastive Language-Image Pre-training",
+      "depth": 10,
+      "background": 2
     },
     {
       "id": "contrastive-learning",
@@ -606,7 +704,9 @@
         "self-supervised-learning",
         "embeddings",
         "representation-learning"
-      ]
+      ],
+      "depth": 0,
+      "background": 3
     },
     {
       "id": "batch-normalization",
@@ -617,7 +717,9 @@
         "deep-learning",
         "resnet",
         "layer-normalization"
-      ]
+      ],
+      "depth": 4,
+      "background": 4
     },
     {
       "id": "dropout",
@@ -628,7 +730,9 @@
         "neural-networks",
         "regularization",
         "deep-learning"
-      ]
+      ],
+      "depth": 3,
+      "background": 3
     },
     {
       "id": "transfer-learning",
@@ -640,7 +744,9 @@
         "fine-tuning",
         "foundation-models",
         "domain-adaptation"
-      ]
+      ],
+      "depth": 4,
+      "background": 1
     },
     {
       "id": "foundation-models",
@@ -653,7 +759,9 @@
         "transfer-learning",
         "gpt",
         "bert"
-      ]
+      ],
+      "depth": 10,
+      "background": 1
     },
     {
       "id": "tokenization",
@@ -664,7 +772,9 @@
         "transformers",
         "byte-pair-encoding",
         "gpt"
-      ]
+      ],
+      "depth": 9,
+      "background": 1
     },
     {
       "id": "positional-encoding",
@@ -675,7 +785,9 @@
         "transformers",
         "self-attention",
         "rotary-embeddings"
-      ]
+      ],
+      "depth": 8,
+      "background": 3
     },
     {
       "id": "agentic-ai",
@@ -687,7 +799,9 @@
         "tool-use",
         "reinforcement-learning",
         "planning"
-      ]
+      ],
+      "depth": 3,
+      "background": 1
     },
     {
       "id": "tool-use",
@@ -698,7 +812,9 @@
         "agentic-ai",
         "retrieval-augmented-generation",
         "function-calling"
-      ]
+      ],
+      "depth": 4,
+      "background": 1
     }
   ]
 }
