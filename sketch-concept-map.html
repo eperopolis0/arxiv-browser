@@ -106,75 +106,102 @@ body { background: #403151; overflow: hidden; font-family: -apple-system, BlinkM
 #skip-link:hover { color: #74508B; }
 
 /* ── Full concept card (two-panel) ──────────────── */
-#info-panel {
+/* ── Hybrid concept panel (overlay → growing → full page) ── */
+#concept-panel {
   position: fixed; z-index: 150;
-  top: 100px;
-  width: 760px;
+  top: 0; right: 0; bottom: 0;
+  width: 420px;
   background: #271B2F;
-  border: 1.5px solid rgba(196,148,40,.5);
-  border-radius: 12px;
-  box-shadow: 0 8px 60px rgba(0,0,0,.6);
+  border-left: 1.5px solid #4D355D;
+  box-shadow: -4px 0 30px rgba(0,0,0,.4);
   display: none;
-  overflow: visible;
+  flex-direction: column;
+  transition: width .4s ease;
+  overflow: hidden;
 }
-#info-panel .ip-close {
-  position: absolute; top: 10px; right: 14px;
-  background: none; border: none; color: #4D355D; font-size: 18px;
-  cursor: pointer; z-index: 5;
-}
-#info-panel .ip-close:hover { color: #B490CB; }
-.ip-inner { display: flex; }
-.ip-left { flex: 1; padding: 24px 28px; border-right: 1px solid #4D355D; }
-.ip-right { width: 310px; flex-shrink: 0; display: flex; flex-direction: column; overflow: visible; }
-.ip-name { font-size: 32px; font-weight: 600; color: #C49428; margin-bottom: 8px; }
-.ip-def { font-size: 16px; color: #FFFFFF; line-height: 1.55; margin-bottom: 14px; }
-.ip-intro { font-size: 16px; color: #D7C4E3; line-height: 1.55; }
-.ip-papers-hdr { font-size: 10px; color: #74508B; text-transform: uppercase; letter-spacing: .12em; padding: 10px 16px 0; }
-.ip-paper {
-  flex: 1; padding: 12px 16px;
+#concept-panel.open { display: flex; }
+#concept-panel.expanded { width: 100%; border-left: none; }
+
+/* TOC bar */
+#cp-toc {
+  display: flex; gap: 16px; padding: 10px 24px;
   border-bottom: 1px solid #4D355D;
-  transition: background .12s;
-  position: relative; overflow: visible;
+  flex-shrink: 0;
+  position: sticky; top: 0; z-index: 5;
+  background: #271B2F;
 }
-.ip-paper:last-child { border-bottom: none; }
-.ip-paper:hover { background: #352548; }
-.ip-paper-row { display: flex; align-items: center; gap: 10px; }
-.ip-avatar {
+.toc-link {
+  font-size: 12px; color: #74508B; cursor: pointer;
+  transition: color .12s; text-decoration: none;
+  white-space: nowrap;
+}
+.toc-link:hover { color: #B490CB; }
+.toc-link.active { color: #F1F0DE; }
+#cp-back {
+  font-size: 12px; color: #74508B; cursor: pointer;
+  transition: color .12s; margin-right: auto;
+}
+#cp-back:hover { color: #F1F0DE; }
+#cp-close {
+  font-size: 16px; color: #4D355D; cursor: pointer;
+  transition: color .12s; margin-left: auto;
+}
+#cp-close:hover { color: #B490CB; }
+
+/* Scrollable body */
+#cp-body {
+  flex: 1; overflow-y: auto; padding: 24px;
+}
+
+/* Content sections */
+.cp-name { font-size: 32px; font-weight: 600; color: #C49428; margin-bottom: 4px; }
+.cp-subtitle { font-size: 14px; color: #74508B; margin-bottom: 16px; font-style: italic; }
+.cp-intro { font-size: 16px; color: #D7C4E3; line-height: 1.7; margin-bottom: 12px; }
+.cp-intro a { color: #9B6BBA; text-decoration: none; border-bottom: 1px dotted #74508B; }
+.cp-intro a:hover { color: #F1F0DE; border-bottom-color: #F1F0DE; }
+
+.cp-section {
+  margin-top: 32px; padding-top: 20px;
+  border-top: 1px solid #4D355D;
+}
+.cp-section-title {
+  font-size: 11px; color: #74508B; text-transform: uppercase;
+  letter-spacing: .12em; margin-bottom: 14px;
+}
+
+/* Paper cards (reused from before) */
+.cp-paper {
+  padding: 12px 0; border-bottom: 1px solid #4D355D;
+  display: flex; align-items: center; gap: 12px;
+}
+.cp-paper:last-child { border-bottom: none; }
+.cp-paper:hover .cp-paper-title { text-decoration: underline; }
+.cp-avatar {
   width: 36px; height: 36px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: #FFFFFF; flex-shrink: 0;
+  font-size: 13px; font-weight: 700; color: #FFF; flex-shrink: 0;
 }
-.ip-paper-info { flex: 1; min-width: 0; }
-.ip-paper-title { font-size: 14px; color: #F1F0DE; line-height: 1.35; text-decoration: none; display: block; }
-.ip-paper-title:hover { text-decoration: underline; color: #FFF; }
-.ip-paper-meta { font-size: 12px; color: #B490CB; margin-top: 2px; }
-.ip-expand {
-  color: #74508B; font-size: 16px; flex-shrink: 0;
-  cursor: pointer; background: none; border: 1px solid #4D355D;
-  border-radius: 4px; padding: 2px 8px; transition: color .12s;
+.cp-paper-title { font-size: 14px; color: #F1F0DE; line-height: 1.35; text-decoration: none; }
+.cp-paper-meta { font-size: 12px; color: #B490CB; margin-top: 2px; }
+
+/* Claim items */
+.cp-claim {
+  padding: 10px 0; border-bottom: 1px solid #352845;
+  display: flex; align-items: flex-start; gap: 10px;
 }
-.ip-expand:hover { color: #F1F0DE; border-color: #74508B; }
-.ip-authors {
-  position: absolute; left: 100%; top: 50%; margin-left: 12px;
-  display: flex; gap: 6px;
-  opacity: 0; pointer-events: none;
-  transition: opacity .2s, transform .2s;
-  transform: translateY(-50%) translateX(-10px); z-index: 20;
+.cp-claim:last-child { border-bottom: none; }
+.cp-claim-text { font-size: 14px; color: #D7C4E3; line-height: 1.5; flex: 1; }
+.cp-claim-status {
+  font-size: 9px; padding: 2px 8px; border-radius: 6px;
+  font-weight: 500; flex-shrink: 0; margin-top: 2px;
 }
-.ip-authors.open { opacity: 1; pointer-events: auto; transform: translateY(-50%) translateX(0); }
-.ip-auth-chip {
-  display: flex; flex-direction: column; align-items: center;
-  width: 56px; text-align: center;
-}
-.ip-auth-av {
-  width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: #FFF; margin-bottom: 3px;
-}
-.ip-auth-name { font-size: 10px; color: #F1F0DE; line-height: 1.2; white-space: nowrap; }
-.ip-auth-affil { font-size: 8px; color: #B490CB; line-height: 1.15; }
-.ip-auth-affil-line { display: block; white-space: nowrap; }
-.ip-auth-cite { font-size: 8px; color: #74508B; line-height: 1.15; margin-top: 1px; }
+.cp-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; background: #4D355D; width: 80px; flex-shrink: 0; margin-top: 6px; }
+.cp-bar-for { background: #6DAB5A; }
+.cp-bar-mixed { background: #F3B839; }
+.cp-bar-against { background: #E1543E; }
+
+/* Gap claim */
+.cp-gap { font-style: italic; color: #74508B; }
 
 /* ── Claim card (edge zoom) ────────────────────── */
 #claim-panel {
@@ -289,9 +316,17 @@ body { background: #403151; overflow: hidden; font-family: -apple-system, BlinkM
   <div id="skip-link">or just explore the map →</div>
 </div>
 
-<div id="info-panel">
-  <button class="ip-close" onclick="closeInfoPanel()">×</button>
-  <div class="ip-inner" id="ip-inner"></div>
+<div id="concept-panel">
+  <div id="cp-toc">
+    <span id="cp-back" onclick="closeConceptPanel()">← Map</span>
+    <a class="toc-link active" data-section="overview">Overview</a>
+    <a class="toc-link" data-section="papers">Papers</a>
+    <a class="toc-link" data-section="upshot">Upshot</a>
+    <a class="toc-link" data-section="mechanics">Mechanics</a>
+    <a class="toc-link" data-section="unresolved">Unresolved</a>
+    <span id="cp-close" onclick="closeConceptPanel()">×</span>
+  </div>
+  <div id="cp-body"></div>
 </div>
 
 <div id="claim-panel">
@@ -929,7 +964,7 @@ function closeAIMenu() {
 
 function closeAll() {
   closeAIMenu();
-  closeInfoPanel && document.getElementById('info-panel').style.display !== 'none' && closeInfoPanel();
+  closeConceptPanel();
   closeClaimPanel && document.getElementById('claim-panel').style.display !== 'none' && closeClaimPanel();
   if (pathState) closePath();
 }
@@ -943,113 +978,141 @@ function showConcept(id) {
   // Reveal through fog
   exploreNeighborhood(id);
 
-  // Compute bounding box of node + all neighbors, position card + zoom to avoid overlap
-  const nb = neighbors[id];
-  const pts = [c, ...Array.from(nb).map(nid => cMap[nid]).filter(Boolean)];
-  const minX = Math.min(...pts.map(p=>p.x)), maxX = Math.max(...pts.map(p=>p.x));
-  const minY = Math.min(...pts.map(p=>p.y)), maxY = Math.max(...pts.map(p=>p.y));
-  const nodeCx = (minX + maxX) / 2;
-  // Put card on the opposite side from where the node cluster is
-  const nodeIsRight = nodeCx > W/2;
-  const cardSide = nodeIsRight ? 'left' : 'right';
-  const panel = document.getElementById('info-panel');
-  panel.style.left = cardSide === 'left' ? '24px' : '';
-  panel.style.right = cardSide === 'right' ? '24px' : '';
-
-  const pad = 60;
-  const bw = (maxX - minX) + pad*2, bh = (maxY - minY) + pad*2;
-  // Fit into the NON-card 55% of screen
-  const targetW = W * 0.45, targetH = H - 120;
-  const scale = Math.min(targetW / bw, targetH / bh, 2.5);
-  const cx2 = (minX + maxX) / 2, cy2 = (minY + maxY) / 2;
-  // Center the cluster in the non-card half
-  const panelW = 780;
-  const freeCenter = nodeIsRight ? (W - panelW/2) * 0.55 + panelW : W * 0.55;
-  const tx = freeCenter - cx2 * scale;
-  const ty = H * 0.52 - cy2 * scale;
+  // Zoom to center on this node (tight, left of panel)
+  const scale = 2.2;
+  const tx = W * 0.25 - c.x * scale;
+  const ty = H/2 - c.y * scale;
   zoomTo(tx, ty, scale, 800);
 
-  // Fog-aware highlight: focused + neighbors bright, other explored dim, rest fogged
-  nodeG.select('circle')
-    .attr('fill', n => explored.has(n.id) ? CLUSTER_COLORS[n.cluster] : '#4D355D')
-    .attr('fill-opacity', n => {
-      if (n.id===id || nb.has(n.id)) return 1;
-      if (explored.has(n.id)) return 0.25;
-      if (isAdjacentToExplored(n.id)) return 0.06;
-      return 0.02;
-    })
-    .attr('stroke-opacity', n => (n.id===id||nb.has(n.id)) ? 0.6 : 0.02);
-  nodeG.select('text')
-    .attr('opacity', n => (n.id===id||nb.has(n.id)) ? 1 : 0)
-    .attr('font-size', n => n.id===id ? 16 : nb.has(n.id) ? 14 : 9);
-  svg.selectAll('.edge').each(function(){
-    const idx=+this.dataset?.idx;
-    if(isNaN(idx)){d3.select(this).attr('opacity',0);return;}
-    const e=EDGES[idx];
-    const connected = e&&(e.s===id||e.t===id);
-    const bothExplored = e && explored.has(e.s) && explored.has(e.t);
-    d3.select(this).attr('opacity', connected && bothExplored ? 1 : 0);
-  });
-
-  // Build full card (panel already referenced above for positioning)
+  // Build concept panel content
+  const panel = document.getElementById('concept-panel');
+  const body = document.getElementById('cp-body');
   const detail = CONCEPT_DETAIL[id];
-  const inner = document.getElementById('ip-inner');
 
-  if (detail) {
-    inner.innerHTML = `
-      <div class="ip-left">
-        <div class="ip-name">${c.name}</div>
-        <div class="ip-def">${c.definition}</div>
-        <div class="ip-intro">${detail.intro}</div>
-      </div>
-      <div class="ip-right">
-        <div class="ip-papers-hdr">Foundational Papers</div>
-        ${detail.papers.map((p, i) => {
-          const lead = p.team?.[0] || {initials:'??',color:'#74508B'};
-          return `<div class="ip-paper">
-            <div class="ip-paper-row">
-              <div class="ip-avatar" style="background:${lead.color}">${lead.initials}</div>
-              <div class="ip-paper-info">
-                <a href="${p.url||'#'}" target="_blank" class="ip-paper-title">${p.title}</a>
-                <div class="ip-paper-meta">${lead.name}${lead.affil?' <span style="color:#74508B">· '+lead.affil+'</span>':''} · ${p.year}${p.cites?' · '+p.cites+' citations':''}</div>
-              </div>
-              <button class="ip-expand" onclick="event.stopPropagation();toggleIPAuthors(${i})">→</button>
-            </div>
-            <div class="ip-authors" id="ip-authors-${i}">
-              ${(p.team||[]).map(a => {
-                const parts = a.affil.split(' → ');
-                const afHTML = parts.length > 1
-                  ? '<span class="ip-auth-affil-line">'+parts[0]+' →</span><span class="ip-auth-affil-line">'+parts[1]+'</span>'
-                  : '<span class="ip-auth-affil-line">'+a.affil+'</span>';
-                return '<span class="ip-auth-chip"><span class="ip-auth-av" style="background:'+a.color+'">'+a.initials+'</span><span class="ip-auth-name">'+(a.name.split(' ')[1]||a.name)+'</span><span class="ip-auth-affil">'+afHTML+'</span><span class="ip-auth-cite">'+(a.cites||'?')+' citations</span></span>';
-              }).join('')}
-            </div>
-          </div>`;
-        }).join('')}
+  // Paper section HTML
+  let papersHTML = '';
+  if (detail && detail.papers) {
+    papersHTML = detail.papers.map(p => {
+      const lead = p.team?.[0] || {initials:'??',color:'#74508B',name:p.authors||'',affil:''};
+      return `<div class="cp-paper">
+        <div class="cp-avatar" style="background:${lead.color}">${lead.initials}</div>
+        <div>
+          <a href="${p.url||'#'}" target="_blank" class="cp-paper-title">${p.title}</a>
+          <div class="cp-paper-meta">${lead.name}${lead.affil?' · '+lead.affil:''} · ${p.year}${p.cites?' · '+p.cites+' citations':''}</div>
+        </div>
       </div>`;
+    }).join('');
   } else {
-    // Fallback for concepts without detail data
-    inner.innerHTML = `
-      <div class="ip-left" style="padding:24px 28px">
-        <div class="ip-name">${c.name}</div>
-        <div class="ip-def">${c.definition}</div>
-        <div class="ip-intro" style="color:#74508B;margin-top:16px;font-size:13px">Full detail coming soon — this concept hasn't been fully indexed yet.</div>
-      </div>`;
+    papersHTML = '<div style="color:#74508B;font-size:13px">Papers not yet indexed for this concept.</div>';
   }
 
-  panel.style.display = 'block';
+  // Intro text (use detail.intro if available, otherwise lorem-ish placeholder)
+  const introText = detail?.intro || `${c.definition}<br><br>This concept is a key building block in modern AI. Understanding it helps you see how different ideas in the field connect to each other. Every technical term below is clickable — follow the links to explore related concepts.`;
+
+  body.innerHTML = `
+    <div id="sec-overview">
+      <div class="cp-name">${c.fullName || c.name}</div>
+      ${c.fullName && c.fullName !== c.name ? `<div class="cp-subtitle">${c.name}</div>` : ''}
+      <p class="cp-intro">${introText}</p>
+    </div>
+
+    <div class="cp-section" id="sec-papers">
+      <div class="cp-section-title">Foundational Papers</div>
+      ${papersHTML}
+    </div>
+
+    <div class="cp-section" id="sec-upshot">
+      <div class="cp-section-title">What it does</div>
+      <div class="cp-claim">
+        <div class="cp-claim-text">This concept has significantly influenced how modern AI systems are built and deployed.</div>
+        <span class="cp-claim-status s-consensus">Consensus</span>
+        <div class="cp-bar"><div class="cp-bar-for" style="width:100%"></div></div>
+      </div>
+      <div class="cp-claim">
+        <div class="cp-claim-text">Performance gains from this approach vary significantly across different tasks and domains.</div>
+        <span class="cp-claim-status s-conditional">Conditional</span>
+        <div class="cp-bar"><div class="cp-bar-for" style="width:40%"></div><div class="cp-bar-mixed" style="width:40%"></div><div class="cp-bar-against" style="width:20%"></div></div>
+      </div>
+    </div>
+
+    <div class="cp-section" id="sec-mechanics">
+      <div class="cp-section-title">How it works</div>
+      <div class="cp-claim">
+        <div class="cp-claim-text">The computational cost scales quadratically with input length, creating practical limits for long sequences.</div>
+        <span class="cp-claim-status s-consensus">Consensus</span>
+        <div class="cp-bar"><div class="cp-bar-for" style="width:90%"></div><div class="cp-bar-mixed" style="width:10%"></div></div>
+      </div>
+      <div class="cp-claim">
+        <div class="cp-claim-text">The internal representations learned by this approach are not yet fully understood, even by researchers who build these systems.</div>
+        <span class="cp-claim-status s-emerging">Emerging</span>
+        <div class="cp-bar"><div class="cp-bar-for" style="width:60%"></div><div class="cp-bar-mixed" style="width:30%"></div><div class="cp-bar-against" style="width:10%"></div></div>
+      </div>
+    </div>
+
+    <div class="cp-section" id="sec-unresolved">
+      <div class="cp-section-title">Unresolved</div>
+      <div class="cp-claim">
+        <div class="cp-claim-text cp-gap">Why this approach generalizes so well to tasks it was never explicitly trained on remains an open question.</div>
+        <span class="cp-claim-status s-weak">Gap</span>
+      </div>
+      <div class="cp-claim">
+        <div class="cp-claim-text cp-gap">Whether there are fundamental limits to scaling this approach, or if it can continue improving indefinitely.</div>
+        <span class="cp-claim-status s-weak">Gap</span>
+      </div>
+    </div>
+  `;
+
+  // Show panel
+  panel.classList.add('open');
+  panel.classList.remove('expanded');
+  body.scrollTop = 0;
+
+  // Scroll-driven expansion
+  body.onscroll = () => {
+    const scrollPct = body.scrollTop / (body.scrollHeight - body.clientHeight || 1);
+    const paperSection = document.getElementById('sec-papers');
+    const pastIntro = paperSection && body.scrollTop > paperSection.offsetTop - 60;
+
+    if (pastIntro) {
+      panel.classList.add('expanded');
+      svg.node().style.opacity = Math.max(0, 1 - (scrollPct * 2));
+    } else {
+      panel.classList.remove('expanded');
+      svg.node().style.opacity = '1';
+    }
+
+    // Update active TOC link
+    const sections = ['overview','papers','upshot','mechanics','unresolved'];
+    let activeId = 'overview';
+    sections.forEach(sid => {
+      const el = document.getElementById('sec-' + sid);
+      if (el && body.scrollTop >= el.offsetTop - 80) activeId = sid;
+    });
+    document.querySelectorAll('.toc-link').forEach(l => {
+      l.classList.toggle('active', l.dataset.section === activeId);
+    });
+  };
+
+  // TOC click handlers
+  document.querySelectorAll('.toc-link').forEach(l => {
+    l.onclick = () => {
+      const el = document.getElementById('sec-' + l.dataset.section);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
 }
 
-function toggleIPAuthors(idx) {
-  const el = document.getElementById(`ip-authors-${idx}`);
-  if (el) el.classList.toggle('open');
-}
-
-function closeInfoPanel() {
-  document.getElementById('info-panel').style.display = 'none';
+function closeConceptPanel() {
+  const panel = document.getElementById('concept-panel');
+  panel.classList.remove('open', 'expanded');
+  svg.node().style.opacity = '1';
+  document.getElementById('cp-body').onscroll = null;
   resetHighlights();
   zoomReset(600);
 }
+
+// Alias for old references
+function closeInfoPanel() { closeConceptPanel(); }
 
 // ─── SHAPE 2: EDGE ZOOM ─────────────────────────────────────────────────────
 
