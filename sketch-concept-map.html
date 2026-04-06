@@ -527,6 +527,11 @@ const svg = d3.select('body').append('svg')
   .attr('width', W).attr('height', H)
   .style('position','absolute').style('top',0).style('left',0);
 
+// All map content goes in this group for zoom
+const mapG = svg.append('g').attr('class','map-content');
+// Legend stays fixed (not in mapG)
+const legendG = svg;
+
 // Era bands
 const eraData = [
   {l:'Classics',x0:yearToX(1847),x1:yearToX(1990)},
@@ -537,20 +542,20 @@ const eraData = [
   {l:'Now',x0:yearToX(2022),x1:yearToX(2024)},
 ];
 eraData.forEach((e,i) => {
-  svg.append('rect').attr('x',e.x0).attr('y',PAD.t).attr('width',e.x1-e.x0).attr('height',H-PAD.t-PAD.b)
+  mapG.append('rect').attr('x',e.x0).attr('y',PAD.t).attr('width',e.x1-e.x0).attr('height',H-PAD.t-PAD.b)
     .attr('fill', i%2===0 ? '#382648' : '#3E2C52');
-  svg.append('text').attr('x',(e.x0+e.x1)/2).attr('y',H-PAD.b+14)
+  mapG.append('text').attr('x',(e.x0+e.x1)/2).attr('y',H-PAD.b+14)
     .attr('text-anchor','middle').attr('fill','#4D355D').attr('font-size',10).attr('font-family','sans-serif').text(e.l);
 });
 
 // Theory ↔ Practice labels
-svg.append('text').attr('x',12).attr('y',PAD.t+18).attr('fill','#E1543E').attr('font-size',14).attr('font-weight',600).attr('opacity',.5).text('PRACTICE');
-svg.append('text').attr('x',12).attr('y',PAD.t+32).attr('fill','#74508B').attr('font-size',9).text('applications, behaviors');
-svg.append('text').attr('x',12).attr('y',H-PAD.b-14).attr('fill','#5899DA').attr('font-size',14).attr('font-weight',600).attr('opacity',.5).text('THEORY');
-svg.append('text').attr('x',12).attr('y',H-PAD.b-2).attr('fill','#74508B').attr('font-size',9).text('foundations, algorithms');
+mapG.append('text').attr('x',12).attr('y',PAD.t+18).attr('fill','#E1543E').attr('font-size',14).attr('font-weight',600).attr('opacity',.5).text('PRACTICE');
+mapG.append('text').attr('x',12).attr('y',PAD.t+32).attr('fill','#74508B').attr('font-size',9).text('applications, behaviors');
+mapG.append('text').attr('x',12).attr('y',H-PAD.b-14).attr('fill','#5899DA').attr('font-size',14).attr('font-weight',600).attr('opacity',.5).text('THEORY');
+mapG.append('text').attr('x',12).attr('y',H-PAD.b-2).attr('fill','#74508B').attr('font-size',9).text('foundations, algorithms');
 
 // Divider
-svg.append('line').attr('x1',PAD.l).attr('x2',W-PAD.r).attr('y1',absToY(.5)).attr('y2',absToY(.5))
+mapG.append('line').attr('x1',PAD.l).attr('x2',W-PAD.r).attr('y1',absToY(.5)).attr('y2',absToY(.5))
   .attr('stroke','#4D355D').attr('stroke-width',1).attr('stroke-dasharray','4 3');
 
 // Edges
@@ -560,7 +565,7 @@ EDGES.forEach((e,i) => {
   const col = EDGE_COLORS[e.type]||'#74508B';
   const dash = e.type==='causes-problem' ? '5 3' : 'none';
   const op = e.type==='related' ? .12 : .3;
-  svg.append('line').attr('x1',s.x).attr('y1',s.y).attr('x2',t.x).attr('y2',t.y)
+  mapG.append('line').attr('x1',s.x).attr('y1',s.y).attr('x2',t.x).attr('y2',t.y)
     .attr('stroke',col).attr('stroke-width', e.type==='component-of'?3:1.5)
     .attr('stroke-opacity',op).attr('stroke-dasharray',dash).attr('class','edge').attr('data-idx',i);
 
@@ -569,7 +574,7 @@ EDGES.forEach((e,i) => {
     if(len<1)return;
     const r=6+(deg[t.id]||0)*1.2+4, ax=t.x-dx/len*r, ay=t.y-dy/len*r;
     const px=-dy/len*3.5, py=dx/len*3.5;
-    svg.append('polygon').attr('points',`${ax},${ay} ${ax-dx/len*7+px},${ay-dy/len*7+py} ${ax-dx/len*7-px},${ay-dy/len*7-py}`)
+    mapG.append('polygon').attr('points',`${ax},${ay} ${ax-dx/len*7+px},${ay-dy/len*7+py} ${ax-dx/len*7-px},${ay-dy/len*7-py}`)
       .attr('fill',col).attr('fill-opacity',op+.1).attr('class','edge').attr('data-idx',i);
   }
   if (e.type==='alternative-to') {
@@ -578,13 +583,13 @@ EDGES.forEach((e,i) => {
       if(len<1)return;
       const r=6+(deg[n.id]||0)*1.2+4, ax=n.x-dx/len*r, ay=n.y-dy/len*r;
       const px=-dy/len*3, py=dx/len*3;
-      svg.append('polygon').attr('points',`${ax},${ay} ${ax-dx/len*6+px},${ay-dy/len*6+py} ${ax-dx/len*6-px},${ay-dy/len*6-py}`)
+      mapG.append('polygon').attr('points',`${ax},${ay} ${ax-dx/len*6+px},${ay-dy/len*6+py} ${ax-dx/len*6-px},${ay-dy/len*6-py}`)
         .attr('fill',col).attr('fill-opacity',.25).attr('class','edge').attr('data-idx',i);
     });
   }
 
   // Hit area
-  svg.append('line').attr('x1',s.x).attr('y1',s.y).attr('x2',t.x).attr('y2',t.y)
+  mapG.append('line').attr('x1',s.x).attr('y1',s.y).attr('x2',t.x).attr('y2',t.y)
     .attr('stroke','transparent').attr('stroke-width',12).style('cursor','pointer')
     .on('mouseenter', ev => {
       const et = document.getElementById('edge-tooltip');
@@ -596,7 +601,7 @@ EDGES.forEach((e,i) => {
 });
 
 // Nodes
-const nodeG = svg.selectAll('.node').data(CONCEPTS).join('g')
+const nodeG = mapG.selectAll('.node').data(CONCEPTS).join('g')
   .attr('transform', d => `translate(${d.x},${d.y})`);
 
 nodeG.append('circle')
@@ -719,10 +724,14 @@ function isAdjacentToExplored(id) {
   return false;
 }
 
+let userHasPanned = false;
+
 function exploreNode(id) {
   if (!cMap[id]) return;
   explored.add(id);
+  lastRevealedId = id;
   applyFog();
+  if (!userHasPanned) zoomToExplored();
 }
 
 function exploreNeighborhood(id) {
@@ -731,6 +740,48 @@ function exploreNeighborhood(id) {
   const nb = neighbors[id];
   if (nb) nb.forEach(n => explored.add(n));
   applyFog();
+  // Don't auto-zoom for neighborhood — showConcept handles its own zoom
+}
+
+let lastRevealedId = null;
+
+function zoomToExplored(duration) {
+  const pts = [...explored].map(id => cMap[id]).filter(Boolean);
+  if (pts.length === 0) return;
+
+  // If we just revealed a single node, center on it with a tight zoom
+  // Otherwise fit all explored nodes
+  const target = lastRevealedId && cMap[lastRevealedId] ? cMap[lastRevealedId] : null;
+
+  // Compute bounding box of explored nodes
+  const pad = 80;
+  const minX = Math.min(...pts.map(p=>p.x)) - pad;
+  const maxX = Math.max(...pts.map(p=>p.x)) + pad;
+  const minY = Math.min(...pts.map(p=>p.y)) - pad;
+  const maxY = Math.max(...pts.map(p=>p.y)) + pad;
+  const bw = maxX - minX || 200, bh = maxY - minY || 200;
+
+  // If we just revealed one node and there are many explored, center on it
+  // Otherwise fit all explored
+  let scale, tx, ty;
+  if (target && pts.length > 5) {
+    scale = 2.2;
+    tx = W/2 - target.x * scale;
+    ty = H/2 - target.y * scale;
+  } else {
+    // Fit to viewport (account for header). Zoom tighter for small sets.
+    const viewW = W - 40, viewH = H - 120;
+    const minScale = pts.length <= 5 ? 1.8 : 1;
+    scale = Math.max(Math.min(viewW / bw, viewH / bh, 2.5), minScale);
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    tx = W/2 - cx * scale;
+    ty = (H/2 + 30) - cy * scale; // +30 to account for header
+  }
+
+  svg.transition().duration(duration || 600).call(
+    zoomBehavior.transform.bind(null, svg),
+    d3.zoomIdentity.translate(tx, ty).scale(scale)
+  );
 }
 
 function applyFog() {
@@ -856,6 +907,7 @@ function dismissOverlay() {
   ov.style.display = 'none';
   applyFog();
   document.getElementById('header-bar').classList.add('visible');
+  zoomToExplored(800);
 }
 
 // Header prompts
@@ -877,10 +929,8 @@ document.getElementById('hdr-search').addEventListener('keydown', e => {
 document.getElementById('hdr-home').addEventListener('click', () => {
   closeAll();
   resetHighlights();
-  svg.transition().duration(600).call(
-    d3.zoom().transform.bind(null, svg),
-    d3.zoomIdentity
-  );
+  userHasPanned = false;
+  zoomToExplored(600);
 });
 
 function showAIMenu() {
@@ -933,7 +983,7 @@ function showConcept(id) {
   const tx = freeCenter - cx2 * scale;
   const ty = H * 0.52 - cy2 * scale;
   svg.transition().duration(800).call(
-    d3.zoom().transform.bind(null, svg),
+    zoomBehavior.transform.bind(null, svg),
     d3.zoomIdentity.translate(tx, ty).scale(scale)
   );
 
@@ -1017,7 +1067,7 @@ function closeInfoPanel() {
   document.getElementById('info-panel').style.display = 'none';
   resetHighlights();
   svg.transition().duration(600).call(
-    d3.zoom().transform.bind(null, svg),
+    zoomBehavior.transform.bind(null, svg),
     d3.zoomIdentity
   );
 }
@@ -1036,7 +1086,7 @@ function showEdge(q) {
   const scale = 1.8;
   const tx = W/2 - cx*scale, ty = H/2 - cy*scale;
   svg.transition().duration(800).call(
-    d3.zoom().transform.bind(null, svg),
+    zoomBehavior.transform.bind(null, svg),
     d3.zoomIdentity.translate(tx, ty).scale(scale)
   );
 
@@ -1073,7 +1123,7 @@ function closeClaimPanel() {
   document.getElementById('claim-panel').style.display = 'none';
   resetHighlights();
   svg.transition().duration(600).call(
-    d3.zoom().transform.bind(null, svg),
+    zoomBehavior.transform.bind(null, svg),
     d3.zoomIdentity
   );
 }
@@ -1095,7 +1145,7 @@ function showPath(q) {
   for (let i = 0; i < q.nodes.length-1; i++) {
     const a = cMap[q.nodes[i]], b = cMap[q.nodes[i+1]];
     if (!a || !b) continue;
-    svg.append('line').attr('class','path-marker')
+    mapG.append('line').attr('class','path-marker')
       .attr('x1',a.x).attr('y1',a.y).attr('x2',b.x).attr('y2',b.y)
       .attr('stroke','#C49428').attr('stroke-width',3)
       .attr('stroke-opacity', explored.has(q.nodes[i]) && explored.has(q.nodes[i+1]) ? .5 : .1);
@@ -1116,9 +1166,9 @@ function showPath(q) {
 function addPathBadge(id, idx) {
   const c = cMap[id];
   if (!c) return;
-  svg.append('circle').attr('class','path-badge-bg path-marker')
+  mapG.append('circle').attr('class','path-badge-bg path-marker')
     .attr('cx',c.x).attr('cy',c.y-((deg[id]||0)*1.2+6)-10).attr('r',9);
-  svg.append('text').attr('class','path-badge path-marker')
+  mapG.append('text').attr('class','path-badge path-marker')
     .attr('x',c.x).attr('y',c.y-((deg[id]||0)*1.2+6)-6)
     .attr('text-anchor','middle').text(idx+1);
 }
@@ -1158,7 +1208,7 @@ function zoomToPathNode(i) {
   const scale = 2;
   const tx = W/2 - c.x*scale, ty = H/2 - c.y*scale;
   svg.transition().duration(600).call(
-    d3.zoom().transform.bind(null, svg),
+    zoomBehavior.transform.bind(null, svg),
     d3.zoomIdentity.translate(tx, ty).scale(scale)
   );
 }
@@ -1191,7 +1241,7 @@ function closePath() {
   svg.selectAll('.path-marker').remove();
   resetHighlights();
   svg.transition().duration(600).call(
-    d3.zoom().transform.bind(null, svg),
+    zoomBehavior.transform.bind(null, svg),
     d3.zoomIdentity
   );
 }
@@ -1202,12 +1252,12 @@ function resetHighlights() {
   applyFog(); // return to fog state, not fully visible
 }
 
-// Enable zoom on the SVG
-svg.call(d3.zoom().scaleExtent([0.5, 4]).on('zoom', e => {
-  svg.selectAll('g,line,rect,text,polygon,circle').filter(function() {
-    return this.parentNode === svg.node();
-  }).attr('transform', e.transform);
-}));
+// Enable zoom on the SVG — store the behavior so programmatic zoom works
+const zoomBehavior = d3.zoom().scaleExtent([0.5, 4]).on('zoom', e => {
+  if (e.sourceEvent) userHasPanned = true;
+  mapG.attr('transform', e.transform.toString());
+});
+svg.call(zoomBehavior);
 </script>
 </body>
 </html>
