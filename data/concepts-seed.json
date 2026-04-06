@@ -1,8 +1,8 @@
 {
   "meta": {
     "generated": "2026-04-05",
-    "version": "0.1",
-    "note": "Seed concept graph for Claim Tracker. ~50 core AI/ML concepts with relationships."
+    "version": "0.2",
+    "note": "Seed concept graph with fullName fields for abbreviated concepts."
   },
   "concepts": [
     {
@@ -10,406 +10,695 @@
       "name": "Neural Networks",
       "cluster": "foundations",
       "definition": "Computational models inspired by biological neurons, composed of layers of interconnected nodes that learn to transform inputs into outputs.",
-      "related": ["backpropagation", "deep-learning", "activation-functions", "universal-approximation"]
+      "related": [
+        "backpropagation",
+        "deep-learning",
+        "activation-functions",
+        "universal-approximation"
+      ]
     },
     {
       "id": "backpropagation",
       "name": "Backpropagation",
       "cluster": "foundations",
       "definition": "Algorithm for computing gradients through a neural network by applying the chain rule backwards from the loss function.",
-      "related": ["neural-networks", "gradient-descent", "automatic-differentiation"]
+      "related": [
+        "neural-networks",
+        "gradient-descent",
+        "automatic-differentiation"
+      ]
     },
     {
       "id": "gradient-descent",
       "name": "Gradient Descent",
       "cluster": "foundations",
       "definition": "Optimization algorithm that iteratively updates parameters in the direction that reduces the loss function.",
-      "related": ["backpropagation", "adam-optimizer", "learning-rate", "sgd"]
+      "related": [
+        "backpropagation",
+        "adam-optimizer",
+        "learning-rate",
+        "sgd"
+      ]
     },
     {
       "id": "sgd",
       "name": "Stochastic Gradient Descent",
       "cluster": "foundations",
       "definition": "Variant of gradient descent that estimates gradients from random mini-batches of data, enabling training on large datasets.",
-      "related": ["gradient-descent", "adam-optimizer", "batch-normalization"]
+      "related": [
+        "gradient-descent",
+        "adam-optimizer",
+        "batch-normalization"
+      ],
+      "fullName": "Stochastic Gradient Descent"
     },
     {
       "id": "adam-optimizer",
       "name": "Adam Optimizer",
       "cluster": "foundations",
       "definition": "Adaptive learning rate optimizer combining momentum and RMSProp, widely used as the default optimizer for deep learning.",
-      "related": ["gradient-descent", "sgd", "learning-rate"]
+      "related": [
+        "gradient-descent",
+        "sgd",
+        "learning-rate"
+      ]
     },
     {
       "id": "convolutions",
       "name": "Convolutional Neural Networks",
       "cluster": "architectures",
       "definition": "Neural networks that use spatial filters (convolutions) to detect local patterns, dominant in image recognition.",
-      "related": ["neural-networks", "deep-learning", "image-recognition", "resnet"]
+      "related": [
+        "neural-networks",
+        "deep-learning",
+        "image-recognition",
+        "resnet"
+      ],
+      "fullName": "Convolutional Neural Networks"
     },
     {
       "id": "resnet",
       "name": "Residual Networks (ResNet)",
       "cluster": "architectures",
       "definition": "Architecture using skip connections that allow gradients to flow through very deep networks, enabling 100+ layer training.",
-      "related": ["convolutions", "deep-learning", "batch-normalization"]
+      "related": [
+        "convolutions",
+        "deep-learning",
+        "batch-normalization"
+      ],
+      "fullName": "Residual Networks"
     },
     {
       "id": "recurrent-networks",
       "name": "Recurrent Neural Networks",
       "cluster": "architectures",
       "definition": "Neural networks with cyclic connections that maintain hidden state across time steps, designed for sequential data.",
-      "related": ["lstm", "neural-networks", "sequence-modeling", "attention"]
+      "related": [
+        "lstm",
+        "neural-networks",
+        "sequence-modeling",
+        "attention"
+      ],
+      "fullName": "Recurrent Neural Networks"
     },
     {
       "id": "lstm",
       "name": "Long Short-Term Memory",
       "cluster": "architectures",
       "definition": "Gated recurrent architecture that uses cell state and gates to selectively remember or forget information over long sequences.",
-      "related": ["recurrent-networks", "sequence-modeling", "attention"]
+      "related": [
+        "recurrent-networks",
+        "sequence-modeling",
+        "attention"
+      ],
+      "fullName": "Long Short-Term Memory"
     },
     {
       "id": "attention",
       "name": "Attention Mechanism",
       "cluster": "architectures",
       "definition": "Mechanism allowing models to dynamically focus on relevant parts of the input when producing each output element.",
-      "related": ["transformers", "self-attention", "recurrent-networks", "lstm"]
+      "related": [
+        "transformers",
+        "self-attention",
+        "recurrent-networks",
+        "lstm"
+      ]
     },
     {
       "id": "transformers",
       "name": "Transformers",
       "cluster": "architectures",
       "definition": "Architecture based entirely on self-attention, processing all positions in parallel. Foundation of modern language models.",
-      "related": ["attention", "self-attention", "positional-encoding", "scaling-laws", "gpt", "bert"]
+      "related": [
+        "attention",
+        "self-attention",
+        "positional-encoding",
+        "scaling-laws",
+        "gpt",
+        "bert"
+      ]
     },
     {
       "id": "self-attention",
       "name": "Self-Attention",
       "cluster": "architectures",
       "definition": "Attention applied within a single sequence, allowing each token to attend to all others. The core operation in transformers.",
-      "related": ["attention", "transformers", "multi-head-attention"]
+      "related": [
+        "attention",
+        "transformers",
+        "multi-head-attention"
+      ]
     },
     {
       "id": "gpt",
       "name": "GPT (Generative Pre-trained Transformer)",
       "cluster": "architectures",
       "definition": "Autoregressive language model architecture that predicts the next token, pre-trained on large text corpora.",
-      "related": ["transformers", "pre-training", "autoregressive-models", "scaling-laws", "in-context-learning"]
+      "related": [
+        "transformers",
+        "pre-training",
+        "autoregressive-models",
+        "scaling-laws",
+        "in-context-learning"
+      ],
+      "fullName": "Generative Pre-trained Transformer"
     },
     {
       "id": "bert",
       "name": "BERT",
       "cluster": "architectures",
       "definition": "Bidirectional transformer trained with masked language modeling, designed for understanding tasks rather than generation.",
-      "related": ["transformers", "pre-training", "masked-language-modeling", "fine-tuning"]
+      "related": [
+        "transformers",
+        "pre-training",
+        "masked-language-modeling",
+        "fine-tuning"
+      ],
+      "fullName": "Bidirectional Encoder Representations from Transformers"
     },
     {
       "id": "diffusion-models",
       "name": "Diffusion Models",
       "cluster": "architectures",
       "definition": "Generative models that learn to reverse a gradual noising process, producing high-quality images from random noise.",
-      "related": ["generative-models", "gans", "image-generation", "stable-diffusion"]
+      "related": [
+        "generative-models",
+        "gans",
+        "image-generation",
+        "stable-diffusion"
+      ]
     },
     {
       "id": "gans",
       "name": "Generative Adversarial Networks",
       "cluster": "architectures",
       "definition": "Framework where a generator and discriminator compete, driving the generator to produce increasingly realistic outputs.",
-      "related": ["generative-models", "diffusion-models", "image-generation"]
+      "related": [
+        "generative-models",
+        "diffusion-models",
+        "image-generation"
+      ],
+      "fullName": "Generative Adversarial Networks"
     },
     {
       "id": "deep-learning",
       "name": "Deep Learning",
       "cluster": "foundations",
       "definition": "Machine learning using neural networks with many layers, enabling hierarchical feature learning from raw data.",
-      "related": ["neural-networks", "backpropagation", "representation-learning"]
+      "related": [
+        "neural-networks",
+        "backpropagation",
+        "representation-learning"
+      ]
     },
     {
       "id": "pre-training",
       "name": "Pre-training",
       "cluster": "training",
       "definition": "Training a model on a large general dataset before specializing it for a specific task, enabling transfer of learned representations.",
-      "related": ["fine-tuning", "transfer-learning", "gpt", "bert", "foundation-models"]
+      "related": [
+        "fine-tuning",
+        "transfer-learning",
+        "gpt",
+        "bert",
+        "foundation-models"
+      ]
     },
     {
       "id": "fine-tuning",
       "name": "Fine-tuning",
       "cluster": "training",
       "definition": "Adapting a pre-trained model to a specific task by continuing training on task-specific data with a smaller learning rate.",
-      "related": ["pre-training", "transfer-learning", "lora", "sft"]
+      "related": [
+        "pre-training",
+        "transfer-learning",
+        "lora",
+        "sft"
+      ]
     },
     {
       "id": "sft",
       "name": "Supervised Fine-Tuning (SFT)",
       "cluster": "training",
       "definition": "Fine-tuning a language model on curated instruction-response pairs to make it follow instructions.",
-      "related": ["fine-tuning", "rlhf", "instruction-following"]
+      "related": [
+        "fine-tuning",
+        "rlhf",
+        "instruction-following"
+      ],
+      "fullName": "Supervised Fine-Tuning"
     },
     {
       "id": "rlhf",
       "name": "RLHF",
       "cluster": "alignment",
-      "definition": "Reinforcement Learning from Human Feedback — trains models using human preference signals to align behavior.",
-      "related": ["sft", "ppo", "reward-modeling", "dpo", "constitutional-ai", "sycophancy"]
+      "definition": "Reinforcement Learning from Human Feedback \u2014 trains models using human preference signals to align behavior.",
+      "related": [
+        "sft",
+        "ppo",
+        "reward-modeling",
+        "dpo",
+        "constitutional-ai",
+        "sycophancy"
+      ],
+      "fullName": "Reinforcement Learning from Human Feedback"
     },
     {
       "id": "dpo",
       "name": "Direct Preference Optimization",
       "cluster": "alignment",
       "definition": "Alternative to RLHF that directly optimizes for human preferences without training a separate reward model.",
-      "related": ["rlhf", "reward-modeling", "fine-tuning"]
+      "related": [
+        "rlhf",
+        "reward-modeling",
+        "fine-tuning"
+      ],
+      "fullName": "Direct Preference Optimization"
     },
     {
       "id": "constitutional-ai",
       "name": "Constitutional AI",
       "cluster": "alignment",
       "definition": "Training approach where AI critiques and revises its own outputs according to a set of principles, reducing reliance on human feedback.",
-      "related": ["rlhf", "rlaif", "ai-safety", "sycophancy"]
+      "related": [
+        "rlhf",
+        "rlaif",
+        "ai-safety",
+        "sycophancy"
+      ]
     },
     {
       "id": "rlaif",
       "name": "RLAIF",
       "cluster": "alignment",
-      "definition": "Reinforcement Learning from AI Feedback — uses AI-generated preferences instead of human preferences to train models.",
-      "related": ["rlhf", "constitutional-ai", "reward-modeling"]
+      "definition": "Reinforcement Learning from AI Feedback \u2014 uses AI-generated preferences instead of human preferences to train models.",
+      "related": [
+        "rlhf",
+        "constitutional-ai",
+        "reward-modeling"
+      ],
+      "fullName": "Reinforcement Learning from AI Feedback"
     },
     {
       "id": "reward-modeling",
       "name": "Reward Modeling",
       "cluster": "alignment",
       "definition": "Training a model to predict human preferences between outputs, used as the optimization target in RLHF.",
-      "related": ["rlhf", "dpo", "reward-hacking"]
+      "related": [
+        "rlhf",
+        "dpo",
+        "reward-hacking"
+      ]
     },
     {
       "id": "reward-hacking",
       "name": "Reward Hacking",
       "cluster": "alignment",
       "definition": "When an RL agent exploits flaws in the reward model to achieve high reward without actually satisfying human intent.",
-      "related": ["reward-modeling", "rlhf", "goodharts-law", "ai-safety"]
+      "related": [
+        "reward-modeling",
+        "rlhf",
+        "goodharts-law",
+        "ai-safety"
+      ]
     },
     {
       "id": "ppo",
       "name": "Proximal Policy Optimization",
       "cluster": "reinforcement-learning",
       "definition": "Policy gradient RL algorithm that constrains updates to prevent destructively large steps, widely used in RLHF.",
-      "related": ["rlhf", "reinforcement-learning", "policy-gradient"]
+      "related": [
+        "rlhf",
+        "reinforcement-learning",
+        "policy-gradient"
+      ],
+      "fullName": "Proximal Policy Optimization"
     },
     {
       "id": "reinforcement-learning",
       "name": "Reinforcement Learning",
       "cluster": "reinforcement-learning",
       "definition": "Learning paradigm where an agent learns to make decisions by receiving rewards or penalties from an environment.",
-      "related": ["ppo", "rlhf", "reward-modeling", "q-learning"]
+      "related": [
+        "ppo",
+        "rlhf",
+        "reward-modeling",
+        "q-learning"
+      ]
     },
     {
       "id": "scaling-laws",
       "name": "Scaling Laws",
       "cluster": "training",
       "definition": "Empirical relationships showing that model performance improves predictably with increases in data, compute, and parameters.",
-      "related": ["transformers", "pre-training", "chinchilla", "emergent-abilities", "foundation-models"]
+      "related": [
+        "transformers",
+        "pre-training",
+        "chinchilla",
+        "emergent-abilities",
+        "foundation-models"
+      ]
     },
     {
       "id": "emergent-abilities",
       "name": "Emergent Abilities",
       "cluster": "training",
       "definition": "Capabilities that appear suddenly at certain model scales but are absent in smaller models, such as few-shot reasoning.",
-      "related": ["scaling-laws", "in-context-learning", "chain-of-thought"]
+      "related": [
+        "scaling-laws",
+        "in-context-learning",
+        "chain-of-thought"
+      ]
     },
     {
       "id": "in-context-learning",
       "name": "In-Context Learning",
       "cluster": "prompting",
       "definition": "A model's ability to learn new tasks from examples provided in the prompt, without any parameter updates.",
-      "related": ["gpt", "few-shot-learning", "prompting", "emergent-abilities"]
+      "related": [
+        "gpt",
+        "few-shot-learning",
+        "prompting",
+        "emergent-abilities"
+      ]
     },
     {
       "id": "chain-of-thought",
       "name": "Chain-of-Thought Prompting",
       "cluster": "prompting",
       "definition": "Prompting technique that elicits step-by-step reasoning, dramatically improving performance on math and logic tasks.",
-      "related": ["prompting", "reasoning", "emergent-abilities", "tree-of-thought"]
+      "related": [
+        "prompting",
+        "reasoning",
+        "emergent-abilities",
+        "tree-of-thought"
+      ]
     },
     {
       "id": "prompting",
       "name": "Prompt Engineering",
       "cluster": "prompting",
       "definition": "The practice of crafting input text to elicit desired behavior from language models without modifying their weights.",
-      "related": ["in-context-learning", "chain-of-thought", "few-shot-learning"]
+      "related": [
+        "in-context-learning",
+        "chain-of-thought",
+        "few-shot-learning"
+      ]
     },
     {
       "id": "lora",
       "name": "LoRA (Low-Rank Adaptation)",
       "cluster": "training",
       "definition": "Parameter-efficient fine-tuning method that injects trainable low-rank matrices into frozen model layers.",
-      "related": ["fine-tuning", "parameter-efficient", "quantization"]
+      "related": [
+        "fine-tuning",
+        "parameter-efficient",
+        "quantization"
+      ],
+      "fullName": "Low-Rank Adaptation"
     },
     {
       "id": "quantization",
       "name": "Quantization",
       "cluster": "efficiency",
       "definition": "Reducing model precision (e.g., 32-bit to 4-bit) to decrease memory and compute requirements with minimal quality loss.",
-      "related": ["lora", "distillation", "inference-efficiency"]
+      "related": [
+        "lora",
+        "distillation",
+        "inference-efficiency"
+      ]
     },
     {
       "id": "distillation",
       "name": "Knowledge Distillation",
       "cluster": "efficiency",
       "definition": "Training a smaller student model to mimic the outputs of a larger teacher model, compressing capability into fewer parameters.",
-      "related": ["quantization", "model-compression", "transfer-learning"]
+      "related": [
+        "quantization",
+        "model-compression",
+        "transfer-learning"
+      ]
     },
     {
       "id": "mixture-of-experts",
       "name": "Mixture of Experts (MoE)",
       "cluster": "architectures",
       "definition": "Architecture where only a subset of parameters are activated per input, enabling larger models without proportional compute increase.",
-      "related": ["transformers", "scaling-laws", "inference-efficiency"]
+      "related": [
+        "transformers",
+        "scaling-laws",
+        "inference-efficiency"
+      ],
+      "fullName": "Mixture of Experts"
     },
     {
       "id": "retrieval-augmented-generation",
       "name": "Retrieval-Augmented Generation (RAG)",
       "cluster": "applications",
       "definition": "Combining language models with external knowledge retrieval to ground responses in real documents and reduce hallucination.",
-      "related": ["embeddings", "hallucination", "vector-databases"]
+      "related": [
+        "embeddings",
+        "hallucination",
+        "vector-databases"
+      ],
+      "fullName": "Retrieval-Augmented Generation"
     },
     {
       "id": "embeddings",
       "name": "Embeddings",
       "cluster": "foundations",
       "definition": "Dense vector representations of inputs (words, sentences, images) that capture semantic similarity in geometric space.",
-      "related": ["representation-learning", "retrieval-augmented-generation", "word2vec", "transformers"]
+      "related": [
+        "representation-learning",
+        "retrieval-augmented-generation",
+        "word2vec",
+        "transformers"
+      ]
     },
     {
       "id": "hallucination",
       "name": "Hallucination",
       "cluster": "safety",
       "definition": "When a model generates confident-sounding but factually incorrect or fabricated information.",
-      "related": ["retrieval-augmented-generation", "calibration", "sycophancy", "ai-safety"]
+      "related": [
+        "retrieval-augmented-generation",
+        "calibration",
+        "sycophancy",
+        "ai-safety"
+      ]
     },
     {
       "id": "sycophancy",
       "name": "Sycophancy",
       "cluster": "safety",
       "definition": "Model tendency to agree with user statements or tell users what they want to hear, even when factually wrong.",
-      "related": ["rlhf", "hallucination", "constitutional-ai", "reward-hacking"]
+      "related": [
+        "rlhf",
+        "hallucination",
+        "constitutional-ai",
+        "reward-hacking"
+      ]
     },
     {
       "id": "calibration",
       "name": "Calibration",
       "cluster": "evaluation",
-      "definition": "How well a model's expressed confidence matches its actual accuracy — a well-calibrated model is right 80% of the time when it says it's 80% sure.",
-      "related": ["hallucination", "sycophancy", "evaluation"]
+      "definition": "How well a model's expressed confidence matches its actual accuracy \u2014 a well-calibrated model is right 80% of the time when it says it's 80% sure.",
+      "related": [
+        "hallucination",
+        "sycophancy",
+        "evaluation"
+      ]
     },
     {
       "id": "ai-safety",
       "name": "AI Safety",
       "cluster": "safety",
       "definition": "Research field focused on ensuring advanced AI systems behave as intended and don't cause unintended harm.",
-      "related": ["alignment", "constitutional-ai", "reward-hacking", "interpretability"]
+      "related": [
+        "alignment",
+        "constitutional-ai",
+        "reward-hacking",
+        "interpretability"
+      ]
     },
     {
       "id": "interpretability",
       "name": "Mechanistic Interpretability",
       "cluster": "safety",
       "definition": "Reverse-engineering the internal computations of neural networks to understand how they process information and make decisions.",
-      "related": ["ai-safety", "neural-networks", "sparse-autoencoders", "superposition"]
+      "related": [
+        "ai-safety",
+        "neural-networks",
+        "sparse-autoencoders",
+        "superposition"
+      ]
     },
     {
       "id": "superposition",
       "name": "Superposition",
       "cluster": "safety",
       "definition": "The hypothesis that neural networks represent more features than they have dimensions by encoding features as overlapping directions.",
-      "related": ["interpretability", "sparse-autoencoders", "representation-learning"]
+      "related": [
+        "interpretability",
+        "sparse-autoencoders",
+        "representation-learning"
+      ]
     },
     {
       "id": "sparse-autoencoders",
       "name": "Sparse Autoencoders",
       "cluster": "safety",
       "definition": "Tool for mechanistic interpretability that decomposes model activations into interpretable features by enforcing sparsity.",
-      "related": ["interpretability", "superposition", "representation-learning"]
+      "related": [
+        "interpretability",
+        "superposition",
+        "representation-learning"
+      ],
+      "fullName": "Sparse Autoencoders"
     },
     {
       "id": "multimodal",
       "name": "Multimodal Models",
       "cluster": "architectures",
       "definition": "Models that process and generate across multiple modalities (text, images, audio, video) within a unified architecture.",
-      "related": ["transformers", "vision-transformers", "clip", "diffusion-models"]
+      "related": [
+        "transformers",
+        "vision-transformers",
+        "clip",
+        "diffusion-models"
+      ]
     },
     {
       "id": "vision-transformers",
       "name": "Vision Transformers (ViT)",
       "cluster": "architectures",
       "definition": "Applying the transformer architecture to image patches instead of text tokens, rivaling CNNs on vision tasks.",
-      "related": ["transformers", "convolutions", "multimodal", "clip"]
+      "related": [
+        "transformers",
+        "convolutions",
+        "multimodal",
+        "clip"
+      ],
+      "fullName": "Vision Transformers"
     },
     {
       "id": "clip",
       "name": "CLIP",
       "cluster": "architectures",
       "definition": "Model trained on image-text pairs using contrastive learning, enabling zero-shot image classification and cross-modal retrieval.",
-      "related": ["multimodal", "contrastive-learning", "vision-transformers", "embeddings"]
+      "related": [
+        "multimodal",
+        "contrastive-learning",
+        "vision-transformers",
+        "embeddings"
+      ],
+      "fullName": "Contrastive Language-Image Pre-training"
     },
     {
       "id": "contrastive-learning",
       "name": "Contrastive Learning",
       "cluster": "training",
       "definition": "Self-supervised method that learns representations by pulling similar examples together and pushing dissimilar ones apart.",
-      "related": ["clip", "self-supervised-learning", "embeddings", "representation-learning"]
+      "related": [
+        "clip",
+        "self-supervised-learning",
+        "embeddings",
+        "representation-learning"
+      ]
     },
     {
       "id": "batch-normalization",
       "name": "Batch Normalization",
       "cluster": "foundations",
       "definition": "Technique that normalizes layer inputs across a mini-batch, stabilizing and accelerating deep network training.",
-      "related": ["deep-learning", "resnet", "layer-normalization"]
+      "related": [
+        "deep-learning",
+        "resnet",
+        "layer-normalization"
+      ]
     },
     {
       "id": "dropout",
       "name": "Dropout",
       "cluster": "foundations",
       "definition": "Regularization technique that randomly deactivates neurons during training, preventing co-adaptation and reducing overfitting.",
-      "related": ["neural-networks", "regularization", "deep-learning"]
+      "related": [
+        "neural-networks",
+        "regularization",
+        "deep-learning"
+      ]
     },
     {
       "id": "transfer-learning",
       "name": "Transfer Learning",
       "cluster": "training",
       "definition": "Using knowledge gained from one task or domain to improve performance on a different but related task.",
-      "related": ["pre-training", "fine-tuning", "foundation-models", "domain-adaptation"]
+      "related": [
+        "pre-training",
+        "fine-tuning",
+        "foundation-models",
+        "domain-adaptation"
+      ]
     },
     {
       "id": "foundation-models",
       "name": "Foundation Models",
       "cluster": "training",
       "definition": "Large models pre-trained on broad data that can be adapted to many downstream tasks, serving as a shared starting point.",
-      "related": ["pre-training", "scaling-laws", "transfer-learning", "gpt", "bert"]
+      "related": [
+        "pre-training",
+        "scaling-laws",
+        "transfer-learning",
+        "gpt",
+        "bert"
+      ]
     },
     {
       "id": "tokenization",
       "name": "Tokenization",
       "cluster": "foundations",
       "definition": "The process of breaking text into subword units (tokens) that serve as the atomic inputs to language models.",
-      "related": ["transformers", "byte-pair-encoding", "gpt"]
+      "related": [
+        "transformers",
+        "byte-pair-encoding",
+        "gpt"
+      ]
     },
     {
       "id": "positional-encoding",
       "name": "Positional Encoding",
       "cluster": "architectures",
       "definition": "Method for injecting sequence position information into transformer models, which otherwise have no inherent notion of order.",
-      "related": ["transformers", "self-attention", "rotary-embeddings"]
+      "related": [
+        "transformers",
+        "self-attention",
+        "rotary-embeddings"
+      ]
     },
     {
       "id": "agentic-ai",
       "name": "Agentic AI",
       "cluster": "applications",
       "definition": "AI systems that can autonomously plan, use tools, and take actions to accomplish goals over extended interactions.",
-      "related": ["chain-of-thought", "tool-use", "reinforcement-learning", "planning"]
+      "related": [
+        "chain-of-thought",
+        "tool-use",
+        "reinforcement-learning",
+        "planning"
+      ]
     },
     {
       "id": "tool-use",
       "name": "Tool Use",
       "cluster": "applications",
       "definition": "Ability of language models to invoke external tools (search, code execution, APIs) to extend their capabilities.",
-      "related": ["agentic-ai", "retrieval-augmented-generation", "function-calling"]
+      "related": [
+        "agentic-ai",
+        "retrieval-augmented-generation",
+        "function-calling"
+      ]
     }
   ]
 }
