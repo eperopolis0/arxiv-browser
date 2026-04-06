@@ -240,9 +240,9 @@ body { background: #403151; overflow: hidden; font-family: -apple-system, BlinkM
     <button id="hdr-home">Reset map</button>
   </div>
   <div id="hdr-prompts">
-    <a class="hdr-prompt" data-q="What is RLHF?">"What is RLHF?"</a>
     <a class="hdr-prompt" data-q="Does RLHF cause sycophancy?">"Does RLHF cause sycophancy?"</a>
     <a class="hdr-prompt" data-q="How does ChatGPT actually work?">"How does ChatGPT actually work?"</a>
+    <a class="hdr-prompt" data-q="What is RLHF?">"What is RLHF?"</a>
   </div>
 </div>
 
@@ -250,9 +250,9 @@ body { background: #403151; overflow: hidden; font-family: -apple-system, BlinkM
   <input id="search-box" type="text" placeholder="Ask anything about AI" autocomplete="off">
   <div id="sample-prompts">
     <div class="sp-label">or try:</div>
-    <a class="sp-link" data-q="What is RLHF?">"What is RLHF?"</a>
     <a class="sp-link" data-q="Does RLHF cause sycophancy?">"Does RLHF cause sycophancy?"</a>
     <a class="sp-link" data-q="How does ChatGPT actually work?">"How does ChatGPT actually work?"</a>
+    <a class="sp-link" data-q="What is RLHF?">"What is RLHF?"</a>
   </div>
   <div id="skip-link">or just explore the map →</div>
 </div>
@@ -306,64 +306,64 @@ const EDGE_LABELS = {
 };
 
 const CONCEPTS = [
-  {id:"gradient-descent",name:"Gradient Descent",cluster:"foundations",year:1847,abs:.05,definition:"Optimization algorithm that iteratively updates parameters in the direction that reduces the loss function."},
-  {id:"backpropagation",name:"Backpropagation",cluster:"foundations",year:1986,abs:.1,definition:"Algorithm for computing gradients through a neural network by applying the chain rule backwards from the loss function."},
-  {id:"neural-networks",name:"Neural Networks",cluster:"foundations",year:1958,abs:.15,definition:"Computational models inspired by biological neurons, composed of layers of interconnected nodes that learn to transform inputs into outputs."},
-  {id:"sgd",name:"SGD",cluster:"foundations",year:1951,abs:.08,definition:"Variant of gradient descent using random mini-batches, enabling training on large datasets."},
-  {id:"adam-optimizer",name:"Adam",cluster:"foundations",year:2014,abs:.08,definition:"Adaptive learning rate optimizer, widely used as the default for deep learning."},
-  {id:"dropout",name:"Dropout",cluster:"foundations",year:2014,abs:.12,definition:"Regularization technique that randomly deactivates neurons during training."},
-  {id:"batch-normalization",name:"Batch Norm",cluster:"foundations",year:2015,abs:.1,definition:"Normalizes layer inputs across a mini-batch, stabilizing deep network training."},
-  {id:"embeddings",name:"Embeddings",cluster:"foundations",year:2013,abs:.2,definition:"Dense vector representations capturing semantic similarity in geometric space."},
-  {id:"deep-learning",name:"Deep Learning",cluster:"foundations",year:2006,abs:.2,definition:"Machine learning using neural networks with many layers."},
-  {id:"tokenization",name:"Tokenization",cluster:"foundations",year:2016,abs:.12,definition:"Breaking text into subword units that serve as inputs to language models."},
-  {id:"convolutions",name:"CNNs",cluster:"architectures",year:1998,abs:.2,definition:"Neural networks using spatial filters to detect local patterns in images."},
-  {id:"resnet",name:"ResNet",cluster:"architectures",year:2015,abs:.22,definition:"Architecture using skip connections enabling 100+ layer training."},
-  {id:"recurrent-networks",name:"RNNs",cluster:"architectures",year:1986,abs:.2,definition:"Neural networks with cyclic connections for sequential data."},
-  {id:"lstm",name:"LSTM",cluster:"architectures",year:1997,abs:.22,definition:"Gated recurrent architecture for long sequences."},
-  {id:"attention",name:"Attention",cluster:"architectures",year:2014,abs:.3,definition:"Mechanism allowing models to dynamically focus on relevant input parts."},
-  {id:"self-attention",name:"Self-Attention",cluster:"architectures",year:2017,abs:.28,definition:"Attention within a single sequence — the core transformer operation."},
-  {id:"transformers",name:"Transformers",cluster:"architectures",year:2017,abs:.35,definition:"Architecture based entirely on self-attention. Foundation of modern LLMs."},
-  {id:"positional-encoding",name:"Positional Enc.",cluster:"architectures",year:2017,abs:.18,definition:"Injecting sequence position information into transformers."},
-  {id:"gpt",name:"GPT",cluster:"architectures",year:2018,abs:.45,definition:"Autoregressive language model that predicts the next token."},
-  {id:"bert",name:"BERT",cluster:"architectures",year:2018,abs:.4,definition:"Bidirectional transformer for understanding tasks."},
-  {id:"gans",name:"GANs",cluster:"architectures",year:2014,abs:.35,definition:"Generator vs discriminator framework for realistic output generation."},
-  {id:"diffusion-models",name:"Diffusion",cluster:"architectures",year:2020,abs:.35,definition:"Generative models reversing a noising process to produce images."},
-  {id:"vision-transformers",name:"ViT",cluster:"architectures",year:2020,abs:.35,definition:"Transformers applied to image patches instead of text tokens."},
-  {id:"clip",name:"CLIP",cluster:"architectures",year:2021,abs:.45,definition:"Image-text model enabling zero-shot image classification."},
-  {id:"multimodal",name:"Multimodal",cluster:"architectures",year:2021,abs:.5,definition:"Models processing text, images, audio, and video together."},
-  {id:"mixture-of-experts",name:"MoE",cluster:"architectures",year:2017,abs:.25,definition:"Only a subset of parameters activated per input for efficiency."},
-  {id:"contrastive-learning",name:"Contrastive",cluster:"training",year:2020,abs:.25,definition:"Self-supervised learning by pulling similar examples together."},
-  {id:"pre-training",name:"Pre-training",cluster:"training",year:2018,abs:.35,definition:"Training on large general data before task specialization."},
-  {id:"fine-tuning",name:"Fine-tuning",cluster:"training",year:2018,abs:.4,definition:"Adapting a pre-trained model to a specific task."},
-  {id:"transfer-learning",name:"Transfer Learning",cluster:"training",year:2010,abs:.4,definition:"Using knowledge from one task to improve another."},
-  {id:"foundation-models",name:"Foundation Models",cluster:"training",year:2021,abs:.5,definition:"Large pre-trained models adapted to many downstream tasks."},
-  {id:"scaling-laws",name:"Scaling Laws",cluster:"training",year:2020,abs:.55,definition:"Performance improves predictably with more data, compute, and parameters."},
-  {id:"sft",name:"SFT",cluster:"training",year:2022,abs:.45,definition:"Fine-tuning on instruction-response pairs."},
-  {id:"lora",name:"LoRA",cluster:"training",year:2021,abs:.3,definition:"Parameter-efficient fine-tuning with low-rank matrices."},
-  {id:"emergent-abilities",name:"Emergent Abilities",cluster:"training",year:2022,abs:.7,definition:"Capabilities appearing suddenly at certain model scales."},
-  {id:"quantization",name:"Quantization",cluster:"efficiency",year:2016,abs:.15,definition:"Reducing model precision to decrease memory and compute."},
-  {id:"distillation",name:"Distillation",cluster:"efficiency",year:2015,abs:.3,definition:"Training a small model to mimic a larger one."},
-  {id:"reinforcement-learning",name:"RL",cluster:"reinforcement-learning",year:1992,abs:.3,definition:"Learning by receiving rewards or penalties from an environment."},
-  {id:"ppo",name:"PPO",cluster:"reinforcement-learning",year:2017,abs:.25,definition:"Policy gradient RL algorithm used in RLHF."},
-  {id:"rlhf",name:"RLHF",cluster:"alignment",year:2020,abs:.55,definition:"Training models using human preference signals to align behavior."},
-  {id:"dpo",name:"DPO",cluster:"alignment",year:2023,abs:.5,definition:"Direct preference optimization without a separate reward model."},
-  {id:"reward-modeling",name:"Reward Model",cluster:"alignment",year:2020,abs:.4,definition:"Predicting human preferences to guide RL training."},
-  {id:"reward-hacking",name:"Reward Hacking",cluster:"alignment",year:2022,abs:.75,definition:"Exploiting reward model flaws to get high reward without satisfying intent."},
-  {id:"constitutional-ai",name:"Constitutional AI",cluster:"alignment",year:2022,abs:.6,definition:"AI self-critiques outputs according to principles."},
-  {id:"rlaif",name:"RLAIF",cluster:"alignment",year:2023,abs:.5,definition:"Using AI-generated preferences instead of human ones."},
-  {id:"prompting",name:"Prompting",cluster:"prompting",year:2020,abs:.6,definition:"Crafting input text to elicit desired model behavior."},
-  {id:"in-context-learning",name:"In-Context Learning",cluster:"prompting",year:2020,abs:.65,definition:"Learning new tasks from examples in the prompt alone."},
-  {id:"chain-of-thought",name:"Chain-of-Thought",cluster:"prompting",year:2022,abs:.65,definition:"Step-by-step reasoning that improves math and logic performance."},
-  {id:"hallucination",name:"Hallucination",cluster:"safety",year:2020,abs:.85,definition:"Generating confident but factually incorrect information."},
-  {id:"sycophancy",name:"Sycophancy",cluster:"safety",year:2023,abs:.85,definition:"Agreeing with users even when they are factually wrong."},
-  {id:"calibration",name:"Calibration",cluster:"evaluation",year:2017,abs:.7,definition:"How well expressed confidence matches actual accuracy."},
-  {id:"ai-safety",name:"AI Safety",cluster:"safety",year:2014,abs:.8,definition:"Ensuring advanced AI behaves as intended without causing harm."},
-  {id:"interpretability",name:"Interpretability",cluster:"safety",year:2020,abs:.6,definition:"Reverse-engineering how neural networks process information."},
-  {id:"superposition",name:"Superposition",cluster:"safety",year:2022,abs:.45,definition:"Networks encode more features than dimensions via overlapping directions."},
-  {id:"sparse-autoencoders",name:"SAEs",cluster:"safety",year:2023,abs:.4,definition:"Decomposing activations into interpretable features."},
-  {id:"retrieval-augmented-generation",name:"RAG",cluster:"applications",year:2020,abs:.7,definition:"Grounding model responses in retrieved documents."},
-  {id:"agentic-ai",name:"Agentic AI",cluster:"applications",year:2023,abs:.8,definition:"AI that autonomously plans, uses tools, and takes actions."},
-  {id:"tool-use",name:"Tool Use",cluster:"applications",year:2023,abs:.75,definition:"Models invoking external tools like search and code execution."},
+  {id:"gradient-descent",name:"Gradient Descent",cluster:"foundations",year:1847,abs:.05,definition:"Optimization algorithm that iteratively updates parameters in the direction that reduces the loss function.",depth:0,background:4},
+  {id:"backpropagation",name:"Backpropagation",cluster:"foundations",year:1986,abs:.1,definition:"Algorithm for computing gradients through a neural network by applying the chain rule backwards from the loss function.",depth:1,background:4},
+  {id:"neural-networks",name:"Neural Networks",cluster:"foundations",year:1958,abs:.15,definition:"Computational models inspired by biological neurons, composed of layers of interconnected nodes that learn to transform inputs into outputs.",depth:2,background:3},
+  {id:"sgd",name:"SGD",cluster:"foundations",year:1951,abs:.08,definition:"Variant of gradient descent using random mini-batches, enabling training on large datasets.",depth:1,background:4},
+  {id:"adam-optimizer",name:"Adam",cluster:"foundations",year:2014,abs:.08,definition:"Adaptive learning rate optimizer, widely used as the default for deep learning.",depth:2,background:5},
+  {id:"dropout",name:"Dropout",cluster:"foundations",year:2014,abs:.12,definition:"Regularization technique that randomly deactivates neurons during training.",depth:3,background:3},
+  {id:"batch-normalization",name:"Batch Norm",cluster:"foundations",year:2015,abs:.1,definition:"Normalizes layer inputs across a mini-batch, stabilizing deep network training.",depth:4,background:4},
+  {id:"embeddings",name:"Embeddings",cluster:"foundations",year:2013,abs:.2,definition:"Dense vector representations capturing semantic similarity in geometric space.",depth:0,background:3},
+  {id:"deep-learning",name:"Deep Learning",cluster:"foundations",year:2006,abs:.2,definition:"Machine learning using neural networks with many layers.",depth:3,background:2},
+  {id:"tokenization",name:"Tokenization",cluster:"foundations",year:2016,abs:.12,definition:"Breaking text into subword units that serve as inputs to language models.",depth:9,background:1},
+  {id:"convolutions",name:"CNNs",cluster:"architectures",year:1998,abs:.2,definition:"Neural networks using spatial filters to detect local patterns in images.",depth:3,background:3},
+  {id:"resnet",name:"ResNet",cluster:"architectures",year:2015,abs:.22,definition:"Architecture using skip connections enabling 100+ layer training.",depth:4,background:3},
+  {id:"recurrent-networks",name:"RNNs",cluster:"architectures",year:1986,abs:.2,definition:"Neural networks with cyclic connections for sequential data.",depth:3,background:3},
+  {id:"lstm",name:"LSTM",cluster:"architectures",year:1997,abs:.22,definition:"Gated recurrent architecture for long sequences.",depth:4,background:4},
+  {id:"attention",name:"Attention",cluster:"architectures",year:2014,abs:.3,definition:"Mechanism allowing models to dynamically focus on relevant input parts.",depth:5,background:3},
+  {id:"self-attention",name:"Self-Attention",cluster:"architectures",year:2017,abs:.28,definition:"Attention within a single sequence — the core transformer operation.",depth:6,background:3},
+  {id:"transformers",name:"Transformers",cluster:"architectures",year:2017,abs:.35,definition:"Architecture based entirely on self-attention. Foundation of modern LLMs.",depth:7,background:3},
+  {id:"positional-encoding",name:"Positional Enc.",cluster:"architectures",year:2017,abs:.18,definition:"Injecting sequence position information into transformers.",depth:8,background:3},
+  {id:"gpt",name:"GPT",cluster:"architectures",year:2018,abs:.45,definition:"Autoregressive language model that predicts the next token.",depth:8,background:2},
+  {id:"bert",name:"BERT",cluster:"architectures",year:2018,abs:.4,definition:"Bidirectional transformer for understanding tasks.",depth:8,background:3},
+  {id:"gans",name:"GANs",cluster:"architectures",year:2014,abs:.35,definition:"Generator vs discriminator framework for realistic output generation.",depth:0,background:3},
+  {id:"diffusion-models",name:"Diffusion",cluster:"architectures",year:2020,abs:.35,definition:"Generative models reversing a noising process to produce images.",depth:0,background:4},
+  {id:"vision-transformers",name:"ViT",cluster:"architectures",year:2020,abs:.35,definition:"Transformers applied to image patches instead of text tokens.",depth:8,background:3},
+  {id:"clip",name:"CLIP",cluster:"architectures",year:2021,abs:.45,definition:"Image-text model enabling zero-shot image classification.",depth:10,background:2},
+  {id:"multimodal",name:"Multimodal",cluster:"architectures",year:2021,abs:.5,definition:"Models processing text, images, audio, and video together.",depth:11,background:1},
+  {id:"mixture-of-experts",name:"MoE",cluster:"architectures",year:2017,abs:.25,definition:"Only a subset of parameters activated per input for efficiency.",depth:8,background:2},
+  {id:"contrastive-learning",name:"Contrastive",cluster:"training",year:2020,abs:.25,definition:"Self-supervised learning by pulling similar examples together.",depth:0,background:3},
+  {id:"pre-training",name:"Pre-training",cluster:"training",year:2018,abs:.35,definition:"Training on large general data before task specialization.",depth:9,background:1},
+  {id:"fine-tuning",name:"Fine-tuning",cluster:"training",year:2018,abs:.4,definition:"Adapting a pre-trained model to a specific task.",depth:10,background:1},
+  {id:"transfer-learning",name:"Transfer Learning",cluster:"training",year:2010,abs:.4,definition:"Using knowledge from one task to improve another.",depth:4,background:1},
+  {id:"foundation-models",name:"Foundation Models",cluster:"training",year:2021,abs:.5,definition:"Large pre-trained models adapted to many downstream tasks.",depth:10,background:1},
+  {id:"scaling-laws",name:"Scaling Laws",cluster:"training",year:2020,abs:.55,definition:"Performance improves predictably with more data, compute, and parameters.",depth:0,background:2},
+  {id:"sft",name:"SFT",cluster:"training",year:2022,abs:.45,definition:"Fine-tuning on instruction-response pairs.",depth:11,background:2},
+  {id:"lora",name:"LoRA",cluster:"training",year:2021,abs:.3,definition:"Parameter-efficient fine-tuning with low-rank matrices.",depth:11,background:4},
+  {id:"emergent-abilities",name:"Emergent Abilities",cluster:"training",year:2022,abs:.7,definition:"Capabilities appearing suddenly at certain model scales.",depth:1,background:1},
+  {id:"quantization",name:"Quantization",cluster:"efficiency",year:2016,abs:.15,definition:"Reducing model precision to decrease memory and compute.",depth:1,background:3},
+  {id:"distillation",name:"Distillation",cluster:"efficiency",year:2015,abs:.3,definition:"Training a small model to mimic a larger one.",depth:0,background:2},
+  {id:"reinforcement-learning",name:"RL",cluster:"reinforcement-learning",year:1992,abs:.3,definition:"Learning by receiving rewards or penalties from an environment.",depth:0,background:2},
+  {id:"ppo",name:"PPO",cluster:"reinforcement-learning",year:2017,abs:.25,definition:"Policy gradient RL algorithm used in RLHF.",depth:1,background:4},
+  {id:"rlhf",name:"RLHF",cluster:"alignment",year:2020,abs:.55,definition:"Training models using human preference signals to align behavior.",depth:15,background:2},
+  {id:"dpo",name:"DPO",cluster:"alignment",year:2023,abs:.5,definition:"Direct preference optimization without a separate reward model.",depth:16,background:3},
+  {id:"reward-modeling",name:"Reward Model",cluster:"alignment",year:2020,abs:.4,definition:"Predicting human preferences to guide RL training.",depth:0,background:2},
+  {id:"reward-hacking",name:"Reward Hacking",cluster:"alignment",year:2022,abs:.75,definition:"Exploiting reward model flaws to get high reward without satisfying intent.",depth:16,background:1},
+  {id:"constitutional-ai",name:"Constitutional AI",cluster:"alignment",year:2022,abs:.6,definition:"AI self-critiques outputs according to principles.",depth:16,background:1},
+  {id:"rlaif",name:"RLAIF",cluster:"alignment",year:2023,abs:.5,definition:"Using AI-generated preferences instead of human ones.",depth:17,background:2},
+  {id:"prompting",name:"Prompting",cluster:"prompting",year:2020,abs:.6,definition:"Crafting input text to elicit desired model behavior.",depth:0,background:1},
+  {id:"in-context-learning",name:"In-Context Learning",cluster:"prompting",year:2020,abs:.65,definition:"Learning new tasks from examples in the prompt alone.",depth:2,background:1},
+  {id:"chain-of-thought",name:"Chain-of-Thought",cluster:"prompting",year:2022,abs:.65,definition:"Step-by-step reasoning that improves math and logic performance.",depth:2,background:1},
+  {id:"hallucination",name:"Hallucination",cluster:"safety",year:2020,abs:.85,definition:"Generating confident but factually incorrect information.",depth:0,background:1},
+  {id:"sycophancy",name:"Sycophancy",cluster:"safety",year:2023,abs:.85,definition:"Agreeing with users even when they are factually wrong.",depth:16,background:1},
+  {id:"calibration",name:"Calibration",cluster:"evaluation",year:2017,abs:.7,definition:"How well expressed confidence matches actual accuracy.",depth:0,background:2},
+  {id:"ai-safety",name:"AI Safety",cluster:"safety",year:2014,abs:.8,definition:"Ensuring advanced AI behaves as intended without causing harm.",depth:0,background:1},
+  {id:"interpretability",name:"Interpretability",cluster:"safety",year:2020,abs:.6,definition:"Reverse-engineering how neural networks process information.",depth:3,background:2},
+  {id:"superposition",name:"Superposition",cluster:"safety",year:2022,abs:.45,definition:"Networks encode more features than dimensions via overlapping directions.",depth:4,background:4},
+  {id:"sparse-autoencoders",name:"SAEs",cluster:"safety",year:2023,abs:.4,definition:"Decomposing activations into interpretable features.",depth:5,background:4},
+  {id:"retrieval-augmented-generation",name:"RAG",cluster:"applications",year:2020,abs:.7,definition:"Grounding model responses in retrieved documents.",depth:2,background:1},
+  {id:"agentic-ai",name:"Agentic AI",cluster:"applications",year:2023,abs:.8,definition:"AI that autonomously plans, uses tools, and takes actions.",depth:3,background:1},
+  {id:"tool-use",name:"Tool Use",cluster:"applications",year:2023,abs:.75,definition:"Models invoking external tools like search and code execution.",depth:4,background:1},
 ];
 
 const EDGES = [
@@ -459,6 +459,9 @@ CONCEPTS.forEach(c => {
   }
   used.push([x,y]); c.x = x; c.y = y;
 });
+
+// Compute difficulty score
+CONCEPTS.forEach(c => { c.difficulty = (c.depth||0) + (c.background||1) * 2; });
 
 const deg = {}, neighbors = {}, cMap = {};
 CONCEPTS.forEach(c => { deg[c.id]=0; neighbors[c.id]=new Set(); cMap[c.id]=c; });
@@ -584,29 +587,131 @@ function positionTip(el, ev) {
 }
 
 const tooltip = document.getElementById('tooltip');
+// Fog-aware hover
 nodeG.on('mouseenter', (ev,d) => {
+  // Fogged nodes: no interaction
+  if (!explored.has(d.id) && !isAdjacentToExplored(d.id)) return;
+
+  // Adjacent-to-explored: minimal tooltip
+  if (!explored.has(d.id)) {
+    tooltip.innerHTML = `<div class="tt-name" style="color:#74508B">???</div><div class="tt-def" style="color:#4D355D">Click to explore</div>`;
+    positionTip(tooltip, ev);
+    tooltip.classList.add('visible');
+    return;
+  }
+
+  // Explored: full hover with fog-aware dimming
   const col = CLUSTER_COLORS[d.cluster];
   tooltip.innerHTML = `<div class="tt-name" style="color:${col}">${d.name}</div><div class="tt-cluster" style="color:${col}">${CLUSTER_LABELS[d.cluster]}</div><div class="tt-def">${d.definition}</div><div class="tt-year">~${d.year}</div>`;
   positionTip(tooltip, ev);
   tooltip.classList.add('visible');
+
   const nb = neighbors[d.id];
-  nodeG.select('circle').attr('fill-opacity', n => n.id===d.id||nb.has(n.id)?1:.06).attr('stroke-opacity', n => n.id===d.id||nb.has(n.id)?.8:.03);
-  nodeG.select('text').attr('opacity', n => n.id===d.id||nb.has(n.id)?1:.04)
-    .attr('font-size', n => n.id===d.id||nb.has(n.id)?14:9);
-  svg.selectAll('.edge').attr('opacity', function(){ const idx=+this.dataset?.idx; if(isNaN(idx))return .04; const e=EDGES[idx]; return e&&(e.s===d.id||e.t===d.id)?1:.04; });
+  nodeG.select('circle')
+    .attr('fill', n => explored.has(n.id) || nb.has(n.id) ? CLUSTER_COLORS[n.cluster] : '#4D355D')
+    .attr('fill-opacity', n => {
+      if (n.id === d.id) return 1;
+      if (nb.has(n.id) && explored.has(n.id)) return 0.85;
+      if (nb.has(n.id)) return 0.2; // unexplored neighbor visible on hover
+      if (explored.has(n.id)) return 0.2;
+      return 0.02;
+    })
+    .attr('stroke-opacity', n => (n.id===d.id || nb.has(n.id)) ? 0.6 : 0.02);
+  nodeG.select('text')
+    .attr('opacity', n => {
+      if (n.id === d.id) return 1;
+      if (nb.has(n.id) && explored.has(n.id)) return 0.9;
+      return 0;
+    })
+    .attr('font-size', n => (n.id===d.id || nb.has(n.id)) ? 14 : 9);
+  svg.selectAll('.edge').each(function() {
+    const idx = +this.dataset?.idx;
+    if (isNaN(idx)) { d3.select(this).attr('opacity', 0); return; }
+    const e = EDGES[idx];
+    const connected = e && (e.s===d.id || e.t===d.id);
+    const bothExplored = e && explored.has(e.s) && explored.has(e.t);
+    d3.select(this).attr('opacity', connected && bothExplored ? 1 : 0);
+  });
 })
-.on('mousemove', ev => positionTip(tooltip, ev))
+.on('mousemove', ev => {
+  if (tooltip.classList.contains('visible')) positionTip(tooltip, ev);
+})
 .on('mouseleave', () => {
   tooltip.classList.remove('visible');
-  nodeG.select('circle').attr('fill-opacity',.9).attr('stroke-opacity',.3);
-  nodeG.select('text').attr('opacity', n => topSet.has(n.id) ? .7 : 0).attr('font-size', n => topSet.has(n.id) ? 12 : 9);
-  svg.selectAll('.edge').attr('opacity',null);
+  applyFog(); // return to fog baseline
+})
+// Click-to-reveal or click-to-detail
+.on('click', (ev, d) => {
+  ev.stopPropagation();
+  if (explored.has(d.id)) {
+    showConcept(d.id);
+  } else if (isAdjacentToExplored(d.id)) {
+    exploreNode(d.id);
+  }
 });
 
 // ─── ENTRY EXPERIENCE ────────────────────────────────────────────────────────
 
-// Dim map on load
-svg.attr('opacity', .3);
+// ─── FOG OF WAR STATE ─────────────────────────────────────────────────────
+
+const explored = new Set();
+// Starting village: layer 1 concepts
+['prompting','hallucination','ai-safety'].forEach(id => explored.add(id));
+
+function isAdjacentToExplored(id) {
+  const nb = neighbors[id];
+  if (!nb) return false;
+  for (const n of nb) { if (explored.has(n)) return true; }
+  return false;
+}
+
+function exploreNode(id) {
+  if (!cMap[id]) return;
+  explored.add(id);
+  applyFog();
+}
+
+function exploreNeighborhood(id) {
+  if (!cMap[id]) return;
+  explored.add(id);
+  const nb = neighbors[id];
+  if (nb) nb.forEach(n => explored.add(n));
+  applyFog();
+}
+
+function applyFog() {
+  nodeG.select('circle')
+    .attr('fill', d => explored.has(d.id) ? CLUSTER_COLORS[d.cluster] : '#4D355D')
+    .attr('fill-opacity', d => {
+      if (explored.has(d.id)) return 0.9;
+      if (isAdjacentToExplored(d.id)) return 0.15;
+      return 0.04;
+    })
+    .attr('stroke', d => explored.has(d.id) ? CLUSTER_COLORS[d.cluster] : '#4D355D')
+    .attr('stroke-opacity', d => explored.has(d.id) ? 0.3 : 0.02);
+
+  nodeG.select('text')
+    .attr('opacity', d => explored.has(d.id) ? (topSet.has(d.id) ? .8 : .6) : 0)
+    .attr('font-size', d => explored.has(d.id) ? (topSet.has(d.id) ? 12 : 9) : 9);
+
+  nodeG.style('cursor', d => {
+    if (explored.has(d.id)) return 'pointer';
+    if (isAdjacentToExplored(d.id)) return 'pointer';
+    return 'default';
+  });
+
+  // Edges: only visible between two explored nodes
+  svg.selectAll('.edge').each(function() {
+    const idx = +this.dataset?.idx;
+    if (isNaN(idx)) { d3.select(this).attr('opacity', 0); return; }
+    const e = EDGES[idx];
+    const vis = e && explored.has(e.s) && explored.has(e.t);
+    d3.select(this).attr('opacity', vis ? null : 0);
+  });
+}
+
+// Apply fog on load (replaces blanket opacity dim)
+applyFog();
 
 // Concept detail data (for full card)
 const CONCEPT_DETAIL = {
@@ -693,7 +798,7 @@ function handleQuery(text) {
 function dismissOverlay() {
   const ov = document.getElementById('overlay');
   ov.style.display = 'none';
-  svg.node().style.opacity = '1';
+  applyFog();
   document.getElementById('header-bar').classList.add('visible');
 }
 
@@ -734,6 +839,9 @@ function showConcept(id) {
   const c = cMap[id];
   if (!c) return;
 
+  // Reveal through fog
+  exploreNeighborhood(id);
+
   // Compute bounding box of node + all neighbors, position card + zoom to avoid overlap
   const nb = neighbors[id];
   const pts = [c, ...Array.from(nb).map(nid => cMap[nid]).filter(Boolean)];
@@ -763,16 +871,26 @@ function showConcept(id) {
     d3.zoomIdentity.translate(tx, ty).scale(scale)
   );
 
-  // Highlight node + neighbors (nb already declared above)
+  // Fog-aware highlight: focused + neighbors bright, other explored dim, rest fogged
   nodeG.select('circle')
-    .attr('fill-opacity', n => n.id===id||nb.has(n.id)?1:.06)
-    .attr('stroke-opacity', n => n.id===id||nb.has(n.id)?.8:.03);
+    .attr('fill', n => explored.has(n.id) ? CLUSTER_COLORS[n.cluster] : '#4D355D')
+    .attr('fill-opacity', n => {
+      if (n.id===id || nb.has(n.id)) return 1;
+      if (explored.has(n.id)) return 0.25;
+      if (isAdjacentToExplored(n.id)) return 0.06;
+      return 0.02;
+    })
+    .attr('stroke-opacity', n => (n.id===id||nb.has(n.id)) ? 0.6 : 0.02);
   nodeG.select('text')
-    .attr('opacity', n => n.id===id||nb.has(n.id)?1:.04)
+    .attr('opacity', n => (n.id===id||nb.has(n.id)) ? 1 : 0)
     .attr('font-size', n => n.id===id ? 16 : nb.has(n.id) ? 14 : 9);
-  svg.selectAll('.edge').attr('opacity', function(){
-    const idx=+this.dataset?.idx; if(isNaN(idx))return .04;
-    const e=EDGES[idx]; return e&&(e.s===id||e.t===id)?1:.04;
+  svg.selectAll('.edge').each(function(){
+    const idx=+this.dataset?.idx;
+    if(isNaN(idx)){d3.select(this).attr('opacity',0);return;}
+    const e=EDGES[idx];
+    const connected = e&&(e.s===id||e.t===id);
+    const bothExplored = e && explored.has(e.s) && explored.has(e.t);
+    d3.select(this).attr('opacity', connected && bothExplored ? 1 : 0);
   });
 
   // Build full card (panel already referenced above for positioning)
@@ -844,6 +962,10 @@ function showEdge(q) {
   const s = cMap[q.source], t = cMap[q.target];
   if (!s || !t) return;
 
+  // Reveal both endpoints through fog
+  exploreNode(q.source);
+  exploreNode(q.target);
+
   const cx = (s.x+t.x)/2, cy = (s.y+t.y)/2;
   const scale = 1.8;
   const tx = W/2 - cx*scale, ty = H/2 - cy*scale;
@@ -897,36 +1019,24 @@ let pathState = null;
 function showPath(q) {
   pathState = { nodes: q.nodes, steps: q.steps, current: 0 };
 
-  // Add numbered badges to path nodes
-  q.nodes.forEach((id, i) => {
-    const c = cMap[id];
-    if (!c) return;
-    svg.append('circle').attr('class','path-badge-bg path-marker')
-      .attr('cx',c.x).attr('cy',c.y-((deg[id]||0)*1.2+6)-10)
-      .attr('r',9);
-    svg.append('text').attr('class','path-badge path-marker')
-      .attr('x',c.x).attr('y',c.y-((deg[id]||0)*1.2+6)-6)
-      .attr('text-anchor','middle').text(i+1);
-  });
+  // Reveal only the first node through fog
+  exploreNode(q.nodes[0]);
 
-  // Draw path edges gold
+  // Add badge only for the first (explored) node
+  addPathBadge(q.nodes[0], 0);
+
+  // Draw path edges gold (all of them — shows the trail ahead faintly)
   for (let i = 0; i < q.nodes.length-1; i++) {
     const a = cMap[q.nodes[i]], b = cMap[q.nodes[i+1]];
     if (!a || !b) continue;
     svg.append('line').attr('class','path-marker')
       .attr('x1',a.x).attr('y1',a.y).attr('x2',b.x).attr('y2',b.y)
-      .attr('stroke','#C49428').attr('stroke-width',3).attr('stroke-opacity',.5);
+      .attr('stroke','#C49428').attr('stroke-width',3)
+      .attr('stroke-opacity', explored.has(q.nodes[i]) && explored.has(q.nodes[i+1]) ? .5 : .1);
   }
 
-  // Dim non-path nodes
-  const pathSet = new Set(q.nodes);
-  nodeG.select('circle')
-    .attr('fill-opacity', n => pathSet.has(n.id)?1:.06)
-    .attr('stroke-opacity', n => pathSet.has(n.id)?.8:.03);
-  nodeG.select('text')
-    .attr('opacity', n => pathSet.has(n.id)?1:.04)
-    .attr('font-size', n => pathSet.has(n.id)?14:9);
-  svg.selectAll('.edge').attr('opacity',.04);
+  // Fog-aware dimming: explored path nodes bright, rest follows fog rules
+  applyPathFog();
 
   // Show path card
   const card = document.getElementById('path-card');
@@ -935,6 +1045,33 @@ function showPath(q) {
     q.nodes.map((_,i) => `<div class="pc-dot${i===0?' active':''}"></div>`).join('');
   updatePathStep();
   zoomToPathNode(0);
+}
+
+function addPathBadge(id, idx) {
+  const c = cMap[id];
+  if (!c) return;
+  svg.append('circle').attr('class','path-badge-bg path-marker')
+    .attr('cx',c.x).attr('cy',c.y-((deg[id]||0)*1.2+6)-10).attr('r',9);
+  svg.append('text').attr('class','path-badge path-marker')
+    .attr('x',c.x).attr('y',c.y-((deg[id]||0)*1.2+6)-6)
+    .attr('text-anchor','middle').text(idx+1);
+}
+
+function applyPathFog() {
+  if (!pathState) return;
+  const pathSet = new Set(pathState.nodes);
+  nodeG.select('circle')
+    .attr('fill', n => explored.has(n.id) ? CLUSTER_COLORS[n.cluster] : pathSet.has(n.id) ? '#4D355D' : '#4D355D')
+    .attr('fill-opacity', n => {
+      if (explored.has(n.id) && pathSet.has(n.id)) return 1;
+      if (explored.has(n.id)) return 0.15;
+      if (pathSet.has(n.id)) return 0.08; // upcoming path node barely visible
+      return 0.02;
+    })
+    .attr('stroke-opacity', n => explored.has(n.id) && pathSet.has(n.id) ? 0.6 : 0.02);
+  nodeG.select('text')
+    .attr('opacity', n => explored.has(n.id) && pathSet.has(n.id) ? 1 : 0)
+    .attr('font-size', n => explored.has(n.id) && pathSet.has(n.id) ? 14 : 9);
 }
 
 function updatePathStep() {
@@ -966,6 +1103,11 @@ function pathNext() {
     closePath(); return;
   }
   pathState.current++;
+  // Reveal next node through fog
+  const nextId = pathState.nodes[pathState.current];
+  exploreNode(nextId);
+  addPathBadge(nextId, pathState.current);
+  applyPathFog();
   updatePathStep();
   zoomToPathNode(pathState.current);
 }
@@ -991,9 +1133,7 @@ function closePath() {
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function resetHighlights() {
-  nodeG.select('circle').attr('fill-opacity',.9).attr('stroke-opacity',.3);
-  nodeG.select('text').attr('opacity', n => topSet.has(n.id) ? .7 : 0).attr('font-size', n => topSet.has(n.id) ? 12 : 9);
-  svg.selectAll('.edge').attr('opacity',null);
+  applyFog(); // return to fog state, not fully visible
 }
 
 // Enable zoom on the SVG
