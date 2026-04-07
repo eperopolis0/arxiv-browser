@@ -200,10 +200,63 @@ body {
 }
 .paper-link:hover { color: #F1F0DE; border-color: #9B6BBA; }
 
-/* (breadcrumb bar removed — left panel IS the nav) */
+/* ── Zoom out button ──────────────────────────── */
+#zoom-out-btn {
+  position: fixed; top: 16px; left: 16px; z-index: 10;
+  background: #271B2F; border: 1px solid #4D355D;
+  color: #74508B; width: 36px; height: 36px;
+  border-radius: 8px; font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+#zoom-out-btn:hover { border-color: #9B6BBA; color: #F1F0DE; }
+
+/* ── Map view (zoom out) ──────────────────────── */
+#map-view {
+  display: none;
+  position: fixed; inset: 0;
+  background: #403151;
+  z-index: 50;
+  overflow: hidden;
+}
+#map-svg {
+  width: 100%; height: 100%;
+}
+.map-card {
+  cursor: pointer;
+  transition: transform .15s;
+}
+.map-card:hover { transform: scale(1.05); }
+.map-card rect {
+  rx: 8; ry: 8;
+  transition: stroke .15s;
+}
+.map-card:hover rect { stroke: #9B6BBA; }
+.map-card .mc-name { font-size: 15px; fill: #F1F0DE; font-weight: 600; font-family: sans-serif; }
+.map-card .mc-sub { font-size: 11px; fill: #74508B; font-family: sans-serif; }
+.map-card.current rect { stroke: #C49428; stroke-width: 2; }
+.map-card.current .mc-name { fill: #C49428; }
+.map-arrow { fill: none; stroke: #74508B; stroke-width: 1.5; marker-end: url(#arrowhead); }
+.map-arrow-double { fill: none; stroke: #5899DA; stroke-width: 1.5;
+  marker-start: url(#arrowhead-rev); marker-end: url(#arrowhead); }
 </style>
 </head>
 <body>
+
+<button id="zoom-out-btn" onclick="zoomOut()" title="See connections">⊞</button>
+
+<div id="map-view">
+  <svg id="map-svg">
+    <defs>
+      <marker id="arrowhead" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#74508B"/>
+      </marker>
+      <marker id="arrowhead-rev" viewBox="0 0 10 7" refX="0" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+        <polygon points="10 0, 0 3.5, 10 7" fill="#5899DA"/>
+      </marker>
+    </defs>
+  </svg>
+</div>
 
 <div id="room">
   <div id="explainer">
@@ -405,6 +458,145 @@ function playVideo(overlay) {
     iframe.style.pointerEvents = 'auto';
   }
   overlay.style.display = 'none';
+}
+
+// ─── ZOOM OUT VIEW ───────────────────────────────────────────────────────────
+
+function zoomOut() {
+  document.getElementById('room').style.display = 'none';
+  document.getElementById('zoom-out-btn').style.display = 'none';
+  document.getElementById('map-view').style.display = 'block';
+  renderLocalMap();
+}
+
+function zoomIn(id) {
+  document.getElementById('map-view').style.display = 'none';
+  document.getElementById('zoom-out-btn').style.display = 'flex';
+  if (id === currentRoom) {
+    // Same room — just restore (state preserved)
+    document.getElementById('room').style.display = 'flex';
+  } else {
+    document.getElementById('room').style.display = 'flex';
+    navigateTo(id);
+  }
+}
+
+function renderLocalMap() {
+  const svg = document.getElementById('map-svg');
+  const W = window.innerWidth, H = window.innerHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  // Clear previous
+  svg.querySelectorAll('.map-card, .map-arrow, .map-arrow-double').forEach(el => el.remove());
+
+  const room = ROOMS[currentRoom];
+  if (!room) return;
+  const doors = room.doorways || [];
+
+  // Center card position
+  const cx = W / 2, cy = H / 2;
+  const cardW = 200, cardH = 70;
+
+  // Position neighbors in a circle
+  const radius = Math.min(W, H) * 0.3;
+  const positions = {};
+  positions[currentRoom] = { x: cx, y: cy };
+
+  // Separate: prerequisites below, consequences above, alternatives to sides
+  const above = doors.filter(d => d.rel.includes('built on this'));
+  const below = doors.filter(d => d.rel.includes('prerequisite') || d.rel.includes('component'));
+  const sides = doors.filter(d => !above.includes(d) && !below.includes(d));
+
+  let allPlaced = [];
+
+  // Place above (consequences)
+  above.forEach((d, i) => {
+    const spread = above.length > 1 ? (i - (above.length-1)/2) * 180 : 0;
+    positions[d.id] = { x: cx + spread, y: cy - radius };
+    allPlaced.push(d);
+  });
+
+  // Place below (prerequisites)
+  below.forEach((d, i) => {
+    const spread = below.length > 1 ? (i - (below.length-1)/2) * 180 : 0;
+    positions[d.id] = { x: cx + spread, y: cy + radius };
+    allPlaced.push(d);
+  });
+
+  // Place sides
+  sides.forEach((d, i) => {
+    const side = i % 2 === 0 ? -1 : 1;
+    const yOff = sides.length > 2 ? (Math.floor(i/2) - (Math.ceil(sides.length/2)-1)/2) * 100 : 0;
+    positions[d.id] = { x: cx + side * radius, y: cy + yOff };
+    allPlaced.push(d);
+  });
+
+  // Draw arrows
+  doors.forEach(d => {
+    const from = positions[d.id] || positions[currentRoom];
+    const to = positions[currentRoom];
+    if (!from || !to) return;
+
+    // Determine direction: who explains whom?
+    let sx, sy, ex, ey, cls;
+    if (d.rel.includes('built on this')) {
+      // Current room explains this neighbor → arrow FROM current TO neighbor
+      sx = positions[currentRoom].x; sy = positions[currentRoom].y - cardH/2;
+      ex = positions[d.id].x; ey = positions[d.id].y + cardH/2;
+      cls = 'map-arrow';
+    } else if (d.rel.includes('alternative')) {
+      // Bidirectional
+      sx = positions[d.id].x + (d.id === currentRoom ? 0 : cardW/2 * (positions[d.id].x < cx ? 1 : -1));
+      sy = positions[d.id].y;
+      ex = cx + cardW/2 * (positions[d.id].x < cx ? -1 : 1);
+      ey = cy;
+      cls = 'map-arrow-double';
+    } else {
+      // Neighbor explains current room → arrow FROM neighbor TO current
+      sx = positions[d.id].x; sy = positions[d.id].y - cardH/2;
+      ex = positions[currentRoom].x; ey = positions[currentRoom].y + cardH/2;
+      cls = 'map-arrow';
+    }
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', sx); line.setAttribute('y1', sy);
+    line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+    line.setAttribute('class', cls);
+    svg.appendChild(line);
+  });
+
+  // Draw cards
+  Object.entries(positions).forEach(([id, pos]) => {
+    const r = ROOMS[id];
+    const isCurrent = id === currentRoom;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', `map-card${isCurrent ? ' current' : ''}`);
+    g.setAttribute('transform', `translate(${pos.x - cardW/2}, ${pos.y - cardH/2})`);
+    g.addEventListener('click', () => zoomIn(id));
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('width', cardW); rect.setAttribute('height', cardH);
+    rect.setAttribute('fill', '#271B2F'); rect.setAttribute('stroke', isCurrent ? '#C49428' : '#4D355D');
+    g.appendChild(rect);
+
+    const name = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    name.setAttribute('class', 'mc-name');
+    name.setAttribute('x', cardW/2); name.setAttribute('y', 30);
+    name.setAttribute('text-anchor', 'middle');
+    name.textContent = r ? r.name : id;
+    g.appendChild(name);
+
+    if (r && r.subtitle) {
+      const sub = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      sub.setAttribute('class', 'mc-sub');
+      sub.setAttribute('x', cardW/2); sub.setAttribute('y', 48);
+      sub.setAttribute('text-anchor', 'middle');
+      sub.textContent = r.subtitle;
+      g.appendChild(sub);
+    }
+
+    svg.appendChild(g);
+  });
 }
 
 function navigateTo(id) {
