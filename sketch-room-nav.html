@@ -16,8 +16,7 @@ body {
 /* ── Room container ───────────────────────────── */
 #room {
   display: flex;
-  height: calc(100vh - 40px);
-  margin-top: 40px;
+  height: 100vh;
   transition: opacity .3s;
 }
 
@@ -114,12 +113,18 @@ body {
 
 /* ── Expanded state (90% takeover) ────────────── */
 #room.band-expanded #explainer {
-  flex: 0 0 0px;
+  flex: 0 0 48px;
   padding: 0; overflow: hidden;
-  transform: translateX(-100%);
-  opacity: 0;
   transition: all .35s ease;
-  margin-left: -1px;
+  display: flex; align-items: center; justify-content: center;
+  border-right: 1px solid #4D355D;
+  cursor: pointer;
+}
+#room.band-expanded #explainer #concept-text,
+#room.band-expanded #explainer #concept-subtitle { display: none; }
+#room.band-expanded #explainer #concept-name {
+  writing-mode: vertical-rl; text-orientation: mixed;
+  font-size: 16px; margin: 0; transform: rotate(180deg);
 }
 #room.band-expanded #bands {
   width: 100%; border-left: none;
@@ -195,30 +200,10 @@ body {
 }
 .paper-link:hover { color: #F1F0DE; border-color: #9B6BBA; }
 
-/* ── Breadcrumb trail ──────────────────────────── */
-#breadcrumbs {
-  position: fixed; top: 0; left: 0; right: 0;
-  display: flex; align-items: center; gap: 4px;
-  padding: 10px 24px;
-  background: #271B2F;
-  border-bottom: 1px solid #4D355D;
-  z-index: 10;
-  overflow-x: auto;
-  min-height: 40px;
-}
-.crumb {
-  font-size: 13px; color: #74508B;
-  cursor: pointer; transition: color .12s;
-  white-space: nowrap; flex-shrink: 0;
-}
-.crumb:hover { color: #F1F0DE; }
-.crumb.active { color: #C49428; font-weight: 600; cursor: default; }
-.crumb-sep { color: #4D355D; font-size: 11px; flex-shrink: 0; }
+/* (breadcrumb bar removed — left panel IS the nav) */
 </style>
 </head>
 <body>
-
-<div id="breadcrumbs"></div>
 
 <div id="room">
   <div id="explainer">
@@ -346,6 +331,13 @@ function renderRoom(id) {
   document.getElementById('room').classList.remove('band-expanded');
 
   document.getElementById('concept-name').textContent = room.name;
+
+  // Click the left panel when collapsed → return to overview
+  document.getElementById('explainer').onclick = () => {
+    if (document.getElementById('room').classList.contains('band-expanded')) {
+      collapseAll();
+    }
+  };
   document.getElementById('concept-subtitle').textContent = room.subtitle;
   document.getElementById('concept-text').innerHTML = room.text;
 
@@ -393,8 +385,7 @@ function renderRoom(id) {
     bandsEl.appendChild(band);
   });
 
-  // Breadcrumbs
-  renderBreadcrumbs();
+  // (nav is the left panel itself — no separate breadcrumbs)
 
   // Scroll explainer to top
   document.getElementById('explainer').scrollTop = 0;
@@ -416,30 +407,10 @@ function playVideo(overlay) {
   overlay.style.display = 'none';
 }
 
-function renderBreadcrumbs() {
-  const el = document.getElementById('breadcrumbs');
-  const trail = [...history, currentRoom];
-  el.innerHTML = trail.map((id, i) => {
-    const room = ROOMS[id];
-    const name = room ? room.name : id;
-    const isActive = i === trail.length - 1;
-    const sep = i < trail.length - 1 ? '<span class="crumb-sep">→</span>' : '';
-    return `<span class="crumb${isActive ? ' active' : ''}" onclick="${isActive ? '' : `jumpTo(${i})`}">${name}</span>${sep}`;
-  }).join('');
-}
-
 function navigateTo(id) {
   if (!ROOMS[id]) return;
   history.push(currentRoom);
   renderRoom(id);
-}
-
-function jumpTo(idx) {
-  const trail = [...history, currentRoom];
-  const targetId = trail[idx];
-  // Trim history to that point
-  history = trail.slice(0, idx);
-  renderRoom(targetId);
 }
 
 function goBack() {
