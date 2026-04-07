@@ -224,14 +224,12 @@ body {
 }
 .map-card {
   cursor: pointer;
-  transition: transform .15s;
 }
-.map-card:hover { transform: scale(1.05); }
 .map-card rect {
   rx: 8; ry: 8;
-  transition: stroke .15s;
+  transition: stroke .15s, fill .15s;
 }
-.map-card:hover rect { stroke: #9B6BBA; }
+.map-card:hover rect { stroke: #9B6BBA; fill: #352845; }
 .map-card .mc-name { font-size: 15px; fill: #F1F0DE; font-weight: 600; font-family: sans-serif; }
 .map-card .mc-sub { font-size: 11px; fill: #74508B; font-family: sans-serif; }
 .map-card.current rect { stroke: #C49428; stroke-width: 2; }
