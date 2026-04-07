@@ -297,7 +297,7 @@ const ROOMS = {
   'self-attention': {
     name: 'Self-Attention',
     subtitle: 'how Transformers decide what matters',
-    text: `Self-attention is the mechanism that makes <a onclick="navigateTo('transformers')">Transformers</a> work. It answers a simple question: for each word in a sentence, which other words should it pay attention to?<br><br>Think of it like a group conversation. When someone says "she picked up the ball and threw it," your brain instantly connects "it" to "ball" and "she" to whoever was mentioned earlier. Self-attention does the same thing, but mathematically — it computes a score between every pair of words to figure out which connections matter most.<br><br>The "self" part means it's looking within the same text (as opposed to comparing two different texts). Every word gets to look at every other word and decide how much to care about it.`,
+    text: `Self-attention is the mechanism that makes <a onclick="navigateTo('transformers')">Transformers</a> work. It answers a simple question: for each word in a sentence, which other words should it pay attention to?<br><br>Think of it like a group conversation. When someone says "she picked up the ball and threw it," your brain instantly connects "it" to "ball" and "she" to whoever was mentioned earlier. Self-attention does the same thing, but mathematically — it computes a score between every pair of words to figure out which connections matter most.<br><br>The "self" part means it's looking within the same text (as opposed to comparing two different texts). Every word gets to look at every other word and decide how much to care about it. Self-attention evolved from an earlier idea simply called <a onclick="navigateTo('attention')">attention</a>, which was originally designed for translation.`,
     bands: [
       { level: 'noob', icon: '🎥', label: 'Watch', meta: '10 min · video', source: '3Blue1Brown (chapter)',
         extras: [] },
@@ -493,9 +493,12 @@ function renderLocalMap() {
   const room = ROOMS[currentRoom];
   if (!room) return;
 
-  // Clear fog: add current room + all its neighbors to explored
+  // Clear fog: add current room + only concepts linked in its TEXT
+  // (not all doorways — you discover Attention through Self-Attention, not directly)
   explored.add(currentRoom);
-  (room.doorways || []).forEach(d => explored.add(d.id));
+  const textLinks = (room.text.match(/navigateTo\('([^']+)'\)/g) || [])
+    .map(m => m.match(/navigateTo\('([^']+)'\)/)[1]);
+  textLinks.forEach(id => explored.add(id));
 
   // Assign persistent positions to any new nodes
   // Place new nodes relative to their FIRST explored neighbor
