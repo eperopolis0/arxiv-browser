@@ -372,6 +372,8 @@ let currentRoom = 'transformers';
 let history = [];
 let expandedBand = null;
 const explored = new Set(['transformers']); // fog of war: concepts you've seen
+const nodePositions = {}; // persistent positions: once placed, stays put
+nodePositions['transformers'] = { x: 0, y: 0 }; // origin
 
 // ─── RENDER ──────────────────────────────────────────────────────────────────
 
@@ -495,10 +497,37 @@ function renderLocalMap() {
   explored.add(currentRoom);
   (room.doorways || []).forEach(d => explored.add(d.id));
 
-  // Show ALL explored concepts, not just current neighbors
-  // Build a combined doorways list from all explored rooms
+  // Assign persistent positions to any new nodes
+  // Place new nodes relative to their FIRST explored neighbor
+  const spacing = 220;
+  explored.forEach(id => {
+    if (nodePositions[id]) return; // already placed
+    // Find a neighbor that's already placed
+    const r = ROOMS[id];
+    if (!r || !r.doorways) { nodePositions[id] = { x: Math.random()*400-200, y: Math.random()*400-200 }; return; }
+    const placedNeighbor = r.doorways.find(d => nodePositions[d.id]);
+    if (placedNeighbor) {
+      const anchor = nodePositions[placedNeighbor.id];
+      // Place at an angle from the anchor
+      const existing = Object.values(nodePositions);
+      let bestAngle = 0, bestDist = 0;
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+        const tx = anchor.x + Math.cos(a) * spacing;
+        const ty = anchor.y + Math.sin(a) * spacing;
+        const minDist = Math.min(...existing.map(p => Math.hypot(p.x - tx, p.y - ty)));
+        if (minDist > bestDist) { bestDist = minDist; bestAngle = a; }
+      }
+      nodePositions[id] = {
+        x: anchor.x + Math.cos(bestAngle) * spacing,
+        y: anchor.y + Math.sin(bestAngle) * spacing,
+      };
+    } else {
+      nodePositions[id] = { x: Math.random()*400-200, y: Math.random()*400-200 };
+    }
+  });
+
+  // Build edges between explored nodes
   const allEdges = [];
-  const allNodes = new Set(explored);
   explored.forEach(id => {
     const r = ROOMS[id];
     if (!r || !r.doorways) return;
@@ -511,60 +540,19 @@ function renderLocalMap() {
   const cardW = 180, cardH = 65;
   const cx = W / 2, cy = H / 2;
 
-  // Simple force-ish layout: current at center, neighbors spread out
-  // Use BFS from current room to assign positions in rings
+  // Re-center: compute offset so current room is at screen center
+  const curPos = nodePositions[currentRoom] || { x: 0, y: 0 };
+  const offsetX = cx - curPos.x;
+  const offsetY = cy - curPos.y;
+
+  // Screen positions = persistent positions + offset
   const positions = {};
-  const visited = new Set();
-  const queue = [{ id: currentRoom, ring: 0 }];
-  visited.add(currentRoom);
-  positions[currentRoom] = { x: cx, y: cy };
-
-  // BFS to discover connected explored nodes
-  while (queue.length > 0) {
-    const { id, ring } = queue.shift();
-    const r = ROOMS[id];
-    if (!r || !r.doorways) continue;
-    r.doorways.forEach(d => {
-      if (explored.has(d.id) && !visited.has(d.id)) {
-        visited.add(d.id);
-        queue.push({ id: d.id, ring: ring + 1 });
-      }
-    });
-  }
-
-  // Position by ring: ring 0 = center, ring 1 = inner circle, ring 2 = outer circle
-  const rings = {};
-  const bfsOrder = [];
-  const bfsVisited = new Set();
-  const bfsQ = [{ id: currentRoom, ring: 0 }];
-  bfsVisited.add(currentRoom);
-  while (bfsQ.length > 0) {
-    const { id, ring } = bfsQ.shift();
-    if (!rings[ring]) rings[ring] = [];
-    rings[ring].push(id);
-    bfsOrder.push(id);
-    const r = ROOMS[id];
-    if (!r || !r.doorways) continue;
-    r.doorways.forEach(d => {
-      if (explored.has(d.id) && !bfsVisited.has(d.id)) {
-        bfsVisited.add(d.id);
-        bfsQ.push({ id: d.id, ring: ring + 1 });
-      }
-    });
-  }
-
-  // Assign positions by ring
-  Object.entries(rings).forEach(([ringStr, ids]) => {
-    const ring = +ringStr;
-    if (ring === 0) return; // center already placed
-    const radius = ring * Math.min(W, H) * 0.22;
-    ids.forEach((id, i) => {
-      const angle = (i / ids.length) * Math.PI * 2 - Math.PI / 2; // start from top
-      positions[id] = {
-        x: cx + Math.cos(angle) * radius,
-        y: cy + Math.sin(angle) * radius,
-      };
-    });
+  explored.forEach(id => {
+    if (!nodePositions[id]) return;
+    positions[id] = {
+      x: nodePositions[id].x + offsetX,
+      y: nodePositions[id].y + offsetY,
+    };
   });
 
   // Draw arrows for all edges between explored nodes
@@ -590,7 +578,7 @@ function renderLocalMap() {
   });
 
   // Draw cards for all explored nodes
-  bfsOrder.forEach(id => {
+  [...explored].forEach(id => {
     const pos = positions[id];
     if (!pos) return;
     const r = ROOMS[id];
