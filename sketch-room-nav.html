@@ -529,14 +529,21 @@ function renderLocalMap() {
     }
   });
 
-  // Build edges between explored nodes
+  // Build edges from TEXT LINKS: if page A links to page B, arrow goes A → B
   const allEdges = [];
+  const drawnPairs = new Set();
   explored.forEach(id => {
     const r = ROOMS[id];
-    if (!r || !r.doorways) return;
-    r.doorways.forEach(d => {
-      if (explored.has(d.id)) {
-        allEdges.push({ from: id, to: d.id, rel: d.rel });
+    if (!r) return;
+    const links = (r.text.match(/navigateTo\('([^']+)'\)/g) || [])
+      .map(m => m.match(/navigateTo\('([^']+)'\)/)[1]);
+    links.forEach(targetId => {
+      if (explored.has(targetId)) {
+        const key = id + '->' + targetId;
+        if (!drawnPairs.has(key)) {
+          drawnPairs.add(key);
+          allEdges.push({ from: id, to: targetId });
+        }
       }
     });
   });
@@ -558,25 +565,15 @@ function renderLocalMap() {
     };
   });
 
-  // Draw arrows for all edges between explored nodes
-  const drawnEdges = new Set();
+  // Draw arrows: FROM → TO (the linking page points to the linked page)
   allEdges.forEach(e => {
-    const key = [e.from, e.to].sort().join('--');
-    if (drawnEdges.has(key)) return;
-    drawnEdges.add(key);
     const pFrom = positions[e.from], pTo = positions[e.to];
     if (!pFrom || !pTo) return;
 
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    // Arrow direction: determines who explains whom
-    if (e.rel.includes('built on this')) {
-      line.setAttribute('x1', pFrom.x); line.setAttribute('y1', pFrom.y);
-      line.setAttribute('x2', pTo.x); line.setAttribute('y2', pTo.y);
-    } else {
-      line.setAttribute('x1', pTo.x); line.setAttribute('y1', pTo.y);
-      line.setAttribute('x2', pFrom.x); line.setAttribute('y2', pFrom.y);
-    }
-    line.setAttribute('class', e.rel.includes('alternative') ? 'map-arrow-double' : 'map-arrow');
+    line.setAttribute('x1', pFrom.x); line.setAttribute('y1', pFrom.y);
+    line.setAttribute('x2', pTo.x); line.setAttribute('y2', pTo.y);
+    line.setAttribute('class', 'map-arrow');
     svg.appendChild(line);
   });
 
