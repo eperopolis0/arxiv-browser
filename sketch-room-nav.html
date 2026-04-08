@@ -477,9 +477,7 @@ function renderRoom(id) {
       roomEl.classList.add('band-expanded');
       bandsEl.querySelectorAll('.band').forEach(el => el.classList.remove('active'));
       band.classList.add('active');
-      // Auto-play video if this is the Watch band
-      const overlay = band.querySelector('.play-overlay');
-      if (overlay) playVideo(overlay);
+      // Don't auto-play — let user click play themselves
     });
 
     bandsEl.appendChild(band);
