@@ -3,10 +3,19 @@
 // Fetches papers once daily, caches in storage.local.
 // ═══════════════════════════════════════════════════════
 
+function stripLatex(text) {
+  if (!text) return text;
+  return text
+    .replace(/\\(?:emph|textbf|textit|texttt|text|mathrm|mathbf|mathit)\{([^}]*)\}/g, '$1')
+    .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
+    .replace(/\\[a-zA-Z]+\s*/g, '')
+    .replace(/[{}]/g, '');
+}
+
 const API_BASE = 'https://export.arxiv.org/api/query';
 const HF_PAPERS_API = 'https://huggingface.co/api/daily_papers';
 const LISTING_URL = 'https://arxiv.org/list/cs.AI/new';
-const FALLBACK_COUNT = 300;    // Used if listing page is unavailable
+const FALLBACK_COUNT = 150;    // Used if listing page is unavailable (conservative — better to miss a few than show old papers)
 const REQUEST_TIMEOUT = 60000; // 60s
 const ALARM_NAME = 'arxiv-daily-fetch';
 
@@ -132,12 +141,14 @@ async function doFetchAndCache() {
     ]);
     const rawPapers = await fetchArxivBatch(count);
 
-    // No date filter — we already fetch exactly `count` papers from today's listing,
-    // so all rawPapers are today's batch. The `updated` field in arXiv's Atom feed
-    // is the author's last revision date (e.g. Friday for a paper announced Monday),
-    // not arXiv's announcement date, so a cutoff filter incorrectly removes everything
-    // on Mondays and after long weekends.
-    const freshPapers = rawPapers;
+    // Filter by submission date: keep papers submitted within the last 5 days.
+    // 5 days covers Monday-from-Friday (3 days) + 2-day buffer for holidays/timezone drift.
+    // Uses `published` (original submission date), not `updated` (last revision date).
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 5);
+    const cutoff = cutoffDate.toISOString().slice(0, 10); // YYYY-MM-DD
+    const freshPapers = rawPapers.filter(p => !p.published || p.published.slice(0, 10) >= cutoff);
+    console.log(`[arXiv] Date filter (>= ${cutoff}): ${rawPapers.length} → ${freshPapers.length} papers`);
 
     // S2 affiliation lookup — non-fatal; missing → prestige 2 (neutral)
     const prestigeMap = await fetchS2Affiliations(freshPapers);
@@ -158,6 +169,7 @@ async function doFetchAndCache() {
     await setStorage({
       papers: enriched,
       lastFetch: today,
+      lastFetchTime: Date.now(), // epoch ms — lets newtab detect stale same-day cache
       fetchError: null,
       fetchRetryAfter: null, // clear any previous rate-limit cooldown
       paperCount: enriched.length,
@@ -271,7 +283,7 @@ async function fetchHFTrending() {
 const S2_API_KEY = null;
 const S2_BATCH_URL = 'https://api.semanticscholar.org/graph/v1/paper/batch';
 
-// Tier 3 — Frontier labs, elite CS/AI universities, major government research (dot 1.5× size)
+// Tier 3 — Frontier AI labs + high-mandate research agencies (dot 1.5× size, very few/day)
 const PRESTIGE_TIER3 = [
   // Frontier AI labs
   'deepmind','google brain','google research','google ai',
@@ -283,47 +295,14 @@ const PRESTIGE_TIER3 = [
   'hugging face',
   'xai','x.ai',
   'amazon science',
-  // Government & national labs (US)
+  // High-mandate research agencies
   'darpa','defense advanced research projects',
-  'national institute of standards','nist',
-  'national security agency',
-  'argonne national laboratory',
-  'oak ridge national laboratory',
-  'lawrence berkeley national laboratory',
-  'lawrence livermore national laboratory',
-  'sandia national',
-  'los alamos national laboratory',
-  'pacific northwest national laboratory',
-  'national institutes of health',
-  'air force research laboratory','afrl',
-  'army research laboratory',
-  'naval research laboratory',
   'intelligence advanced research projects',
-  // Government & national labs (international)
-  'alan turing institute',
-  'fraunhofer',
-  'inria',
-  'riken',
-  'chinese academy of sciences',
-  // Elite universities (CS/AI)
-  'massachusetts institute of technology',
-  'stanford university','stanford ai lab',
-  'carnegie mellon university',
-  'university of california, berkeley','uc berkeley','berkeley artificial intelligence',
-  'california institute of technology','caltech',
-  'university of oxford',
-  'university of cambridge',
-  'eth zurich','eth zürich',
-  'epfl','école polytechnique fédérale de lausanne',
-  'mila','université de montréal','university of toronto',
-  'princeton university',
-  'max planck institute',
-  'tsinghua university','tsinghua',
-  'peking university',
 ];
 
-// Tier 2 — Strong research universities + secondary labs (current/default size)
+// Tier 2 — Strong research institutions: well-known universities (R1+), national labs, major institutes
 const PRESTIGE_TIER2 = [
+  // Strong research universities (existing)
   'new york university','cornell university','columbia university',
   'university of michigan','university of washington',
   'georgia institute of technology','georgia tech',
@@ -345,6 +324,41 @@ const PRESTIGE_TIER2 = [
   'baidu research','alibaba damo','bytedance research',
   'salesforce research',
   'allen institute',
+  // Elite universities (moved from tier 3)
+  'massachusetts institute of technology',
+  'stanford university','stanford ai lab',
+  'carnegie mellon university',
+  'university of california, berkeley','uc berkeley','berkeley artificial intelligence',
+  'california institute of technology','caltech',
+  'university of oxford',
+  'university of cambridge',
+  'eth zurich','eth zürich',
+  'epfl','école polytechnique fédérale de lausanne',
+  'mila','université de montréal','university of toronto',
+  'princeton university',
+  'max planck institute',
+  'tsinghua university','tsinghua',
+  'peking university',
+  // National labs (moved from tier 3)
+  'national institute of standards','nist',
+  'national security agency',
+  'argonne national laboratory',
+  'oak ridge national laboratory',
+  'lawrence berkeley national laboratory',
+  'lawrence livermore national laboratory',
+  'sandia national',
+  'los alamos national laboratory',
+  'pacific northwest national laboratory',
+  'national institutes of health',
+  'air force research laboratory','afrl',
+  'army research laboratory',
+  'naval research laboratory',
+  // International research orgs (moved from tier 3)
+  'alan turing institute',
+  'fraunhofer',
+  'inria',
+  'riken',
+  'chinese academy of sciences',
 ];
 
 // Email domains for fetchHTMLPrestige scan.
@@ -736,19 +750,21 @@ async function processAndStore(rawPapers) {
   }
   console.log(`[arXiv] Processing ${rawPapers.length} papers…`);
   const papers = rawPapers.map(p => {
+    const title   = stripLatex(p.title   || '');
+    const summary = stripLatex(p.summary || '');
     const cat = (p.categories || []).find(c => c.startsWith('cs.')) || p.categories?.[0] || 'cs.AI';
-    const cluster = classifyPaper(p.title, p.summary || '', cat);
-    const abstractTier = scorePrestigeFromAbstract(p.title, p.summary || '');
+    const cluster = classifyPaper(title, summary, cat);
+    const abstractTier = scorePrestigeFromAbstract(title, summary);
     // Abstract scan takes priority; S2 prestige fills in what abstract misses; null = unverified.
     const prestige = abstractTier ?? p.prestige ?? null;
     return {
       id:        p.arxivId,
-      title:     p.title,
-      gist:      (p.summary || '').slice(0, 200).replace(/\s+/g,' ').toLowerCase(),
+      title,
+      gist:      summary.slice(0, 200).replace(/\s+/g,' ').toLowerCase(),
       cat,
-      format:    classifyFormat(p.title, p.summary || ''),
-      applied:   scoreApplied(p.title, p.summary || ''),
-      relevance: scoreRelevance(cat, p.title, p.summary || ''),
+      format:    classifyFormat(title, summary),
+      applied:   scoreApplied(title, summary),
+      relevance: scoreRelevance(cat, title, summary),
       upvotes:   p.upvotes || 0,
       trending:  p.trending || false,
       prestige,  // 1=unknown 2=research 3=frontier
@@ -757,7 +773,7 @@ async function processAndStore(rawPapers) {
       _absLink:   p.absLink  || `https://arxiv.org/abs/${p.arxivId}`,
       _pdfLink:   p.pdfLink  || `https://arxiv.org/pdf/${p.arxivId}`,
       _authors:   (p.authors || []).slice(0,3).join(', '),
-      _summary:   p.summary || '',
+      _summary:   summary,
       _published: (p.published || '').slice(0, 10), // YYYY-MM-DD submission date
       _updated:   (p.updated   || p.published || '').slice(0, 10), // YYYY-MM-DD announcement date
     };

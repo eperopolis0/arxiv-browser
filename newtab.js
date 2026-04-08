@@ -13,7 +13,7 @@ let ALL_CLUSTERS = [];
 const ALL_CATS     = ['cs.CR','cs.CL','cs.CV','cs.RO','cs.LG','cs.AI','cs.HC','cs.IR'];
 const ALL_FORMATS  = ['empirical','benchmark','survey','theory','position'];
 const ALL_PRESTIGE = [3, 2, 1];
-const PRESTIGE_LABEL = { 3:'★★★ Elite', 2:'★★ Research', 1:'★ Independent' };
+const PRESTIGE_LABEL = { 3:'★★★ Frontier', 2:'★★ Elite', 1:'★ Community' };
 const PRESTIGE_COLOR = { 3:'#D7C4E3',      2:'#94A3B8',     1:'rgba(241,240,222,0.55)' };
 let activeCats     = new Set(ALL_CATS);
 let activeFormats  = new Set(ALL_FORMATS);
@@ -383,20 +383,20 @@ async function loadAndRender() {
   _renderInFlight = true;
   try {
   const data = await new Promise(r =>
-    chrome.storage.local.get(['processedPapers','papers','lastFetch','fetchError','fetchInProgress'], r)
+    chrome.storage.local.get(['processedPapers','papers','lastFetch','lastFetchTime','fetchError','fetchInProgress'], r)
   );
 
   if (data.processedPapers?.length > 0) {
     // Render immediately — stale papers beat a blank screen.
     await renderPapers(data.processedPapers, data.lastFetch);
-    // If cache is from a previous day AND there's no ongoing fetch AND the last
-    // attempt didn't fail, silently trigger a background refresh.
-    // Skip if fetchError is set — the user can hit Retry manually. Otherwise
-    // we'd loop forever re-triggering failed fetches.
+    // Trigger a background refresh if:
+    //   • cache is from a previous calendar day, OR
+    //   • it's the same day but >20h old (arXiv posts ~8pm ET; service worker
+    //     may have been killed before the midnight alarm fired)
     const today = new Date().toISOString().slice(0, 10);
-    if (data.lastFetch !== today && !data.fetchInProgress) {
-      // Silently trigger a background refresh for stale papers.
-      // storage.onChanged will re-render this tab when new papers arrive.
+    const ageMs = data.lastFetchTime ? Date.now() - data.lastFetchTime : Infinity;
+    const isStale = data.lastFetch !== today || ageMs > 20 * 60 * 60 * 1000;
+    if (isStale && !data.fetchInProgress) {
       document.getElementById('header-date').textContent = (data.lastFetch || '—') + ' ↻';
       chrome.storage.local.set({ lastFetch: null, fetchError: null }, () => {
         chrome.runtime.sendMessage({ action: 'refresh' });
@@ -479,7 +479,12 @@ async function renderPapers(processedPapers, lastFetch) {
   const refreshBtn = document.getElementById('refresh-btn');
   if (refreshBtn) { refreshBtn.disabled = false; refreshBtn.classList.remove('spinning'); }
 
-  PAPERS = processedPapers;
+  PAPERS = processedPapers.map(p => ({
+    ...p,
+    title:    stripLatex(p.title    || ''),
+    _summary: stripLatex(p._summary || ''),
+    gist:     stripLatex(p.gist     || ''),
+  }));
   loadStarred();
 
   ALL_CLUSTERS.length = 0;
@@ -696,11 +701,22 @@ const BLOB_STRK_DIM  = 0.03,  BLOB_STRK_BASE  = 0.18,  BLOB_STRK_HI  = 1.00;
 
 // Prestige opacity — module-level so click handlers outside renderPapers can use it
 // null = not yet verified → treated as ★ until HTML scan runs
-// 1    = ★  Independent (no notable affiliation)
-// 2    = ★★ Academic    (established university / secondary lab)
-// 3    = ★★★ Elite      (frontier AI lab or top-tier academic AI program)
+// 1    = ★  Community  (unknown or lesser-known affiliation)
+// 2    = ★★ Elite      (strong university, national lab, major research institute)
+// 3    = ★★★ Frontier  (frontier AI lab or high-mandate research agency)
 const PRESTIGE_OPACITY = { 1: 0.42, 2: 0.85, 3: 1.00 };
 const dotOpacity = d => PRESTIGE_OPACITY[d.prestige ?? 1];
+
+function starGlowOpacity(dd) {
+  if (!dd.starred) return 0;
+  if (pinned)       return dd === pinned      ? 0.80 : 0.05;
+  if (_hoveredDot)  return dd === _hoveredDot ? 0.80 : 0.20;
+  if (_sbHoveredId) {
+    const hov = PAPERS.find(p => p.id === _sbHoveredId);
+    if (hov) return dd === hov ? 0.80 : 0.20;
+  }
+  return 0.80;
+}
 
 const SCALE = 3;
 let currentK = 1 / SCALE;
@@ -933,23 +949,32 @@ function showTip(evt, p) {
     '</button>'+
     '<div class="tt-hint" style="margin-top:6px">'+(pinned===p?'click dot again to unpin':'click to pin \u00b7 chips toggle filters')+'</div>';
   lastTipEvt = evt;
+  tipEl.style.pointerEvents = (pinned === p) ? 'auto' : 'none';
   tipEl.style.display = 'block';
   moveTip(evt);
 }
 
 function moveTip(evt) {
   const pad=14, tw=tipEl.offsetWidth, th=tipEl.offsetHeight;
-  let lx = evt.clientX-tw-pad, ly = evt.clientY-pad;
-  if (lx < 8) lx = evt.clientX+pad; // fall back to right if no room on left
-  if (ly+th > window.innerHeight-8) ly = evt.clientY-th-pad;
-  if (ly < 8) ly = 8;  // don't clip behind top bar
+  const sbEl = document.getElementById('sidebar');
+  const chartRight = (sbEl && !sbEl.classList.contains('collapsed'))
+    ? sbEl.getBoundingClientRect().left - 8
+    : window.innerWidth - 8;
+  let lx = evt.clientX-tw-pad, ly = evt.clientY-th-pad; // default: entirely above reference point
+  if (lx < 8) lx = Math.min(evt.clientX+pad, chartRight-tw); // right fallback, capped at sidebar
+  if (lx+tw > chartRight) lx = chartRight-tw;                // hard clamp right edge
+  if (lx < 8) lx = 8;
+  if (ly < 8) ly = evt.clientY+pad;                          // can't go above → flip below
+  if (ly+th > window.innerHeight-8) ly = window.innerHeight-th-8; // clamp if below goes off screen
+  if (ly < 8) ly = 8;
   tipEl.style.left = lx+'px'; tipEl.style.top = ly+'px';
 }
 
 document.addEventListener('click', e => {
   if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card') && !e.target.closest('#sidebar-toggle') && !e.target.closest('#sidebar-show')) {
-    pinned = null; tipEl.style.display = 'none';
-    dotsG?.selectAll('path.pdot').attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
+    pinned = null; _sbHoveredId = null; tipEl.style.display = 'none';
+    dotsG?.selectAll('path.pdot').attr('fill', dd => CAT_COLOR[dd.cat]||'#94A3B8').attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
+    dotsG?.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
     resetClusterHighlight();
     document.querySelectorAll('.sb-card.sb-active').forEach(c => c.classList.remove('sb-active'));
   }
@@ -960,7 +985,7 @@ document.addEventListener('click', e => {
 // ═══════════════════════════════════════════════════════
 const clusterBarEl = document.getElementById('cluster-bar');
 
-function highlightClusters(activePaperClusters) {
+function highlightClusters(activePaperClusters, paper = null) {
   const active = new Set(activePaperClusters);
   blobsG.selectAll('.blob-fill')
     .attr('opacity', d => active.has(d.cluster) ? BLOB_FILL_HI : BLOB_FILL_DIM)
@@ -973,6 +998,17 @@ function highlightClusters(activePaperClusters) {
   });
   clusterNameEl.textContent = [...active].join(' \u00b7 ');
   clusterNameEl.style.opacity = 1;
+  document.querySelectorAll('[data-cat]').forEach(btn =>
+    btn.classList.toggle('lit', paper?.cat === btn.dataset.cat));
+  document.querySelectorAll('[data-format]').forEach(btn =>
+    btn.classList.toggle('lit', paper?.format === btn.dataset.format));
+  document.querySelectorAll('[data-prestige]').forEach(btn =>
+    btn.classList.toggle('lit', String(paper?.prestige ?? 1) === btn.dataset.prestige));
+  document.getElementById('star-filter-btn')
+    ?.classList.toggle('lit', !!paper?.starred);
+  const spotlit = paper !== null;
+  clusterBarEl.classList.toggle('spotlight-active', spotlit);
+  document.getElementById('legend')?.classList.toggle('spotlight-active', spotlit);
 }
 
 function resetClusterHighlight() {
@@ -984,6 +1020,11 @@ function resetClusterHighlight() {
     .attr('stroke-width', 3);
   clusterBarEl.querySelectorAll('.cluster-btn').forEach(btn => btn.classList.remove('lit'));
   clusterNameEl.style.opacity = 0;
+  document.querySelectorAll('[data-cat],[data-format],[data-prestige]')
+    .forEach(btn => btn.classList.remove('lit'));
+  document.getElementById('star-filter-btn')?.classList.remove('lit');
+  clusterBarEl.classList.remove('spotlight-active');
+  document.getElementById('legend')?.classList.remove('spotlight-active');
 }
 
 function matchesSearch(d) {
@@ -1019,7 +1060,7 @@ function updateVisibility() {
   dotsG.selectAll('path.pdot').attr('opacity', d => visibleIds.has(d.id) ? 0.88 : 0.05);
   dotsG.selectAll('.phit').attr('pointer-events', d => visibleIds.has(d.id) ? 'all' : 'none');
   // Star ring only shows when the paper itself is visible
-  dotsG.selectAll('circle.star-glow').attr('opacity', d => (d.starred && visibleIds.has(d.id)) ? 0.80 : 0);
+  dotsG.selectAll('circle.star-glow').attr('opacity', d => visibleIds.has(d.id) ? starGlowOpacity(d) : 0);
 
   const countEl = document.getElementById('vis-count');
   if (countEl) countEl.textContent = visiblePapers.length;
@@ -1071,7 +1112,7 @@ function lastRealSentenceBound(text) {
   // Abbreviations whose trailing period must not be treated as a sentence end
   const ABBREV_RE = /\b(?:vs|e\.g|i\.e|et\s+al|fig|eq|refs?|sec|no|vol|pp|ca|cf|viz|approx|dept|univ|dr|mr|mrs|ms|prof|sr|jr|[a-z])\s*$/i;
   let best = -1;
-  const re = /([.!?])([ \n])/g;
+  const re = /([.!?;])([ \n])/g;
   let m;
   while ((m = re.exec(text)) !== null) {
     if (m[1] === '.') {
@@ -1125,15 +1166,21 @@ function extractExcerpt(text) {
   const contribBoundary = lastRealSentenceBound(beforeContrib);
   const contribStart = contribBoundary === -1 ? 0 : contribBoundary + 2;
 
-  // Find the end of the contribution sentence (full sentence, no truncation)
+  // Find the end of the contribution sentence. Stop at first sentence boundary (including
+  // semicolons — long enumerated lists are cut short in favour of readability), capped at 350 chars.
   const tail = text.slice(chosen.index);
-  const endM = /[.!?](?:\s|$)/.exec(tail);
-  const excerptEnd = endM ? chosen.index + endM.index + 1 : text.length;
+  const endM = /[.!?;](?:\s|$)/.exec(tail);
+  const rawEnd = endM ? chosen.index + endM.index + 1 : text.length;
+  const excerptEnd = Math.min(rawEnd, chosen.index + 350);
 
   // Find the start of the gap sentence (the sentence immediately before contrib)
   if (contribStart === 0) {
-    // Contribution is the very first sentence — no gap sentence
-    return { before: '', gap: '', excerpt: text.slice(0, excerptEnd), after: text.slice(excerptEnd) };
+    // Contribution is the very first sentence — show one white sentence after it instead of before
+    const afterText = text.slice(excerptEnd);
+    const afterSentM = /[.!?](?:\s|$)/.exec(afterText);
+    const afterGapEnd = afterSentM ? excerptEnd + afterSentM.index + 1 : text.length;
+    return { before: '', gap: '', excerpt: text.slice(0, excerptEnd),
+             afterGap: text.slice(excerptEnd, afterGapEnd), after: text.slice(afterGapEnd) };
   }
   const beforeGap = text.slice(0, contribBoundary); // text before the gap sentence's terminal '.'
   const gapBoundary = lastRealSentenceBound(beforeGap);
@@ -1185,11 +1232,12 @@ function renderSidebar() {
       + '</div>'
       + (clusterChipsSb ? '<div class="sb-clusters">'+clusterChipsSb+'</div>' : '')
       + (function() {
-          const { before, gap, excerpt, after } = extractExcerpt(p._summary || p.gist || '');
+          const { before, gap, excerpt, afterGap, after } = extractExcerpt(p._summary || p.gist || '');
           return '<div class="sb-gist">'
             + esc(before)
             + (gap ? '<span class="sb-gap">'+esc(gap)+'</span>' : '')
             + '<span class="sb-excerpt">'+esc(excerpt)+'</span>'
+            + (afterGap ? '<span class="sb-gap">'+esc(afterGap)+'</span>' : '')
             + esc(after)
             + '</div>';
         })()
@@ -1202,9 +1250,84 @@ function renderSidebar() {
 
   // Wire event listeners once — the list element itself is stable
   if (!_sidebarWired) {
-    listEl.addEventListener('click', sidebarClick);
+    listEl.addEventListener('click',     sidebarClick);
+    listEl.addEventListener('mouseover', sidebarMouseover);
+    listEl.addEventListener('mouseout',  sidebarMouseout);
+    listEl.addEventListener('scroll',    sidebarScroll);
+    // Track cursor position passively so scroll handler can re-detect card under cursor
+    listEl.addEventListener('mousemove', e => { _sbCursorX = e.clientX; _sbCursorY = e.clientY; });
     _sidebarWired = true;
   }
+}
+
+let _sbHoveredId = null;
+let _hoveredDot  = null;
+let _sbCursorX   = 0;
+let _sbCursorY   = 0;
+
+// Apply hover-level spotlight for a sidebar card (dim others to 0.25).
+// Used by mouseover and unpin — distinct from pin-level (0.08 dim) in sidebarClick.
+function applySidebarSpotlight(d) {
+  if (!dotsG) return;
+  const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
+  base.l = Math.min(0.70, base.l + 0.12);
+  base.s = Math.min(1.0,  base.s + 0.15);
+  dotsG.selectAll('path.pdot')
+    .attr('fill',           dd => dd === d ? base.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
+    .attr('fill-opacity',   dd => dd === d ? 1 : 0.25)
+    .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.10);
+  dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0);
+  highlightClusters(d.clusters, d);
+}
+
+// mouseover fires on element-boundary crossings (bubbles from children).
+// Ignore events that land in gaps between cards (no .sb-card ancestor).
+// Sidebar spotlight is sticky — no reset when cursor leaves the list.
+function sidebarMouseover(e) {
+  if (pinned) return;
+  const card = e.target.closest('.sb-card');
+  if (!card) return; // cursor in gap/padding — no change
+  const newId = card.dataset.id;
+  if (newId === _sbHoveredId) return;
+  _sbHoveredId = newId;
+  const d = PAPERS.find(p => p.id === newId);
+  if (d) applySidebarSpotlight(d);
+}
+
+// Reset spotlight when cursor leaves the list entirely (mirrors dot mouseleave on map).
+function sidebarMouseout(e) {
+  if (pinned) return;
+  if (e.currentTarget.contains(e.relatedTarget)) return; // still inside list
+  _sbHoveredId = null;
+  _sidebarSpotlightReset();
+}
+
+// When the sidebar scrolls the card under a stationary cursor may change.
+// Re-detect the card at the last known cursor position and update spotlight.
+function sidebarScroll() {
+  if (pinned) return;
+  const el = document.elementFromPoint(_sbCursorX, _sbCursorY);
+  const card = el?.closest('.sb-card');
+  const newId = card?.dataset.id ?? null;
+  if (newId === _sbHoveredId) return;
+  _sbHoveredId = newId;
+  if (newId) {
+    const d = PAPERS.find(p => p.id === newId);
+    if (d) applySidebarSpotlight(d);
+  } else {
+    _sidebarSpotlightReset();
+  }
+}
+
+function _sidebarSpotlightReset() {
+  if (pinned) return;
+  if (!dotsG) return;
+  dotsG.selectAll('path.pdot')
+    .attr('fill',           dd => CAT_COLOR[dd.cat] || '#94A3B8')
+    .attr('fill-opacity',   dd => dotOpacity(dd))
+    .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
+  dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
+  resetClusterHighlight();
 }
 
 function sidebarClick(e) {
@@ -1232,22 +1355,29 @@ function sidebarClick(e) {
   document.querySelectorAll('.sb-card.sb-active').forEach(c => c.classList.remove('sb-active'));
 
   if (pinned === d) {
-    // Unpin
+    // Unpin: restore hover spotlight for last-hovered card (sticky), or full reset
     pinned = null;
-    dotsG.selectAll('path.pdot')
-      .attr('fill-opacity', dd => dotOpacity(dd))
-      .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
     tipEl.style.display = 'none';
-    resetClusterHighlight();
+    const hovered = _sbHoveredId ? PAPERS.find(p => p.id === _sbHoveredId) : null;
+    if (hovered) {
+      applySidebarSpotlight(hovered);
+    } else {
+      _sidebarSpotlightReset();
+    }
   } else {
     pinned = d;
     card.classList.add('sb-active');
+    const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
+    base.l = Math.min(0.70, base.l + 0.12);
+    base.s = Math.min(1.0,  base.s + 0.15);
     dotsG.selectAll('path.pdot')
-      .attr('fill-opacity', dd => dd === d ? 1 : 0.08)
+      .attr('fill',           dd => dd === d ? base.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
+      .attr('fill-opacity',   dd => dd === d ? 1 : 0.08)
       .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.03)
       .style('filter', null)
       .filter(dd => dd === d).raise();
-    highlightClusters(d.clusters);
+    dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0);
+    highlightClusters(d.clusters, d);
     // Position tooltip at the dot's actual screen position (accounting for zoom/pan)
     const svgRect = document.getElementById('chart').getBoundingClientRect();
     const t = d3.zoomTransform(svg.node());
@@ -1269,9 +1399,10 @@ function seededRand(seed) {
 }
 
 function applyJitter() {
-  const JITTER_X = 0.24; // wider horizontal spread to fill theoretical side
-  const JITTER_Y = 0.09;
-  const isPersonalized = Object.keys(_starredData).length > 0;
+  const JITTER_X = 0.06;
+  const starCount = Object.keys(_starredData || {}).length;
+  const JITTER_Y = 0.09 * Math.exp(-starCount / 8);  // decays toward 0 as you star more papers
+  const isPersonalized = starCount > 0;
   PAPERS.forEach(p => {
     const rng  = seededRand(parseInt(p.id.replace('.','')) || 12345);
     const yBase = isPersonalized
@@ -1364,10 +1495,12 @@ function draw() {
     }
     blobsG.append('path').datum({cluster:name})
       .attr('class','blob-fill').attr('d',pathStr)
-      .attr('fill',color).attr('opacity',BLOB_FILL_BASE).attr('filter','url(#blob-blur)');
+      .attr('fill',color).attr('opacity',BLOB_FILL_BASE).attr('filter','url(#blob-blur)')
+      .attr('pointer-events','none');
     blobsG.append('path').datum({cluster:name})
       .attr('class','blob-stroke').attr('d',pathStr)
-      .attr('fill','none').attr('stroke',color).attr('opacity',BLOB_STRK_BASE).attr('stroke-width',3);
+      .attr('fill','none').attr('stroke',color).attr('opacity',BLOB_STRK_BASE).attr('stroke-width',3)
+      .attr('pointer-events','none');
   });
 
   // Dots — symSize/hitR/SYM_BASE/PRESTIGE_AREA are module-scope (above TOOLTIP section)
@@ -1385,7 +1518,7 @@ function draw() {
     .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')')
     .attr('fill', 'none')
     .attr('stroke', '#F3B839').attr('stroke-width', 2)
-    .attr('opacity', d => d.starred ? 0.80 : 0)
+    .attr('opacity', d => starGlowOpacity(d))
     .attr('pointer-events', 'none');
 
   dotsG.selectAll('path.pdot').data(PAPERS).join('path').attr('class','pdot')
@@ -1401,42 +1534,65 @@ function draw() {
     .attr('fill', 'transparent').attr('stroke', 'none').attr('cursor', 'pointer')
     .on('mouseenter', function(evt, d) {
       if (pinned) return;
-      // Raise lightness in HSL space — keeps hue and saturation, avoids the
-      // RGB brightness hue-shift (orange→yellow etc.)
+      _hoveredDot = d;
       const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
-      base.l = Math.min(0.88, base.l + 0.32);
-      dotsG.selectAll('path.pdot').filter(dd => dd === d)
-        .attr('fill', base.formatHex()).attr('fill-opacity', 1).raise();
-      highlightClusters(d.clusters);
-      showTip(evt, d);
+      base.l = Math.min(0.70, base.l + 0.12);
+      base.s = Math.min(1.0,  base.s + 0.15);
+      dotsG.selectAll('path.pdot')
+        .attr('fill',           dd => dd === d ? base.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
+        .attr('fill-opacity',   dd => dd === d ? 1 : 0.25)
+        .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.10);
+      dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0);
+      highlightClusters(d.clusters, d);
+      // Defer tooltip to next frame — avoids forced layout (offsetWidth read) triggering
+      // synthetic pointer events that immediately fire mouseleave on the phit circle.
+      // Always use the dot's actual screen center (not cursor position) so the tooltip
+      // appears at a consistent distance from the icon regardless of where the cursor entered.
+      const svgRect = svg.node().getBoundingClientRect();
+      const t = d3.zoomTransform(svg.node());
+      const dotCX = svgRect.left + t.applyX(xSc(d._x));
+      const dotCY = svgRect.top  + t.applyY(ySc(d._y));
+      requestAnimationFrame(() => { if (!pinned) showTip({ clientX: dotCX, clientY: dotCY }, d); });
     })
-    .on('mousemove', function(evt) { if (!pinned) moveTip(evt); })
+    .on('mousemove', function() { /* tooltip stays locked to dot — no cursor tracking */ })
     .on('mouseleave', function(evt, d) {
       if (pinned) return;
-      dotsG.selectAll('path.pdot').filter(dd => dd === d)
-        .attr('fill', CAT_COLOR[d.cat] || '#94A3B8')
-        .attr('fill-opacity', dotOpacity(d));
+      _hoveredDot = null;
+      // If a sidebar card is still spotlit (sticky), restore its spotlight;
+      // otherwise do a full reset.
+      dotsG.selectAll('path.pdot')
+        .attr('fill',           dd => CAT_COLOR[dd.cat] || '#94A3B8')
+        .attr('fill-opacity',   dd => dotOpacity(dd))
+        .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
+      dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
       resetClusterHighlight();
       tipEl.style.display = 'none';
     })
     .on('click', function(evt, d) {
       evt.stopPropagation();
       if (pinned === d) {
-        // Unpin: restore all dots
+        // Unpin: full reset
         pinned = null;
         dotsG.selectAll('path.pdot')
-          .attr('fill-opacity', dd => dotOpacity(dd))
+          .attr('fill',           dd => CAT_COLOR[dd.cat] || '#94A3B8')
+          .attr('fill-opacity',   dd => dotOpacity(dd))
           .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
-        tipEl.style.display = 'none';
+        dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
         resetClusterHighlight();
+        tipEl.style.display = 'none';
       } else {
         pinned = d;
+        const pbase = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
+        pbase.l = Math.min(0.70, pbase.l + 0.12);
+        pbase.s = Math.min(1.0,  pbase.s + 0.15);
         dotsG.selectAll('path.pdot')
-          .attr('fill-opacity', dd => dd === d ? 1 : 0.08)
+          .attr('fill',           dd => dd === d ? pbase.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
+          .attr('fill-opacity',   dd => dd === d ? 1 : 0.08)
           .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.03)
           .style('filter', null)
           .filter(dd => dd === d).raise();
-        highlightClusters(d.clusters);
+        dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0);
+        highlightClusters(d.clusters, d);
         showTip(evt, d);
         // Expand sidebar if collapsed, then scroll to card
         const sbEl = document.getElementById('sidebar');
