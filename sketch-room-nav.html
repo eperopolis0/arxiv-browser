@@ -26,7 +26,7 @@ body {
   padding: 48px 48px 48px 56px;
   overflow-y: auto;
   min-width: 0;
-  transition: all .35s ease;
+  transition: all .4s ease-in-out;
   transform: translateX(0);
   opacity: 1;
 }
@@ -62,7 +62,7 @@ body {
   display: flex; flex-direction: column;
   justify-content: center;
   cursor: pointer;
-  transition: all .35s ease;
+  transition: all .4s ease-in-out;
   position: relative;
   overflow: hidden;
 }
@@ -115,7 +115,7 @@ body {
 #room.band-expanded #explainer {
   flex: 0 0 48px;
   padding: 0; overflow: hidden;
-  transition: all .35s ease;
+  transition: all .4s ease-in-out;
   display: flex; align-items: center; justify-content: center;
   border-right: 1px solid #4D355D;
   cursor: pointer;
@@ -200,6 +200,38 @@ body {
 }
 .paper-link:hover { color: #F1F0DE; border-color: #9B6BBA; }
 
+/* ── Entry overlay ────────────────────────────── */
+#overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(39,27,47,.85);
+  backdrop-filter: blur(4px);
+}
+#overlay.hidden { display: none; }
+#search-box {
+  width: 640px; padding: 18px 24px;
+  font-size: 22px; color: #F1F0DE;
+  background: #271B2F; border: 1.5px solid #4D355D;
+  border-radius: 12px; outline: none;
+  font-family: inherit;
+}
+#search-box::placeholder { color: #74508B; }
+#search-box:focus { border-color: #9B6BBA; }
+#sample-prompts { margin-top: 16px; text-align: center; }
+.sp-label { font-size: 14px; color: #74508B; margin-bottom: 10px; }
+.sp-link {
+  display: block; font-size: 18px; color: #B490CB;
+  cursor: pointer; padding: 5px 0;
+  transition: color .12s;
+}
+.sp-link:hover { color: #F1F0DE; }
+#skip-link {
+  margin-top: 24px; font-size: 12px; color: #4D355D;
+  cursor: pointer; transition: color .12s;
+}
+#skip-link:hover { color: #74508B; }
+
 /* ── Zoom out button ──────────────────────────── */
 #zoom-out-btn {
   position: fixed; top: 16px; left: 16px; z-index: 10;
@@ -240,6 +272,17 @@ body {
 </style>
 </head>
 <body>
+
+<div id="overlay">
+  <input id="search-box" type="text" placeholder="Ask anything about AI" autocomplete="off">
+  <div id="sample-prompts">
+    <div class="sp-label">or try:</div>
+    <a class="sp-link" data-q="Does RLHF cause sycophancy?">"Does RLHF cause sycophancy?"</a>
+    <a class="sp-link" data-q="How does ChatGPT actually work?">"How does ChatGPT actually work?"</a>
+    <a class="sp-link" data-q="What even is AI?">"What even is AI?"</a>
+  </div>
+  <div id="skip-link">or just explore →</div>
+</div>
 
 <button id="zoom-out-btn" onclick="zoomOut()" title="See connections">⊞</button>
 
@@ -434,6 +477,9 @@ function renderRoom(id) {
       roomEl.classList.add('band-expanded');
       bandsEl.querySelectorAll('.band').forEach(el => el.classList.remove('active'));
       band.classList.add('active');
+      // Auto-play video if this is the Watch band
+      const overlay = band.querySelector('.play-overlay');
+      if (overlay) playVideo(overlay);
     });
 
     bandsEl.appendChild(band);
@@ -626,9 +672,67 @@ function goBack() {
   renderRoom(prev);
 }
 
+// ─── ENTRY EXPERIENCE ────────────────────────────────────────────────────────
+
+// Hide room behind overlay on load
+document.getElementById('room').style.display = 'none';
+document.getElementById('zoom-out-btn').style.display = 'none';
+
+document.getElementById('search-box').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleQuery(e.target.value.trim());
+});
+
+document.querySelectorAll('.sp-link').forEach(el => {
+  el.addEventListener('click', () => {
+    document.getElementById('search-box').value = el.dataset.q;
+    handleQuery(el.dataset.q);
+  });
+});
+
+document.getElementById('skip-link').addEventListener('click', () => {
+  dismissOverlay();
+  renderRoom('transformers');
+});
+
+function handleQuery(text) {
+  if (!text) return;
+  // Check for exact room match
+  const lower = text.toLowerCase();
+  const match = Object.values(ROOMS).find(r =>
+    r.name.toLowerCase() === lower ||
+    r.name.toLowerCase().includes(lower)
+  );
+  if (match) {
+    dismissOverlay();
+    const id = Object.keys(ROOMS).find(k => ROOMS[k] === match);
+    renderRoom(id);
+    return;
+  }
+  // Hardcoded sample queries
+  if (lower.includes('chatgpt')) {
+    dismissOverlay();
+    renderRoom('transformers');
+  } else if (lower.includes('rlhf') || lower.includes('sycophancy')) {
+    dismissOverlay();
+    renderRoom('transformers'); // placeholder — RLHF room doesn't exist yet
+  } else if (lower.includes('ai')) {
+    dismissOverlay();
+    renderRoom('transformers'); // placeholder for "What even is AI?"
+  } else {
+    dismissOverlay();
+    renderRoom('transformers');
+  }
+}
+
+function dismissOverlay() {
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('room').style.display = 'flex';
+  document.getElementById('zoom-out-btn').style.display = 'flex';
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
-renderRoom('transformers');
+// Don't render room on load — overlay handles first navigation
 </script>
 </body>
 </html>
