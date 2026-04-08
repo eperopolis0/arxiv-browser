@@ -113,18 +113,20 @@ body {
 
 /* ── Expanded state (90% takeover) ────────────── */
 #room.band-expanded #explainer {
-  flex: 0 0 48px;
-  padding: 0; overflow: hidden;
+  flex: 0 0 200px;
+  padding: 32px 20px; overflow: hidden;
   transition: all .4s ease-in-out;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; flex-direction: column;
+  justify-content: flex-start;
   border-right: 1px solid #4D355D;
   cursor: pointer;
 }
-#room.band-expanded #explainer #concept-text,
-#room.band-expanded #explainer #concept-subtitle { display: none; }
+#room.band-expanded #explainer #concept-text { display: none; }
 #room.band-expanded #explainer #concept-name {
-  writing-mode: vertical-rl; text-orientation: mixed;
-  font-size: 16px; margin: 0; transform: rotate(180deg);
+  font-size: 28px; margin-bottom: 6px;
+}
+#room.band-expanded #explainer #concept-subtitle {
+  display: block; font-size: 13px; color: #B490CB;
 }
 #room.band-expanded #bands {
   width: 100%; border-left: none;
