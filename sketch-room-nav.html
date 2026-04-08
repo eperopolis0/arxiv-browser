@@ -21,17 +21,8 @@ body {
   transition: opacity .3s;
 }
 
-/* ── Left: Explainer ──────────────────────────── */
-#explainer {
-  flex: 1;
-  padding: 48px 48px 48px 56px;
-  overflow-y: auto;
-  min-width: 0;
-  transition: all .4s ease-in-out;
-  transform: translateX(0);
-  opacity: 1;
-}
-/* concept-name and subtitle are now in #title-bar */
+/* (old #explainer removed — content now in #pane-explainer) */
+/* ── Content text ─────────────────────────────── */
 #concept-text {
   font-size: 18px; color: #F1F0DE; line-height: 1.75;
 }
@@ -43,146 +34,55 @@ body {
 #concept-text a:hover { color: #F1F0DE; border-bottom-color: #F1F0DE; }
 
 /* ── Right: Resource bands ────────────────────── */
-#bands {
-  width: 280px; flex-shrink: 0;
+/* ── Icon strip (right side) ──────────────────── */
+#icon-strip {
+  width: 44px; flex-shrink: 0;
   display: flex; flex-direction: column;
   border-left: 1px solid #4D355D;
-  transition: width .35s ease;
 }
-
-.band {
+.icon-tab {
   flex: 1;
-  padding: 20px 24px;
-  display: flex; flex-direction: column;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: all .4s ease-in-out;
+  font-size: 20px;
+  transition: all .15s;
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.icon-tab:hover { filter: brightness(1.3); }
+.icon-tab.active { border-left-color: #C49428; }
+.icon-tab-noob   { background: #4D355D; }
+.icon-tab-mid    { background: #3a2845; }
+.icon-tab-expert { background: #271B2F; }
+
+/* Tooltip on hover */
+.icon-tab::after {
+  content: attr(data-tooltip);
+  position: absolute; right: 54px; top: 50%;
+  transform: translateY(-50%);
+  background: #271B2F; border: 1px solid #4D355D;
+  color: #B490CB; font-size: 12px; white-space: nowrap;
+  padding: 4px 10px; border-radius: 6px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .15s;
+}
+.icon-tab:hover::after { opacity: 1; }
+
+/* ── Content area ─────────────────────────────── */
+#content-area {
+  flex: 1; min-width: 0;
   position: relative;
   overflow: hidden;
 }
-.band:hover { filter: brightness(1.12); }
-
-.band-noob   { background: #4D355D; }
-.band-mid    { background: #3a2845; }
-.band-expert { background: #271B2F; }
-
-/* Band preview (collapsed state) */
-.band-icon { font-size: 24px; margin-bottom: 6px; }
-.band-label { font-size: 16px; font-weight: 600; color: #F1F0DE; margin-bottom: 3px; }
-.band-meta { font-size: 14px; color: #B490CB; }
-.band-source { font-size: 13px; color: #74508B; margin-top: 4px; }
-.band-preview { font-size: 13px; color: #9B6BBA; margin-top: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-/* Band content — ALWAYS visible, clipped in collapsed state */
-.band-content {
-  margin-top: 10px; flex: 1; min-height: 0;
-  overflow: hidden; border-radius: 6px;
-  position: relative;
+.content-pane {
+  position: absolute; inset: 0;
+  display: none;
+  overflow: auto;
 }
-.band-content iframe {
-  width: 100%; border: none; border-radius: 6px;
-  pointer-events: none;
-}
-.band-content .yt-embed { aspect-ratio: 16/9; background: #000; }
-.band-content .blog-embed { height: 300px; background: #fff; }
-.band-content .pdf-embed { height: 300px; background: #fff; }
-
-/* Play button overlay for video */
-.play-overlay {
-  position: absolute; inset: 0; display: flex;
-  align-items: center; justify-content: center;
-  cursor: pointer; z-index: 2;
-  background: rgba(0,0,0,.25); transition: background .15s;
-}
-.play-overlay:hover { background: rgba(0,0,0,.1); }
-.play-btn {
-  width: 48px; height: 48px; background: rgba(196,148,40,.9);
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-}
-.play-btn::after {
-  content: ''; width: 0; height: 0;
-  border-left: 16px solid #271B2F; border-top: 10px solid transparent; border-bottom: 10px solid transparent;
-  margin-left: 3px;
-}
-
-/* ── Expanded state (band takeover) ───────────── */
-#room.band-expanded #explainer {
-  flex: 0 0 0px; width: 0;
-  padding: 0; overflow: hidden;
-  transition: all .4s ease-in-out;
-  opacity: 0; pointer-events: none;
-}
-#room.band-expanded #bands {
-  width: 100%; border-left: none;
-}
-
-/* Collapsed band = thin tab strip */
-#room.band-expanded .band {
-  flex: 0 0 44px;
-  padding: 10px 14px;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  justify-content: flex-start;
-}
-#room.band-expanded .band .band-preview,
-#room.band-expanded .band .band-source,
-#room.band-expanded .band .band-meta,
-#room.band-expanded .band .band-content { display: none; }
-#room.band-expanded .band.active .band-content { display: flex; flex-direction: column; }
-#room.band-expanded .band .band-icon { margin-bottom: 0; font-size: 18px; }
-#room.band-expanded .band .band-label { margin-bottom: 0; font-size: 13px; }
-
-/* The active expanded band */
-#room.band-expanded .band.active {
-  flex: 1;
-  padding: 24px 32px;
-  flex-direction: column;
-  align-items: stretch;
-  cursor: default;
-}
-#room.band-expanded .band.active .band-preview { display: none; }
-#room.band-expanded .band.active .band-source { display: block; }
-#room.band-expanded .band.active .band-meta { display: block; font-size: 14px; }
-#room.band-expanded .band.active .band-icon { margin-bottom: 6px; font-size: 24px; }
-#room.band-expanded .band.active .band-label { margin-bottom: 3px; font-size: 18px; }
-#room.band-expanded .band.active .band-content {
-  flex: 1; overflow: visible;
-}
-#room.band-expanded .band.active .band-content iframe {
-  pointer-events: auto; height: 100%;
-}
-#room.band-expanded .band.active .band-content .yt-embed { height: 100%; }
-#room.band-expanded .band.active .play-overlay { display: none; }
-#room.band-expanded .band.active .band-preview { display: none; }
-
-/* Back to overview button */
-.band-back {
-  display: none; font-size: 12px; color: #74508B;
-  cursor: pointer; margin-bottom: 12px; transition: color .12s;
-}
-.band-back:hover { color: #F1F0DE; }
-#room.band-expanded .band.active .band-back { display: block; }
-
-/* YouTube embed */
-.yt-embed {
-  width: 100%; aspect-ratio: 16/9; border: none; border-radius: 8px;
-  background: #000;
-}
-/* Blog iframe */
-.blog-embed {
-  width: 100%; flex: 1; border: none; border-radius: 8px;
-  background: #FFF; min-height: 400px;
-}
-/* Paper abstract */
-.paper-abstract {
-  font-size: 15px; color: #D7C4E3; line-height: 1.65; margin-bottom: 16px;
-}
-.paper-link {
-  display: inline-block; font-size: 14px; color: #9B6BBA;
-  border: 1px solid #4D355D; padding: 6px 14px; border-radius: 6px;
-  text-decoration: none; transition: all .12s;
+.content-pane.active { display: block; }
+#pane-explainer { padding: 48px 48px 48px 56px; }
+.content-pane iframe {
+  width: 100%; height: 100%; border: none;
 }
 .paper-link:hover { color: #F1F0DE; border-color: #9B6BBA; }
 
@@ -301,10 +201,13 @@ body {
 </div>
 
 <div id="room">
-  <div id="explainer">
-    <div id="concept-text"></div>
+  <div id="content-area">
+    <div id="pane-explainer" class="content-pane active">
+      <div id="concept-text"></div>
+    </div>
+    <!-- resource panes injected by JS -->
   </div>
-  <div id="bands"></div>
+  <div id="icon-strip"></div>
 </div>
 
 <script>
@@ -314,7 +217,7 @@ const ROOMS = {
   transformers: {
     name: 'Transformers',
     subtitle: 'the architecture behind ChatGPT',
-    text: `Before Transformers, AI models that processed language had to read words one at a time, like a person scanning a sentence left to right. This made them slow and forgetful — by the time they reached the end of a long paragraph, they'd often lost track of the beginning.<br><br>Transformers changed that completely. Instead of reading sequentially, a Transformer looks at every word in a passage simultaneously and figures out which words are most important to each other. The word "it" in a sentence might strongly connect to "the cat" three sentences earlier — a Transformer can see that connection instantly.<br><br>This ability is called <a onclick="navigateTo('self-attention')">self-attention</a>, and it's the core innovation. It lets Transformers process language in parallel (making them fast) while keeping track of long-range connections (making them smart).<br><br>Transformers are the foundation of every major AI language model: <a onclick="navigateTo('gpt')">GPT</a>, <a onclick="navigateTo('bert')">BERT</a>, Claude, Gemini, Llama. They also power image generation, protein folding prediction, and many other breakthroughs. It's not an exaggeration to say they changed the entire field.`,
+    text: `Before Transformers, AI models that processed language had to read words one at a time, like a person scanning a sentence left to right. This made them slow and forgetful — by the time they reached the end of a long paragraph, they'd often lost track of the beginning.<br><br>Transformers changed that completely. Instead of reading sequentially, a Transformer looks at every word in a passage simultaneously and figures out which words are most important to each other. The word "it" in a sentence might strongly connect to "the cat" three sentences earlier — a Transformer can see that connection instantly.<br><br>This ability is called <a href="javascript:void(0)" onclick="navigateTo('self-attention')">self-attention</a>, and it's the core innovation. It lets Transformers process language in parallel (making them fast) while keeping track of long-range connections (making them smart).<br><br>Transformers are the foundation of every major AI language model: <a href="javascript:void(0)" onclick="navigateTo('gpt')">GPT</a>, <a href="javascript:void(0)" onclick="navigateTo('bert')">BERT</a>, Claude, Gemini, Llama. They also power image generation, protein folding prediction, and many other breakthroughs. It's not an exaggeration to say they changed the entire field.`,
     bands: [
       { level: 'noob', icon: '🎥', label: 'Watch', meta: '30 min · video', source: '3Blue1Brown',
         preview: 'Visual walkthrough of how GPT works, starting from zero',
@@ -339,7 +242,7 @@ const ROOMS = {
   'self-attention': {
     name: 'Self-Attention',
     subtitle: 'how Transformers decide what matters',
-    text: `Self-attention is the mechanism that makes <a onclick="navigateTo('transformers')">Transformers</a> work. It answers a simple question: for each word in a sentence, which other words should it pay attention to?<br><br>Think of it like a group conversation. When someone says "she picked up the ball and threw it," your brain instantly connects "it" to "ball" and "she" to whoever was mentioned earlier. Self-attention does the same thing, but mathematically — it computes a score between every pair of words to figure out which connections matter most.<br><br>The "self" part means it's looking within the same text (as opposed to comparing two different texts). Every word gets to look at every other word and decide how much to care about it. Self-attention evolved from an earlier idea simply called <a onclick="navigateTo('attention')">attention</a>, which was originally designed for translation.`,
+    text: `Self-attention is the mechanism that makes <a href="javascript:void(0)" onclick="navigateTo('transformers')">Transformers</a> work. It answers a simple question: for each word in a sentence, which other words should it pay attention to?<br><br>Think of it like a group conversation. When someone says "she picked up the ball and threw it," your brain instantly connects "it" to "ball" and "she" to whoever was mentioned earlier. Self-attention does the same thing, but mathematically — it computes a score between every pair of words to figure out which connections matter most.<br><br>The "self" part means it's looking within the same text (as opposed to comparing two different texts). Every word gets to look at every other word and decide how much to care about it. Self-attention evolved from an earlier idea simply called <a href="javascript:void(0)" onclick="navigateTo('attention')">attention</a>, which was originally designed for translation.`,
     bands: [
       { level: 'noob', icon: '🎥', label: 'Watch', meta: '10 min · video', source: '3Blue1Brown (chapter)',
         extras: [] },
@@ -358,7 +261,7 @@ const ROOMS = {
   gpt: {
     name: 'GPT',
     subtitle: 'Generative Pre-trained Transformer',
-    text: `GPT is an AI that predicts the next word. That's it — that's the core idea. You give it some text, and it guesses what comes next. Do that billions of times with internet text, and it learns an enormous amount about language, facts, and reasoning.<br><br>The "Generative" means it creates text. "Pre-trained" means it learns from a huge dataset before being specialized. "<a onclick="navigateTo('transformers')">Transformer</a>" is the architecture it uses.<br><br>GPT is the technology behind ChatGPT. The key insight was that simple next-word prediction, scaled up massively, produces surprisingly capable and general-purpose AI systems.`,
+    text: `GPT is an AI that predicts the next word. That's it — that's the core idea. You give it some text, and it guesses what comes next. Do that billions of times with internet text, and it learns an enormous amount about language, facts, and reasoning.<br><br>The "Generative" means it creates text. "Pre-trained" means it learns from a huge dataset before being specialized. "<a href="javascript:void(0)" onclick="navigateTo('transformers')">Transformer</a>" is the architecture it uses.<br><br>GPT is the technology behind ChatGPT. The key insight was that simple next-word prediction, scaled up massively, produces surprisingly capable and general-purpose AI systems.`,
     bands: [
       { level: 'noob', icon: '🎥', label: 'Watch', meta: '25 min · video', source: '3Blue1Brown',
         extras: [] },
@@ -375,7 +278,7 @@ const ROOMS = {
   bert: {
     name: 'BERT',
     subtitle: 'Bidirectional Encoder Representations from Transformers',
-    text: `While <a onclick="navigateTo('gpt')">GPT</a> reads text left to right (predicting the next word), BERT reads in both directions at once. It masks random words in a sentence and tries to fill in the blanks, learning to understand context from both sides.<br><br>This makes BERT especially good at understanding language — answering questions, classifying text, detecting sentiment — rather than generating it. BERT powered Google Search for years.`,
+    text: `While <a href="javascript:void(0)" onclick="navigateTo('gpt')">GPT</a> reads text left to right (predicting the next word), BERT reads in both directions at once. It masks random words in a sentence and tries to fill in the blanks, learning to understand context from both sides.<br><br>This makes BERT especially good at understanding language — answering questions, classifying text, detecting sentiment — rather than generating it. BERT powered Google Search for years.`,
     bands: [
       { level: 'noob', icon: '📝', label: 'Read', meta: '10 min', source: 'Google AI blog',
         extras: [] },
@@ -392,7 +295,7 @@ const ROOMS = {
   attention: {
     name: 'Attention',
     subtitle: 'the mechanism that started it all',
-    text: `Before <a onclick="navigateTo('self-attention')">self-attention</a>, there was plain attention. The original idea (2014) was simple: when translating a sentence from French to English, the model should be able to "look back" at the French words while generating each English word, focusing on the most relevant ones.<br><br>This solved a huge problem with earlier approaches that tried to compress an entire sentence into a single fixed-size vector. Attention lets the model selectively focus on different parts of the input for each part of the output.`,
+    text: `Before <a href="javascript:void(0)" onclick="navigateTo('self-attention')">self-attention</a>, there was plain attention. The original idea (2014) was simple: when translating a sentence from French to English, the model should be able to "look back" at the French words while generating each English word, focusing on the most relevant ones.<br><br>This solved a huge problem with earlier approaches that tried to compress an entire sentence into a single fixed-size vector. Attention lets the model selectively focus on different parts of the input for each part of the output.`,
     bands: [
       { level: 'noob', icon: '📝', label: 'Read', meta: '5 min', source: 'Our explainer',
         extras: [] },
@@ -412,7 +315,6 @@ const ROOMS = {
 
 let currentRoom = 'transformers';
 let history = [];
-let expandedBand = null;
 const explored = new Set(['transformers']); // fog of war: concepts you've seen
 const nodePositions = {}; // persistent positions: once placed, stays put
 nodePositions['transformers'] = { x: 0, y: 0 }; // origin
@@ -423,8 +325,7 @@ function renderRoom(id) {
   const room = ROOMS[id];
   if (!room) return;
   currentRoom = id;
-  expandedBand = null;
-  document.getElementById('room').classList.remove('band-expanded');
+  activePane = null;
 
   // Update title bar
   document.getElementById('tb-name').textContent = room.name;
@@ -433,62 +334,68 @@ function renderRoom(id) {
   // subtitle now in title bar only
   document.getElementById('concept-text').innerHTML = room.text;
 
-  // Bands
-  const bandsEl = document.getElementById('bands');
-  bandsEl.innerHTML = '';
-  const roomEl = document.getElementById('room');
+  // Icon strip + content panes
+  const stripEl = document.getElementById('icon-strip');
+  stripEl.innerHTML = '';
+  const contentArea = document.getElementById('content-area');
+  // Remove old resource panes (keep explainer)
+  contentArea.querySelectorAll('.resource-pane').forEach(el => el.remove());
+  // Reset to explainer
+  document.getElementById('pane-explainer').classList.add('active');
+  activePane = null;
 
   room.bands.forEach((b, i) => {
-    const cls = b.level === 'noob' ? 'band-noob' : b.level === 'mid' ? 'band-mid' : 'band-expert';
-    const band = document.createElement('div');
-    band.className = `band ${cls}`;
-    band.dataset.idx = i;
+    const cls = b.level === 'noob' ? 'icon-tab-noob' : b.level === 'mid' ? 'icon-tab-mid' : 'icon-tab-expert';
+    const tooltip = `${b.label} · ${b.source || ''} · ${b.meta}`;
 
-    // Build preloaded content (always visible, clipped)
-    let contentHTML = '';
+    // Icon tab
+    const tab = document.createElement('div');
+    tab.className = `icon-tab ${cls}`;
+    tab.dataset.idx = i;
+    tab.dataset.tooltip = tooltip;
+    tab.textContent = b.icon;
+    tab.addEventListener('click', () => toggleResource(i));
+    stripEl.appendChild(tab);
+
+    // Resource pane (preloaded)
+    const pane = document.createElement('div');
+    pane.className = 'content-pane resource-pane';
+    pane.id = `pane-resource-${i}`;
     if (b.ytId) {
-      contentHTML = `
-        <div class="play-overlay" onclick="event.stopPropagation();playVideo(this)"><div class="play-btn"></div></div>
-        <iframe class="yt-embed" data-src="https://www.youtube.com/embed/${b.ytId}?rel=0&autoplay=1" src="https://www.youtube.com/embed/${b.ytId}?rel=0" allowfullscreen></iframe>`;
+      pane.innerHTML = `<iframe src="https://www.youtube.com/embed/${b.ytId}?rel=0" allowfullscreen></iframe>`;
     } else if (b.embedUrl) {
-      contentHTML = `<iframe class="blog-embed" src="${b.embedUrl}"></iframe>`;
+      pane.innerHTML = `<iframe src="${b.embedUrl}"></iframe>`;
     } else if (b.url && b.url.includes('arxiv')) {
-      contentHTML = `<iframe class="pdf-embed" src="${b.url.replace('/abs/','/pdf/')}"></iframe>`;
+      pane.innerHTML = `<iframe src="${b.url.replace('/abs/','/pdf/')}"></iframe>`;
     }
-
-    band.innerHTML = `
-      <div class="band-back" onclick="event.stopPropagation();collapseAll()">← Overview</div>
-      <div class="band-icon">${b.icon}</div>
-      <div class="band-label">${b.label}</div>
-      <div class="band-meta">${b.meta}</div>
-      ${b.source ? `<div class="band-source">${b.source}</div>` : ''}
-      <div class="band-content">${contentHTML}</div>
-    `;
-
-    band.addEventListener('click', () => {
-      if (band.classList.contains('active')) return;
-      // Expand this band to 90%
-      expandedBand = i;
-      roomEl.classList.add('band-expanded');
-      bandsEl.querySelectorAll('.band').forEach(el => el.classList.remove('active'));
-      band.classList.add('active');
-      // Don't auto-play — let user click play themselves
-    });
-
-    bandsEl.appendChild(band);
+    contentArea.appendChild(pane);
   });
 
-  // (nav is the left panel itself — no separate breadcrumbs)
-
   // Scroll explainer to top
-  document.getElementById('explainer').scrollTop = 0;
+  document.getElementById('pane-explainer').scrollTop = 0;
 }
 
-function collapseAll() {
-  const roomEl = document.getElementById('room');
-  roomEl.classList.remove('band-expanded');
-  document.querySelectorAll('.band').forEach(el => el.classList.remove('active'));
-  expandedBand = null;
+let activePane = null;
+
+function toggleResource(idx) {
+  const panes = document.querySelectorAll('.content-pane');
+  const tabs = document.querySelectorAll('.icon-tab');
+
+  if (activePane === idx) {
+    // Deselect — return to explainer
+    panes.forEach(p => p.classList.remove('active'));
+    document.getElementById('pane-explainer').classList.add('active');
+    tabs.forEach(t => t.classList.remove('active'));
+    activePane = null;
+  } else {
+    // Select this resource
+    panes.forEach(p => p.classList.remove('active'));
+    const pane = document.getElementById(`pane-resource-${idx}`);
+    if (pane) pane.classList.add('active');
+    tabs.forEach(t => t.classList.remove('active'));
+    tabs[idx]?.classList.add('active');
+    activePane = idx;
+  }
 }
 
 function playVideo(overlay) {
