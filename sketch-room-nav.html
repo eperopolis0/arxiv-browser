@@ -16,7 +16,8 @@ body {
 /* ── Room container ───────────────────────────── */
 #room {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 52px);
+  margin-top: 52px;
   transition: opacity .3s;
 }
 
@@ -30,14 +31,7 @@ body {
   transform: translateX(0);
   opacity: 1;
 }
-#concept-name {
-  font-size: 36px; font-weight: 600; color: #C49428;
-  margin-bottom: 6px;
-}
-#concept-subtitle {
-  font-size: 16px; color: #B490CB; margin-bottom: 24px;
-  font-style: italic;
-}
+/* concept-name and subtitle are now in #title-bar */
 #concept-text {
   font-size: 18px; color: #F1F0DE; line-height: 1.75;
 }
@@ -111,16 +105,13 @@ body {
   margin-left: 3px;
 }
 
-/* ── Expanded state (90% takeover) ────────────── */
+/* ── Expanded state (band takeover) ───────────── */
 #room.band-expanded #explainer {
-  flex: 0 0 240px;
-  padding: 48px 24px 48px 56px; overflow: hidden;
+  flex: 0 0 0px; width: 0;
+  padding: 0; overflow: hidden;
   transition: all .4s ease-in-out;
-  border-right: 1px solid #4D355D;
-  cursor: pointer;
+  opacity: 0; pointer-events: none;
 }
-#room.band-expanded #explainer #concept-text { display: none; }
-/* Name and subtitle keep their original size — no dancing */
 #room.band-expanded #bands {
   width: 100%; border-left: none;
 }
@@ -227,14 +218,25 @@ body {
 }
 #skip-link:hover { color: #74508B; }
 
-/* ── Zoom out button ──────────────────────────── */
+/* ── Title bar (always visible at top) ─────────── */
+#title-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 52px; z-index: 20;
+  background: #271B2F;
+  border-bottom: 1px solid #4D355D;
+  display: none; align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+}
+#title-bar.visible { display: flex; }
+#tb-name { font-size: 22px; font-weight: 600; color: #C49428; }
+#tb-subtitle { font-size: 14px; color: #B490CB; font-style: italic; }
 #zoom-out-btn {
-  position: fixed; top: 16px; left: 16px; z-index: 10;
-  background: #271B2F; border: 1px solid #4D355D;
-  color: #74508B; width: 36px; height: 36px;
-  border-radius: 8px; font-size: 18px;
+  background: none; border: 1px solid #4D355D;
+  color: #74508B; width: 32px; height: 32px;
+  border-radius: 6px; font-size: 16px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
+  transition: all .15s; flex-shrink: 0;
 }
 #zoom-out-btn:hover { border-color: #9B6BBA; color: #F1F0DE; }
 
@@ -279,7 +281,11 @@ body {
   <div id="skip-link">or just explore →</div>
 </div>
 
-<button id="zoom-out-btn" onclick="zoomOut()" title="See connections">⊞</button>
+<div id="title-bar">
+  <button id="zoom-out-btn" onclick="zoomOut()" title="See connections">⊞</button>
+  <div id="tb-name"></div>
+  <div id="tb-subtitle"></div>
+</div>
 
 <div id="map-view">
   <svg id="map-svg">
@@ -296,8 +302,6 @@ body {
 
 <div id="room">
   <div id="explainer">
-    <div id="concept-name"></div>
-    <div id="concept-subtitle"></div>
     <div id="concept-text"></div>
   </div>
   <div id="bands"></div>
@@ -422,15 +426,11 @@ function renderRoom(id) {
   expandedBand = null;
   document.getElementById('room').classList.remove('band-expanded');
 
-  document.getElementById('concept-name').textContent = room.name;
-
-  // Click the left panel when collapsed → return to overview
-  document.getElementById('explainer').onclick = () => {
-    if (document.getElementById('room').classList.contains('band-expanded')) {
-      collapseAll();
-    }
-  };
-  document.getElementById('concept-subtitle').textContent = room.subtitle;
+  // Update title bar
+  document.getElementById('tb-name').textContent = room.name;
+  document.getElementById('tb-subtitle').textContent = room.subtitle || '';
+  // (concept-name now lives in title-bar, set above)
+  // subtitle now in title bar only
   document.getElementById('concept-text').innerHTML = room.text;
 
   // Bands
@@ -504,14 +504,14 @@ function playVideo(overlay) {
 
 function zoomOut() {
   document.getElementById('room').style.display = 'none';
-  document.getElementById('zoom-out-btn').style.display = 'none';
+  document.getElementById('title-bar').classList.remove('visible');
   document.getElementById('map-view').style.display = 'block';
   renderLocalMap();
 }
 
 function zoomIn(id) {
   document.getElementById('map-view').style.display = 'none';
-  document.getElementById('zoom-out-btn').style.display = 'flex';
+  document.getElementById('title-bar').classList.add('visible');
   if (id === currentRoom) {
     // Same room — just restore (state preserved)
     document.getElementById('room').style.display = 'flex';
@@ -720,7 +720,7 @@ function handleQuery(text) {
 function dismissOverlay() {
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('room').style.display = 'flex';
-  document.getElementById('zoom-out-btn').style.display = 'flex';
+  document.getElementById('title-bar').classList.add('visible');
 }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
