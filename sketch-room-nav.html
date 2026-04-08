@@ -35,9 +35,9 @@ body {
 #concept-text a:hover { color: #FFFFFF; border-bottom-color: #F1F0DE; }
 
 /* ── Right: Resource bands ────────────────────── */
-/* ── Sidebar strip (right side) ───────────────── */
+/* ── Sidebar strip (right side, 1/4 viewport) ─── */
 #icon-strip {
-  width: 120px; flex-shrink: 0;
+  width: 25vw; flex-shrink: 0;
   display: flex; flex-direction: column;
   gap: 4px; padding: 4px;
   border-left: 1px solid #4D355D;
@@ -76,7 +76,7 @@ body {
 .icon-tab.active .tab-thumb img { opacity: .85; }
 .tab-thumb iframe {
   width: 1400px; height: 900px;
-  transform: scale(0.08);
+  transform: scale(0.24);
   transform-origin: top left;
   pointer-events: none;
   border: none;
@@ -89,16 +89,16 @@ body {
 /* Overlaid metadata text */
 .tab-meta {
   position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 4px 6px;
-  background: linear-gradient(transparent, rgba(0,0,0,.7));
+  padding: 8px 10px;
+  background: linear-gradient(transparent, rgba(0,0,0,.75));
   z-index: 2;
 }
 .tab-meta-label {
-  font-size: 11px; color: #F1F0DE; font-weight: 600;
+  font-size: 14px; color: #F1F0DE; font-weight: 600;
   text-shadow: 0 1px 3px rgba(0,0,0,.8);
 }
 .tab-meta-source {
-  font-size: 9px; color: #B490CB;
+  font-size: 11px; color: #B490CB;
   text-shadow: 0 1px 3px rgba(0,0,0,.8);
 }
 
