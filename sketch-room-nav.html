@@ -114,6 +114,13 @@ body {
   overflow: auto;
 }
 .content-pane.active { display: block; }
+
+/* Whoosh animation: pane starts at thumbnail position, expands to fill */
+.content-pane.whooshing {
+  display: block;
+  transition: all .35s cubic-bezier(.22,.8,.36,1);
+}
+
 #pane-explainer { padding: 48px 48px 48px 56px; }
 .content-pane iframe {
   width: 100%; height: 100%; border: none;
@@ -424,19 +431,56 @@ let activePane = null;
 function toggleResource(idx) {
   const panes = document.querySelectorAll('.content-pane');
   const tabs = document.querySelectorAll('.icon-tab');
+  const contentArea = document.getElementById('content-area');
 
   if (activePane === idx) {
     // Deselect — return to explainer
-    panes.forEach(p => p.classList.remove('active'));
+    panes.forEach(p => { p.classList.remove('active', 'whooshing'); p.style.cssText = ''; });
     document.getElementById('pane-explainer').classList.add('active');
     tabs.forEach(t => t.classList.remove('active'));
     activePane = null;
   } else {
-    // Select this resource
-    panes.forEach(p => p.classList.remove('active'));
-    const pane = document.getElementById(`pane-resource-${idx}`);
-    if (pane) pane.classList.add('active');
+    // Get the thumbnail's position relative to content area
+    const tab = tabs[idx];
+    const tabRect = tab.getBoundingClientRect();
+    const areaRect = contentArea.getBoundingClientRect();
+
+    // Hide all panes
+    panes.forEach(p => { p.classList.remove('active', 'whooshing'); p.style.cssText = ''; });
     tabs.forEach(t => t.classList.remove('active'));
+
+    const pane = document.getElementById(`pane-resource-${idx}`);
+    if (!pane) return;
+
+    // Start at thumbnail position
+    const startX = tabRect.left - areaRect.left;
+    const startY = tabRect.top - areaRect.top;
+    const startW = tabRect.width;
+    const startH = tabRect.height;
+
+    pane.style.left = startX + 'px';
+    pane.style.top = startY + 'px';
+    pane.style.width = startW + 'px';
+    pane.style.height = startH + 'px';
+    pane.style.borderRadius = '6px';
+    pane.style.overflow = 'hidden';
+    pane.classList.add('whooshing');
+
+    // Force reflow, then animate to full size
+    pane.offsetHeight;
+    pane.style.left = '0';
+    pane.style.top = '0';
+    pane.style.width = '100%';
+    pane.style.height = '100%';
+    pane.style.borderRadius = '0';
+
+    // After animation, switch to normal active state
+    setTimeout(() => {
+      pane.classList.remove('whooshing');
+      pane.classList.add('active');
+      pane.style.cssText = '';
+    }, 360);
+
     tabs[idx]?.classList.add('active');
     activePane = idx;
   }
