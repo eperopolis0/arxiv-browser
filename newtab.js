@@ -3,22 +3,41 @@
 // ═══════════════════════════════════════════════════════
 let PAPERS = [];
 
-const CAT_COLOR  = { 'cs.CL':'#5899DA','cs.CV':'#6DAB5A','cs.RO':'#E47D43','cs.CR':'#E1543E','cs.LG':'#9B6BBA','cs.AI':'#94A3B8','cs.HC':'#E891BD','cs.IR':'#7DBFCC' };
+// Full-spectrum arc: deep blue → teal → green → olive → amber → sienna → red.
+// Order in ALL_CATS matches this gradient: pure mechanism (blue) → pure application (red).
+let CAT_COLOR  = {
+  'cs.LG': 'oklch(0.48 0.160 262)',  // deep blue         (ML Methods)
+  'cs.CL': 'oklch(0.54 0.150 245)',  // steel blue        (NLP)
+  'cs.IR': 'oklch(0.61 0.130 210)',  // blue-teal         (Retrieval)
+  'cs.AI': 'oklch(0.62 0.090 185)',  // teal/cyan         (General AI)
+  'cs.CV': 'oklch(0.62 0.110 140)',  // blue-green        (Vision)
+  'cs.HC': 'oklch(0.63 0.130  68)',  // amber/gold        (HCI)
+  'cs.CR': 'oklch(0.58 0.150  38)',  // burnt sienna      (Safety)
+  'cs.RO': 'oklch(0.49 0.160  22)',  // deep red-orange   (Robotics)
+};
 const CAT_LABEL  = { 'cs.CL':'NLP','cs.CV':'Vision','cs.RO':'Robotics','cs.CR':'Safety','cs.LG':'ML Methods','cs.AI':'General AI','cs.HC':'HCI','cs.IR':'Retrieval' };
 const FMT_LABEL  = { empirical:'Empirical', benchmark:'Benchmark', survey:'Survey', theory:'Theory', position:'Position' };
-const FMT_COLOR  = { empirical:'#5899DA', benchmark:'#F3B839', survey:'#9B6BBA', theory:'#7DBFCC', position:'#E47D43' };
+let FMT_COLOR  = {
+  theory:    'oklch(0.50 0.150 258)',  // blue
+  position:  'oklch(0.58 0.130 248)',  // steel blue
+  empirical: 'oklch(0.64 0.110  76)',  // warm gold — catch-all leans applied; visible at all prestige sizes
+  benchmark: 'oklch(0.64 0.120  55)',  // amber
+  survey:    'oklch(0.58 0.140  32)',  // sienna
+};
 const D3_SYMBOL  = { empirical:d3.symbolCircle, benchmark:d3.symbolTriangle, survey:d3.symbolSquare, theory:d3.symbolCross, position:d3.symbolDiamond };
 
 let ALL_CLUSTERS = [];
-const ALL_CATS     = ['cs.CR','cs.CL','cs.CV','cs.RO','cs.LG','cs.AI','cs.HC','cs.IR'];
-const ALL_FORMATS  = ['empirical','benchmark','survey','theory','position'];
+const ALL_CATS     = ['cs.LG','cs.CL','cs.IR','cs.AI','cs.CV','cs.HC','cs.CR','cs.RO'];
+const ALL_FORMATS  = ['theory','position','empirical','benchmark','survey'];
 const ALL_PRESTIGE = [3, 2, 1];
 const PRESTIGE_LABEL = { 3:'★★★ Frontier', 2:'★★ Elite', 1:'★ Community' };
-const PRESTIGE_COLOR = { 3:'#D7C4E3',      2:'#94A3B8',     1:'rgba(241,240,222,0.55)' };
-let activeCats     = new Set(ALL_CATS);
-let activeFormats  = new Set(ALL_FORMATS);
-let activePrestige = new Set(ALL_PRESTIGE);
+const PRESTIGE_COLOR = { 3:'#9BAAB8',      2:'#7A8C9C',     1:'#5E6E7C' };
+let activeCats     = new Set(); // empty = show all; non-empty = show only selected
+let activeFormats  = new Set();
+let activePrestige = new Set();
 let starFilterActive = false;
+let colorMode = 'field'; // 'cluster' | 'field' | 'score'
+let CLUSTER_COLOR = {};
 const activeClusters = new Set();
 let searchQuery = '';
 
@@ -312,7 +331,6 @@ function toggleStar(p) {
   applyJitter();
   animateDots();
   updateAxisLabel();
-  updateAxisNote();
   renderSidebar();
 }
 
@@ -366,7 +384,7 @@ function buildStarredDrawer() {
       saveStarred();
       const countEl = document.getElementById('starred-drawer-count');
       if (countEl) countEl.textContent = Object.keys(_starredData).length;
-      applyJitter(); animateDots(); updateAxisLabel(); updateAxisNote();
+      applyJitter(); animateDots(); updateAxisLabel();
       buildStarredDrawer();
     });
   });
@@ -383,25 +401,30 @@ async function loadAndRender() {
   _renderInFlight = true;
   try {
   const data = await new Promise(r =>
-    chrome.storage.local.get(['processedPapers','papers','lastFetch','lastFetchTime','fetchError','fetchInProgress'], r)
+    chrome.storage.local.get(['processedPapers','papers','lastFetch','lastFetchTime','fetchError','fetchInProgress','appliedHistory'], r)
   );
 
   if (data.processedPapers?.length > 0) {
-    // Render immediately — stale papers beat a blank screen.
-    await renderPapers(data.processedPapers, data.lastFetch);
-    // Trigger a background refresh if:
-    //   • cache is from a previous calendar day, OR
-    //   • it's the same day but >20h old (arXiv posts ~8pm ET; service worker
-    //     may have been killed before the midnight alarm fired)
     const today = new Date().toISOString().slice(0, 10);
     const ageMs = data.lastFetchTime ? Date.now() - data.lastFetchTime : Infinity;
     const isStale = data.lastFetch !== today || ageMs > 20 * 60 * 60 * 1000;
-    if (isStale && !data.fetchInProgress) {
-      document.getElementById('header-date').textContent = (data.lastFetch || '—') + ' ↻';
+
+    if (!isStale) {
+      // Fresh cache — render immediately.
+      await renderPapers(data.processedPapers, data.lastFetch, data.appliedHistory);
+      return;
+    }
+
+    // Stale cache: show loading and wait for fresh data rather than rendering
+    // yesterday's map only to jump when today's arrives (~3s later).
+    showLoading('Fetching today\u2019s papers\u2026');
+    if (!data.fetchInProgress) {
+      document.getElementById('header-date').textContent = (data.lastFetch || '\u2014') + ' \u21bb';
       chrome.storage.local.set({ lastFetch: null, fetchError: null }, () => {
         chrome.runtime.sendMessage({ action: 'refresh' });
       });
     }
+    // dataUpdated fires when fresh papers are stored → loadAndRender() re-called.
     return;
   }
 
@@ -474,7 +497,7 @@ async function loadAndRender() {
   }
 }
 
-async function renderPapers(processedPapers, lastFetch) {
+async function renderPapers(processedPapers, lastFetch, appliedHistory) {
   // Re-enable refresh button (may have been disabled during a manual refresh)
   const refreshBtn = document.getElementById('refresh-btn');
   if (refreshBtn) { refreshBtn.disabled = false; refreshBtn.classList.remove('spinning'); }
@@ -494,12 +517,13 @@ async function renderPapers(processedPapers, lastFetch) {
   if (lastFetch) document.getElementById('header-date').textContent = lastFetch;
   document.getElementById('vis-count').textContent = PAPERS.length;
 
+  logScoreDistribution(PAPERS);
   buildClusterBar();
   buildLegend();
 
-  activeCats     = new Set(ALL_CATS.filter(c => PAPERS.some(p => p.cat === c)));
-  activeFormats  = new Set(ALL_FORMATS.filter(f => PAPERS.some(p => p.format === f)));
-  activePrestige = new Set(ALL_PRESTIGE); // always start with all tiers active — never clobber user filters mid-session
+  activeCats     = new Set(); // empty = show all; reset on each load
+  activeFormats  = new Set();
+  activePrestige = new Set();
 
   // Wire search bar once after papers load
   const searchInput = document.getElementById('search-input');
@@ -531,24 +555,112 @@ async function renderPapers(processedPapers, lastFetch) {
   secVerify.forEach((p, i) => setTimeout(() => verifyPrestige(p), secStart + i * 600));
 }
 
-// ─── Build cluster bar ───
+// ─── Color scale ───
+// OKLCH, fixed stops. Score positions designed around where cluster/category *averages* land
+// (empirically ~0.20–0.78), so the discriminating colors cluster in the range that matters.
+// Individual paper extremes (0.0, 1.0) still get the endpoint colors.
+// [score, L, C, H]
+const AXIS_STOPS = [
+  [0.00, 0.48, 0.16, 265],  // deep blue          (extreme mechanism)
+  [0.20, 0.53, 0.15, 250],  // steel blue
+  [0.37, 0.61, 0.11, 218],  // blue-teal          (papers pass through green 0.37→0.50, intentional)
+  [0.50, 0.65, 0.14,  78],  // gold               (neutral crossover — p50 lands here as warm)
+  [0.65, 0.63, 0.13,  45],  // amber
+  [0.80, 0.57, 0.14,  28],  // sienna
+  [1.00, 0.48, 0.16,  20],  // deep red
+];
+
+function logScoreDistribution(papers) {
+  const scores = papers.map(p => p.applied ?? 0.5).sort((a, b) => a - b);
+  const n = scores.length;
+  const pct = p => scores[Math.round(p * (n - 1))].toFixed(3);
+  console.log(`[arXiv] Score distribution (n=${n}): p10=${pct(0.1)} p25=${pct(0.25)} p50=${pct(0.5)} p75=${pct(0.75)} p90=${pct(0.9)}`);
+  const buckets = Array(10).fill(0);
+  scores.forEach(s => buckets[Math.min(9, Math.floor(s * 10))]++);
+  console.log('[arXiv] Histogram:', buckets.map((c, i) => `${(i * 0.1).toFixed(1)}:${c}`).join('  '));
+  console.log('[arXiv] Axis stops:', AXIS_STOPS.map(([t]) => t.toFixed(3)).join('  '));
+  const fmtGroups = {};
+  papers.forEach(p => { (fmtGroups[p.format] = fmtGroups[p.format] || []).push(p.applied ?? 0.5); });
+  Object.entries(fmtGroups)
+    .sort(([,a],[,b]) => (a.reduce((s,v)=>s+v,0)/a.length) - (b.reduce((s,v)=>s+v,0)/b.length))
+    .forEach(([fmt, ss]) => {
+      ss.sort((a,b)=>a-b);
+      const mean = (ss.reduce((s,v)=>s+v,0)/ss.length).toFixed(3);
+      const med  = ss[Math.floor(ss.length/2)].toFixed(3);
+      console.log(`[arXiv]   ${fmt.padEnd(10)} n=${ss.length}  mean=${mean}  median=${med}`);
+    });
+}
+
+function axisColor(score) {
+  const t = Math.max(0, Math.min(1, score));
+  const stops = AXIS_STOPS;
+  let i = stops.length - 2;
+  for (let j = 0; j < stops.length - 1; j++) {
+    if (t <= stops[j + 1][0]) { i = j; break; }
+  }
+  const [t0, l0, c0, h0] = stops[i];
+  const [t1, l1, c1, h1] = stops[i + 1];
+  const u = (t - t0) / (t1 - t0);
+  return `oklch(${(l0 + u * (l1 - l0)).toFixed(3)} ${(c0 + u * (c1 - c0)).toFixed(3)} ${Math.round(h0 + u * (h1 - h0))})`;
+}
+
+function dotColor(d) {
+  if (colorMode === 'cluster') return CLUSTER_COLOR[d.clusters?.[0]] || axisColor(d.applied ?? 0.5);
+  if (colorMode === 'score')   return axisColor(d.applied ?? 0.5);
+  return CAT_COLOR[d.cat] || axisColor(d.applied ?? 0.5); // 'field' — unknown cats get score color
+}
+
+// Returns a bright, pale version of a dot's color for hover/pin highlight.
+// Parses oklch() directly (d3.hsl can't handle oklch strings).
+function highlightColor(d) {
+  const c = dotColor(d);
+  const m = c.match(/oklch\(([\d.]+)\s+([\d.]+)\s+([\d.-]+)\)/);
+  if (m) {
+    const L = Math.min(0.92, +m[1] + 0.38).toFixed(3);
+    const C = (+m[2] * 0.45).toFixed(3);
+    return `oklch(${L} ${C} ${m[3]})`;
+  }
+  return '#ffffff';
+}
+
+function applyColorHistory(history) {
+  if (!history?.length) return;
+  const catSum = {}, catCount = {}, fmtSum = {}, fmtCount = {};
+  history.forEach(({ cats, formats }) => {
+    Object.entries(cats || {}).forEach(([k, v]) => {
+      if (v !== null) { catSum[k] = (catSum[k] || 0) + v; catCount[k] = (catCount[k] || 0) + 1; }
+    });
+    Object.entries(formats || {}).forEach(([k, v]) => {
+      if (v !== null) { fmtSum[k] = (fmtSum[k] || 0) + v; fmtCount[k] = (fmtCount[k] || 0) + 1; }
+    });
+  });
+  Object.keys(CAT_COLOR).forEach(cat => {
+    if (catCount[cat]) CAT_COLOR[cat] = axisColor(catSum[cat] / catCount[cat]);
+  });
+  Object.keys(FMT_COLOR).forEach(fmt => {
+    if (fmtCount[fmt]) FMT_COLOR[fmt] = axisColor(fmtSum[fmt] / fmtCount[fmt]);
+  });
+  const catAvg = cat => catCount[cat] ? catSum[cat] / catCount[cat] : 0.5;
+  const fmtAvg = fmt => fmtCount[fmt] ? fmtSum[fmt] / fmtCount[fmt] : 0.5;
+  ALL_CATS.sort((a, b) => catAvg(a) - catAvg(b));
+  ALL_FORMATS.sort((a, b) => fmtAvg(a) - fmtAvg(b));
+}
+
 function buildClusterBar() {
   const clusterBarEl = document.getElementById('cluster-bar');
   clusterBarEl.innerHTML = '';
-  const sortedClusters = [...ALL_CLUSTERS].sort((a,b) =>
-    PAPERS.filter(p=>p.clusters.includes(b)).length -
-    PAPERS.filter(p=>p.clusters.includes(a)).length
-  );
+  const clusterMean = name => {
+    const members = PAPERS.filter(p => p.clusters.includes(name));
+    return members.length ? members.reduce((s,p) => s + p.applied, 0) / members.length : 0.5;
+  };
+  const sortedClusters = [...ALL_CLUSTERS].sort((a,b) => clusterMean(a) - clusterMean(b));
+  CLUSTER_COLOR = {};
   sortedClusters.forEach(name => {
     const members  = PAPERS.filter(p => p.clusters.includes(name));
-    const catTally = {};
-    members.forEach(p => { catTally[p.cat] = (catTally[p.cat]||0) + 1; });
-    const domCat   = Object.entries(catTally).sort((a,b)=>b[1]-a[1])[0][0];
-    const color    = CAT_COLOR[domCat] || '#94A3B8';
+    CLUSTER_COLOR[name] = axisColor(clusterMean(name));
     const btn = document.createElement('button');
     btn.className   = 'cluster-btn';
-    btn.style.color = color;
-    btn.style.borderColor = color;
+    btn.style.color = CLUSTER_COLOR[name];
     btn.innerHTML   = esc(name) + '<span class="cb-count">' + members.length + '</span>';
     btn.dataset.cluster = name;
     btn.addEventListener('click', () => {
@@ -566,14 +678,14 @@ function buildLegend() {
   legendEl.innerHTML = '';
 
   const fieldSec = document.createElement('div');
-  fieldSec.innerHTML = '<div class="leg-section-title">Field \u00b7 color</div>';
+  fieldSec.innerHTML = '<div class="leg-section-title">Field</div>';
   const fieldBtns = document.createElement('div');
   fieldBtns.className = 'leg-btns single-col';
   ALL_CATS.forEach(cat => {
     const count = PAPERS.filter(p => p.cat === cat).length;
     if (!count) return;
     const btn = document.createElement('button');
-    btn.className = 'filter-btn active';
+    btn.className = 'filter-btn';
     btn.style.color = CAT_COLOR[cat];
     btn.style.borderColor = CAT_COLOR[cat];
     btn.innerHTML = CAT_LABEL[cat] + ' <span class="fb-count">' + count + '</span>';
@@ -596,7 +708,7 @@ function buildLegend() {
   ALL_FORMATS.forEach(fmt => {
     const count = PAPERS.filter(p => p.format === fmt).length;
     const btn = document.createElement('button');
-    btn.className = 'filter-btn active';
+    btn.className = 'filter-btn';
     btn.style.color = FMT_COLOR[fmt];
     btn.style.borderColor = FMT_COLOR[fmt];
     btn.innerHTML = FMT_SYM[fmt] + ' ' + FMT_LABEL[fmt] + ' <span class="fb-count">' + count + '</span>';
@@ -619,7 +731,7 @@ function buildLegend() {
   ALL_PRESTIGE.forEach(tier => {
     const count = PAPERS.filter(p => (p.prestige ?? 1) === tier).length;
     const btn = document.createElement('button');
-    btn.className = 'filter-btn active';
+    btn.className = 'filter-btn';
     btn.style.color = PRESTIGE_COLOR[tier];
     btn.style.borderColor = PRESTIGE_COLOR[tier];
     btn.innerHTML = PRESTIGE_LABEL[tier] + ' <span class="fb-count">' + count + '</span>';
@@ -664,14 +776,6 @@ function buildLegend() {
   drawerSec.appendChild(drawerBtn);
   legendEl.appendChild(drawerSec);
 
-  const navSec = document.createElement('div');
-  navSec.innerHTML = '<div class="leg-note">zoom: scroll/pinch<br>pin: click dot</div>';
-  legendEl.appendChild(navSec);
-
-  const axisNoteEl = document.createElement('div');
-  axisNoteEl.id = 'axis-note';
-  legendEl.appendChild(axisNoteEl);
-  updateAxisNote();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -680,7 +784,7 @@ function buildLegend() {
 const svg     = d3.select('#chart');
 const clusterNameEl = document.getElementById('cluster-name-display');
 const chartEl = document.getElementById('chart-area');
-const M       = { top:44, right:28, bottom:50, left:44 };
+const M       = { top:14, right:20, bottom:40, left:28 };
 
 const defs = svg.append('defs');
 defs.append('filter').attr('id','blob-blur').append('feGaussianBlur').attr('stdDeviation', 10);
@@ -696,6 +800,21 @@ const gridG    = rootG.append('g');
 const dotsG    = rootG.append('g');
 const axisG    = svg.append('g');
 
+// Horizontal color gradient for x-axis bar (Mechanism → Application)
+// Built once from AXIS_STOPS; reused by every draw().
+const _axisGrad = defs.append('linearGradient').attr('id','axis-x-grad')
+  .attr('x1','0%').attr('x2','100%').attr('y1','0%').attr('y2','0%');
+AXIS_STOPS.forEach(([t]) =>
+  _axisGrad.append('stop').attr('offset', `${(t * 100).toFixed(1)}%`).attr('stop-color', axisColor(t))
+);
+
+// Vertical gradient for y-axis bar (low relevance → your interests)
+// arXiv gold fades in toward the top (high-relevance end).
+const _axisYGrad = defs.append('linearGradient').attr('id','axis-y-grad')
+  .attr('x1','0%').attr('x2','0%').attr('y1','100%').attr('y2','0%');
+_axisYGrad.append('stop').attr('offset','0%').attr('stop-color','rgba(196,148,40,0.0)');
+_axisYGrad.append('stop').attr('offset','100%').attr('stop-color','rgba(196,148,40,0.55)');
+
 const BLOB_FILL_DIM  = 0.00,  BLOB_FILL_BASE  = 0.04,  BLOB_FILL_HI  = 0.40;
 const BLOB_STRK_DIM  = 0.03,  BLOB_STRK_BASE  = 0.18,  BLOB_STRK_HI  = 1.00;
 
@@ -707,8 +826,10 @@ const BLOB_STRK_DIM  = 0.03,  BLOB_STRK_BASE  = 0.18,  BLOB_STRK_HI  = 1.00;
 const PRESTIGE_OPACITY = { 1: 0.42, 2: 0.85, 3: 1.00 };
 const dotOpacity = d => PRESTIGE_OPACITY[d.prestige ?? 1];
 
+
 function starGlowOpacity(dd) {
   if (!dd.starred) return 0;
+  if (!paperIsVisible(dd)) return 0;
   if (pinned)       return dd === pinned      ? 0.80 : 0.05;
   if (_hoveredDot)  return dd === _hoveredDot ? 0.80 : 0.20;
   if (_sbHoveredId) {
@@ -720,7 +841,7 @@ function starGlowOpacity(dd) {
 
 const SCALE = 3;
 let currentK = 1 / SCALE;
-const zoom = d3.zoom().scaleExtent([0.25, 12])
+const zoom = d3.zoom().scaleExtent([1 / SCALE, 12])
   // Allow wheel scroll and pinch-zoom only; block mouse drag so the cursor
   // never switches to a grab hand.
   .filter(e => e.type === 'wheel' || e.type === 'touchstart' || e.type === 'touchmove' || e.type === 'touchend')
@@ -733,8 +854,30 @@ const zoom = d3.zoom().scaleExtent([0.25, 12])
       .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
     dotsG.selectAll('circle.star-glow')
       .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
+    // Update dim overlays on gradient bar — the in-viewport band stays bright,
+    // out-of-viewport portions are covered with a dark overlay.
+    if (xSc) {
+      const t = ev.transform;
+      const W = chartEl.clientWidth;
+      const barW = W - M.left - M.right;
+      const dom = xSc.domain();
+      const span = dom[1] - dom[0];
+      const dL = Math.max(0, Math.min(1, (xSc.invert((M.left      - t.x) / t.k) - dom[0]) / span));
+      const dR = Math.max(0, Math.min(1, (xSc.invert((W - M.right - t.x) / t.k) - dom[0]) / span));
+      axisG.select('.vp-dim-left')
+        .attr('x', M.left)
+        .attr('width', Math.max(0, dL * barW));
+      axisG.select('.vp-dim-right')
+        .attr('x', M.left + dR * barW)
+        .attr('width', Math.max(0, (1 - dR) * barW));
+    }
   });
 svg.call(zoom);
+
+// Double-click anywhere on the chart to reset to default view
+svg.on('dblclick', () => {
+  svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity.scale(1 / SCALE));
+});
 
 // ═══════════════════════════════════════════════════════
 // DOT SIZING — module-scope so verifyPrestige can update dots after draw() returns
@@ -918,10 +1061,10 @@ function showTip(evt, p) {
     const active = !activeClusters.size || activeClusters.has(c);
     return '<span class="tt-cluster-chip active-chip" data-tip-action="toggleCluster" data-cluster="'+esc(c)+'" style="cursor:pointer;opacity:'+(active?'1':'0.38')+'">'+esc(c)+'</span>';
   }).join(' ');
-  const catActive  = activeCats.has(p.cat);
-  const fmtActive  = activeFormats.has(p.format);
+  const catActive  = !activeCats.size    || activeCats.has(p.cat);
+  const fmtActive  = !activeFormats.size || activeFormats.has(p.format);
   const tier       = p.prestige ?? 1;
-  const tierActive = activePrestige.has(tier);
+  const tierActive = !activePrestige.size || activePrestige.has(tier);
   const isVerifying = _verifyingIds.has(p.id);
   const prestigeText = isVerifying ? '↻ Verifying…' : (p.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[tier]);
   const badgeStyle = (color, active) =>
@@ -973,7 +1116,7 @@ function moveTip(evt) {
 document.addEventListener('click', e => {
   if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card') && !e.target.closest('#sidebar-toggle') && !e.target.closest('#sidebar-show')) {
     pinned = null; _sbHoveredId = null; tipEl.style.display = 'none';
-    dotsG?.selectAll('path.pdot').attr('fill', dd => CAT_COLOR[dd.cat]||'#94A3B8').attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
+    dotsG?.selectAll('path.pdot').attr('fill', dd => dotColor(dd)).attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
     dotsG?.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
     resetClusterHighlight();
     document.querySelectorAll('.sb-card.sb-active').forEach(c => c.classList.remove('sb-active'));
@@ -993,9 +1136,8 @@ function highlightClusters(activePaperClusters, paper = null) {
   blobsG.selectAll('.blob-stroke')
     .attr('opacity', d => active.has(d.cluster) ? BLOB_STRK_HI : BLOB_STRK_DIM)
     .attr('stroke-width', d => active.has(d.cluster) ? 4 : 3);
-  clusterBarEl.querySelectorAll('.cluster-btn').forEach(btn => {
-    btn.classList.toggle('lit', active.has(btn.dataset.cluster));
-  });
+  clusterBarEl.querySelectorAll('.cluster-btn').forEach(btn =>
+    btn.classList.toggle('lit', active.has(btn.dataset.cluster)));
   clusterNameEl.textContent = [...active].join(' \u00b7 ');
   clusterNameEl.style.opacity = 1;
   document.querySelectorAll('[data-cat]').forEach(btn =>
@@ -1009,6 +1151,14 @@ function highlightClusters(activePaperClusters, paper = null) {
   const spotlit = paper !== null;
   clusterBarEl.classList.toggle('spotlight-active', spotlit);
   document.getElementById('legend')?.classList.toggle('spotlight-active', spotlit);
+  // Light up all tags on the specific paper's sidebar card
+  document.querySelectorAll('.sb-card .sb-tag.lit, .sb-card .sb-cluster-chip.lit')
+    .forEach(b => b.classList.remove('lit'));
+  if (paper) {
+    const sbCard = document.querySelector('.sb-card[data-id="'+paper.id+'"]');
+    if (sbCard) sbCard.querySelectorAll('.sb-tag, .sb-cluster-chip')
+      .forEach(b => b.classList.add('lit'));
+  }
 }
 
 function resetClusterHighlight() {
@@ -1018,11 +1168,13 @@ function resetClusterHighlight() {
   blobsG.selectAll('.blob-stroke')
     .attr('opacity', d => clusterHasVisiblePaper(d.cluster) ? BLOB_STRK_BASE : BLOB_STRK_DIM)
     .attr('stroke-width', 3);
-  clusterBarEl.querySelectorAll('.cluster-btn').forEach(btn => btn.classList.remove('lit'));
   clusterNameEl.style.opacity = 0;
   document.querySelectorAll('[data-cat],[data-format],[data-prestige]')
     .forEach(btn => btn.classList.remove('lit'));
   document.getElementById('star-filter-btn')?.classList.remove('lit');
+  clusterBarEl.querySelectorAll('.cluster-btn').forEach(btn => btn.classList.remove('lit'));
+  document.querySelectorAll('.sb-card .sb-tag, .sb-card .sb-cluster-chip')
+    .forEach(b => b.classList.remove('lit'));
   clusterBarEl.classList.remove('spotlight-active');
   document.getElementById('legend')?.classList.remove('spotlight-active');
 }
@@ -1036,9 +1188,9 @@ function matchesSearch(d) {
 }
 
 function paperIsVisible(d) {
-  return (!ALL_CATS.includes(d.cat) || activeCats.has(d.cat))
-    && (!ALL_FORMATS.includes(d.format) || activeFormats.has(d.format))
-    && activePrestige.has(d.prestige ?? 1)
+  return (!activeCats.size    || activeCats.has(d.cat))
+    && (!activeFormats.size  || activeFormats.has(d.format))
+    && (!activePrestige.size || activePrestige.has(d.prestige ?? 1))
     && (!activeClusters.size || d.clusters.some(c => activeClusters.has(c)))
     && (!starFilterActive || d.starred)
     && matchesSearch(d);
@@ -1057,10 +1209,17 @@ function updateVisibility() {
   const visiblePapers = PAPERS.filter(p => paperIsVisible(p));
   const visibleIds = new Set(visiblePapers.map(p => p.id));
 
-  dotsG.selectAll('path.pdot').attr('opacity', d => visibleIds.has(d.id) ? 0.88 : 0.05);
   dotsG.selectAll('.phit').attr('pointer-events', d => visibleIds.has(d.id) ? 'all' : 'none');
   // Star ring only shows when the paper itself is visible
   dotsG.selectAll('circle.star-glow').attr('opacity', d => visibleIds.has(d.id) ? starGlowOpacity(d) : 0);
+
+  // If a spotlight is active (hover or pin), don't stomp fill-opacity — just hide invisible papers.
+  const spotlitPaper = pinned || (_sbHoveredId ? PAPERS.find(p => p.id === _sbHoveredId) : null) || _hoveredDot;
+  if (spotlitPaper) {
+    dotsG.selectAll('path.pdot').attr('opacity', d => visibleIds.has(d.id) ? null : 0.05);
+  } else {
+    dotsG.selectAll('path.pdot').attr('opacity', d => visibleIds.has(d.id) ? 0.88 : 0.05);
+  }
 
   const countEl = document.getElementById('vis-count');
   if (countEl) countEl.textContent = visiblePapers.length;
@@ -1094,8 +1253,11 @@ function updateVisibility() {
     btn.classList.toggle('zero-count', n === 0);
   });
 
-  if (activeClusters.size) highlightClusters([...activeClusters]);
-  else resetClusterHighlight();
+  const spotlitPaper2 = pinned || (_sbHoveredId ? PAPERS.find(p => p.id === _sbHoveredId) : null) || _hoveredDot;
+  if (!spotlitPaper2) {
+    if (activeClusters.size) highlightClusters([...activeClusters]);
+    else resetClusterHighlight();
+  }
 
   renderSidebar();
 }
@@ -1143,10 +1305,14 @@ function extractExcerpt(text) {
   while ((_m = reG.exec(text)) !== null) allMatches.push(_m);
 
   if (!allMatches.length) {
-    // Fallback: highlight the first complete sentence in gold, no gap sentence
+    // Fallback: highlight the first complete sentence in gold, next sentence in white
     const sentM = /[.!?](?:\s|$)/.exec(text);
     const split = sentM ? sentM.index + 1 : Math.min(200, text.length);
-    return { before: '', gap: '', excerpt: text.slice(0, split), after: text.slice(split) };
+    const afterText = text.slice(split);
+    const afterSentM = /[.!?](?:\s|$)/.exec(afterText);
+    const afterGapEnd = afterSentM ? split + afterSentM.index + 1 : split;
+    return { before: '', gap: '', excerpt: text.slice(0, split),
+             afterGap: text.slice(split, afterGapEnd), after: text.slice(afterGapEnd) };
   }
 
   // Prefer first match whose sentence contains "(1)" — enumerated-contribution sentences
@@ -1205,30 +1371,39 @@ function renderSidebar() {
   if (titleEl) titleEl.textContent = personalized ? 'For you' : 'Relevant today';
 
   // Score and sort visible papers by projected interest (descending), top 60
-  const entries = PAPERS
+  let entries = PAPERS
     .filter(p => paperIsVisible(p))
     .map(p => ({ p, score: scoreAffinity(p, _starredData) ?? p.relevance }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 60);
 
+  // Float pinned paper to top if it's outside the top 60 (so scrollToCard always finds it)
+  if (pinned && !entries.some(e => e.p.id === pinned.id)) {
+    entries = [{ p: pinned, score: Infinity }, ...entries.slice(0, 59)];
+  }
+
   listEl.innerHTML = entries.map(({ p }) => {
-    const presColor = PRESTIGE_COLOR[p.prestige ?? 1];
-    const presLabel = p.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[p.prestige ?? 1];
-    const pdfHref = esc(p._pdfLink || 'https://arxiv.org/pdf/'+p.id);
+    const presColor  = PRESTIGE_COLOR[p.prestige ?? 1];
+    const presLabel  = p.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[p.prestige ?? 1];
+    const pdfHref    = esc(p._pdfLink || 'https://arxiv.org/pdf/'+p.id);
+    const catActive  = activeCats.has(p.cat);
+    const fmtActive  = activeFormats.has(p.format);
+    const tier       = p.prestige ?? 1;
+    const tierActive = activePrestige.has(tier);
     const clusterChipsSb = (p.clusters || []).map(c => {
-      const active = !activeClusters.size || activeClusters.has(c);
-      return '<span class="sb-cluster-chip" data-sb-action="toggleCluster" data-cluster="'+esc(c)+'" style="opacity:'+(active?'1':'0.38')+'">'+esc(c)+'</span>';
+      const active = activeClusters.has(c);
+      return '<button class="sb-cluster-chip'+(active?' active':'')+'" data-sb-action="toggleCluster" data-cluster="'+esc(c)+'" style="color:'+(CLUSTER_COLOR[c]||'rgba(232,217,188,0.6)')+'">'+esc(c)+'</button>';
     }).join('');
     return '<div class="sb-card" data-id="'+esc(p.id)+'">'
       + '<div class="sb-title">'+esc(p.title)+'</div>'
       + '<div class="sb-card-meta">'
-      + '<span>'
-      + '<span style="color:'+(CAT_COLOR[p.cat]||'#94A3B8')+'">'+(CAT_LABEL[p.cat]||p.cat)+'</span>'
-      + (FMT_LABEL[p.format] ? '<span style="color:rgba(232,217,188,0.3)"> · </span><span style="color:'+(FMT_COLOR[p.format]||'#94A3B8')+'">'+(FMT_LABEL[p.format])+'</span>' : '')
+      + '<span class="sb-meta-tags">'
+      + '<button class="sb-tag'+(catActive?' active':'')+'" data-sb-action="toggleCat" data-cat="'+p.cat+'" style="color:'+(CAT_COLOR[p.cat]||'#94A3B8')+'">'+(CAT_LABEL[p.cat]||p.cat)+'</button>'
+      + (FMT_LABEL[p.format] ? '<button class="sb-tag'+(fmtActive?' active':'')+'" data-sb-action="toggleFmt" data-fmt="'+p.format+'" style="color:'+(FMT_COLOR[p.format]||'#94A3B8')+'">'+FMT_LABEL[p.format]+'</button>' : '')
       + '</span>'
       + (p.prestige === null
-          ? '<span class="sb-prestige" data-sb-action="verify" style="color:'+presColor+';cursor:pointer">'+presLabel+'</span>'
-          : '<span class="sb-prestige" style="color:'+presColor+'">'+presLabel+'</span>')
+          ? '<button class="sb-tag" data-sb-action="verify" style="color:'+presColor+'">'+presLabel+'</button>'
+          : '<button class="sb-tag'+(tierActive?' active':'')+'" data-sb-action="togglePrestige" data-prestige="'+tier+'" style="color:'+presColor+'">'+presLabel+'</button>')
       + '</div>'
       + (clusterChipsSb ? '<div class="sb-clusters">'+clusterChipsSb+'</div>' : '')
       + (function() {
@@ -1248,11 +1423,18 @@ function renderSidebar() {
       + '</div>';
   }).join('');
 
+  // Re-apply .lit to pinned card's tags after re-render
+  if (pinned) {
+    const sbCard = listEl.querySelector('.sb-card[data-id="'+pinned.id+'"]');
+    if (sbCard) sbCard.querySelectorAll('.sb-tag, .sb-cluster-chip')
+      .forEach(b => b.classList.add('lit'));
+  }
+
   // Wire event listeners once — the list element itself is stable
   if (!_sidebarWired) {
     listEl.addEventListener('click',     sidebarClick);
-    listEl.addEventListener('mouseover', sidebarMouseover);
-    listEl.addEventListener('mouseout',  sidebarMouseout);
+    listEl.addEventListener('mouseover',  sidebarMouseover);
+    listEl.addEventListener('mouseleave', sidebarMouseout);
     listEl.addEventListener('scroll',    sidebarScroll);
     // Track cursor position passively so scroll handler can re-detect card under cursor
     listEl.addEventListener('mousemove', e => { _sbCursorX = e.clientX; _sbCursorY = e.clientY; });
@@ -1269,13 +1451,12 @@ let _sbCursorY   = 0;
 // Used by mouseover and unpin — distinct from pin-level (0.08 dim) in sidebarClick.
 function applySidebarSpotlight(d) {
   if (!dotsG) return;
-  const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
-  base.l = Math.min(0.70, base.l + 0.12);
-  base.s = Math.min(1.0,  base.s + 0.15);
+  const hi = highlightColor(d);
+  const sameCluster = dd => d.clusters.some(c => dd.clusters.includes(c));
   dotsG.selectAll('path.pdot')
-    .attr('fill',           dd => dd === d ? base.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
-    .attr('fill-opacity',   dd => dd === d ? 1 : 0.25)
-    .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.10);
+    .attr('fill',           dd => dd === d ? hi : dotColor(dd))
+    .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
+    .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02);
   dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0);
   highlightClusters(d.clusters, d);
 }
@@ -1296,8 +1477,8 @@ function sidebarMouseover(e) {
 
 // Reset spotlight when cursor leaves the list entirely (mirrors dot mouseleave on map).
 function sidebarMouseout(e) {
+  // mouseleave — only fires when pointer physically exits the list, not on DOM mutations
   if (pinned) return;
-  if (e.currentTarget.contains(e.relatedTarget)) return; // still inside list
   _sbHoveredId = null;
   _sidebarSpotlightReset();
 }
@@ -1323,7 +1504,7 @@ function _sidebarSpotlightReset() {
   if (pinned) return;
   if (!dotsG) return;
   dotsG.selectAll('path.pdot')
-    .attr('fill',           dd => CAT_COLOR[dd.cat] || '#94A3B8')
+    .attr('fill',           dd => dotColor(dd))
     .attr('fill-opacity',   dd => dotOpacity(dd))
     .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
   dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
@@ -1343,12 +1524,33 @@ function sidebarClick(e) {
     verifyPrestige(d, true); // userInitiated: enforces 800ms min display + "✗ No data" feedback
     return;
   }
+  if (e.target.closest('[data-sb-action="toggleCat"]')) {
+    const cat = e.target.closest('[data-sb-action="toggleCat"]').dataset.cat;
+    activeCats.has(cat) ? activeCats.delete(cat) : activeCats.add(cat);
+    document.querySelectorAll('#legend .filter-btn[data-cat="'+cat+'"]')
+      .forEach(b => b.classList.toggle('active', activeCats.has(cat)));
+    updateVisibility(); return;
+  }
+  if (e.target.closest('[data-sb-action="toggleFmt"]')) {
+    const fmt = e.target.closest('[data-sb-action="toggleFmt"]').dataset.fmt;
+    activeFormats.has(fmt) ? activeFormats.delete(fmt) : activeFormats.add(fmt);
+    document.querySelectorAll('#legend .filter-btn[data-format="'+fmt+'"]')
+      .forEach(b => b.classList.toggle('active', activeFormats.has(fmt)));
+    updateVisibility(); return;
+  }
+  if (e.target.closest('[data-sb-action="togglePrestige"]')) {
+    const tier = parseInt(e.target.closest('[data-sb-action="togglePrestige"]').dataset.prestige);
+    activePrestige.has(tier) ? activePrestige.delete(tier) : activePrestige.add(tier);
+    document.querySelectorAll('#legend .filter-btn[data-prestige="'+tier+'"]')
+      .forEach(b => b.classList.toggle('active', activePrestige.has(tier)));
+    updateVisibility(); return;
+  }
   if (e.target.closest('[data-sb-action="toggleCluster"]')) {
     const cluster = e.target.closest('[data-sb-action="toggleCluster"]').dataset.cluster;
-    if (activeClusters.has(cluster)) activeClusters.delete(cluster);
-    else activeClusters.add(cluster);
-    updateVisibility();
-    return;
+    activeClusters.has(cluster) ? activeClusters.delete(cluster) : activeClusters.add(cluster);
+    document.querySelectorAll('#cluster-bar .cluster-btn[data-cluster="'+cluster+'"]')
+      .forEach(b => b.classList.toggle('active', activeClusters.has(cluster)));
+    updateVisibility(); return;
   }
 
   // Remove active highlight from all cards
@@ -1367,13 +1569,12 @@ function sidebarClick(e) {
   } else {
     pinned = d;
     card.classList.add('sb-active');
-    const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
-    base.l = Math.min(0.70, base.l + 0.12);
-    base.s = Math.min(1.0,  base.s + 0.15);
+    const hi = highlightColor(d);
+    const sameCluster = dd => d.clusters.some(c => dd.clusters.includes(c));
     dotsG.selectAll('path.pdot')
-      .attr('fill',           dd => dd === d ? base.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
-      .attr('fill-opacity',   dd => dd === d ? 1 : 0.08)
-      .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.03)
+      .attr('fill',           dd => dd === d ? hi : dotColor(dd))
+      .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
+      .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02)
       .style('filter', null)
       .filter(dd => dd === d).raise();
     dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0);
@@ -1449,22 +1650,7 @@ function draw() {
   ySc = d3.scaleLinear().domain(yExt).range([PH - M.bottom, M.top]);
   svg.call(zoom.transform, d3.zoomIdentity.scale(1 / SCALE));
 
-  // Grid
   gridG.selectAll('*').remove();
-  const [x0, x1] = xSc.domain(), [y0, y1] = ySc.domain();
-  const xMid = (x0+x1)/2, yMid = (y0+y1)/2;
-  [[x0+(x1-x0)*0.25, true],[x0+(x1-x0)*0.75, true]].forEach(([v]) => {
-    gridG.append('line').attr('x1',xSc(v)).attr('x2',xSc(v)).attr('y1',ySc(y0)).attr('y2',ySc(y1))
-      .attr('stroke','rgba(196,148,40,0.07)').attr('stroke-width',1);
-  });
-  [[y0+(y1-y0)*0.25, true],[y0+(y1-y0)*0.75, true]].forEach(([v]) => {
-    gridG.append('line').attr('x1',xSc(x0)).attr('x2',xSc(x1)).attr('y1',ySc(v)).attr('y2',ySc(v))
-      .attr('stroke','rgba(196,148,40,0.07)').attr('stroke-width',1);
-  });
-  gridG.append('line').attr('x1',xSc(xMid)).attr('x2',xSc(xMid)).attr('y1',ySc(y0)).attr('y2',ySc(y1))
-    .attr('stroke','rgba(196,148,40,0.18)').attr('stroke-width',1).attr('stroke-dasharray','4,8');
-  gridG.append('line').attr('x1',xSc(x0)).attr('x2',xSc(x1)).attr('y1',ySc(yMid)).attr('y2',ySc(yMid))
-    .attr('stroke','rgba(196,148,40,0.18)').attr('stroke-width',1).attr('stroke-dasharray','4,8');
 
   // Blobs
   blobsG.selectAll('*').remove();
@@ -1518,14 +1704,14 @@ function draw() {
     .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')')
     .attr('fill', 'none')
     .attr('stroke', '#F3B839').attr('stroke-width', 2)
-    .attr('opacity', d => starGlowOpacity(d))
+    .attr('opacity', d => { const vis = paperIsVisible(d); return vis ? starGlowOpacity(d) : 0; })
     .attr('pointer-events', 'none');
 
   dotsG.selectAll('path.pdot').data(PAPERS).join('path').attr('class','pdot')
     .attr('d', d => d3.symbol().type(D3_SYMBOL[d.format] || d3.symbolCircle).size(symSize(d))())
     .attr('transform', d => symTransform(d, 1))
-    .attr('fill', d => CAT_COLOR[d.cat] || '#94A3B8').attr('fill-opacity', d => dotOpacity(d))
-    .attr('stroke', d => CAT_COLOR[d.cat] || '#94A3B8').attr('stroke-width', 0.8).attr('stroke-opacity', d => dotOpacity(d) * 0.7)
+    .attr('fill', d => dotColor(d)).attr('fill-opacity', d => dotOpacity(d))
+    .attr('stroke', d => dotColor(d)).attr('stroke-width', 0.8).attr('stroke-opacity', d => dotOpacity(d) * 0.7)
     .attr('pointer-events', 'none');
 
   dotsG.selectAll('circle.phit').data(PAPERS).join('circle').attr('class','phit')
@@ -1535,13 +1721,12 @@ function draw() {
     .on('mouseenter', function(evt, d) {
       if (pinned) return;
       _hoveredDot = d;
-      const base = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
-      base.l = Math.min(0.70, base.l + 0.12);
-      base.s = Math.min(1.0,  base.s + 0.15);
+      const hi = highlightColor(d);
+      const sameCluster = dd => d.clusters.some(c => dd.clusters.includes(c));
       dotsG.selectAll('path.pdot')
-        .attr('fill',           dd => dd === d ? base.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
-        .attr('fill-opacity',   dd => dd === d ? 1 : 0.25)
-        .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.10);
+        .attr('fill',           dd => dd === d ? hi : dotColor(dd))
+        .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
+        .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02);
       dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0);
       highlightClusters(d.clusters, d);
       // Defer tooltip to next frame — avoids forced layout (offsetWidth read) triggering
@@ -1561,7 +1746,7 @@ function draw() {
       // If a sidebar card is still spotlit (sticky), restore its spotlight;
       // otherwise do a full reset.
       dotsG.selectAll('path.pdot')
-        .attr('fill',           dd => CAT_COLOR[dd.cat] || '#94A3B8')
+        .attr('fill',           dd => dotColor(dd))
         .attr('fill-opacity',   dd => dotOpacity(dd))
         .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
       dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
@@ -1574,7 +1759,7 @@ function draw() {
         // Unpin: full reset
         pinned = null;
         dotsG.selectAll('path.pdot')
-          .attr('fill',           dd => CAT_COLOR[dd.cat] || '#94A3B8')
+          .attr('fill',           dd => dotColor(dd))
           .attr('fill-opacity',   dd => dotOpacity(dd))
           .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
         dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
@@ -1582,24 +1767,29 @@ function draw() {
         tipEl.style.display = 'none';
       } else {
         pinned = d;
-        const pbase = d3.hsl(CAT_COLOR[d.cat] || '#94A3B8');
-        pbase.l = Math.min(0.70, pbase.l + 0.12);
-        pbase.s = Math.min(1.0,  pbase.s + 0.15);
+        const hi = highlightColor(d);
+        const sameCluster = dd => d.clusters.some(c => dd.clusters.includes(c));
         dotsG.selectAll('path.pdot')
-          .attr('fill',           dd => dd === d ? pbase.formatHex() : (CAT_COLOR[dd.cat] || '#94A3B8'))
-          .attr('fill-opacity',   dd => dd === d ? 1 : 0.08)
-          .attr('stroke-opacity', dd => dd === d ? 0.6 : 0.03)
+          .attr('fill',           dd => dd === d ? hi : dotColor(dd))
+          .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
+          .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02)
           .style('filter', null)
           .filter(dd => dd === d).raise();
         dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0);
         highlightClusters(d.clusters, d);
-        showTip(evt, d);
+        { const _r = svg.node().getBoundingClientRect(), _t = d3.zoomTransform(svg.node());
+          showTip({ clientX: _r.left + _t.applyX(xSc(d._x)), clientY: _r.top + _t.applyY(ySc(d._y)) }, d); }
         // Expand sidebar if collapsed, then scroll to card
         const sbEl = document.getElementById('sidebar');
         const scrollToCard = () => {
-          const sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
+          let sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
             .find(c => c.dataset.id === d.id);
-          if (sbCard) sbCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (!sbCard) {
+            renderSidebar(); // pinned paper is now floated to top
+            sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
+              .find(c => c.dataset.id === d.id);
+          }
+          if (sbCard) sbCard.scrollIntoView({ behavior: 'instant', block: 'start' });
         };
         if (sbEl.classList.contains('collapsed')) {
           sbEl.classList.remove('collapsed');
@@ -1616,53 +1806,98 @@ function draw() {
       }
     });
 
-  // Axes — compass-rose layout: N/S/E/W, each centered on its edge midpoint
+  // Axes: x-axis gradient bar at bottom; y-axis gold bar on left; dim-overlay viewport tracker.
   axisG.selectAll('*').remove();
   const chartW = W - M.left - M.right;
   const chartH = H - M.top  - M.bottom;
-  const cx = M.left + chartW / 2;
-  const cy = M.top  + chartH / 2;
+  const barY  = H - M.bottom + 6;  // x-axis bar: 6px below data area
+  const barH  = 3;
+  const lblY  = barY + barH + 13;  // x-axis labels below bar
+
   const isPersonalized = Object.keys(_starredData).length > 0;
-  // North: personalized label — class lets updateAxisLabel() swap it live
-  axisG.append('text').attr('class','axis-label axis-north')
-    .attr('x', cx).attr('y', M.top + 14)
-    .attr('text-anchor','middle').text(isPersonalized ? 'Your interests' : 'Relevance');
-  // South: only shown in cold-start mode (no stars)
+
+  // attachAxisTip(selection, key, hoverColor) — hoverColor is the spectrum color for this axis end
+  function attachAxisTip(sel, key, hoverColor) {
+    const tipCopy = {
+      west:  'How things work\u2014theory, interpretability, scaling laws.',
+      east:  'What was built\u2014benchmarks, deployed systems, robots.',
+      north: isPersonalized
+        ? 'Top papers best match your starred interests.'
+        : 'Top papers are most relevant to AI/ML. Star papers to personalize.',
+    };
+    sel.on('mouseenter', function(evt) {
+        d3.select(this).style('fill', hoverColor);
+        tipEl.innerHTML =
+          `<div style="font-size:0.78rem;line-height:1.55;color:${hoverColor};max-width:200px">`
+          + tipCopy[key]
+          + `<br><span style="opacity:0.38;font-size:0.71rem">Double-click to reset view</span></div>`;
+        tipEl.style.display = 'block';
+        tipEl.style.pointerEvents = 'none';
+        moveTip(evt);
+      })
+      .on('mousemove', moveTip)
+      .on('mouseleave', function() {
+        d3.select(this).style('fill', null);
+        tipEl.style.display = 'none';
+      });
+  }
+
+  // ── X-axis: gradient bar ──
+  axisG.append('rect').attr('class','axis-bar')
+    .attr('x', M.left).attr('y', barY)
+    .attr('width', chartW).attr('height', barH).attr('rx', 1.5)
+    .attr('fill', 'url(#axis-x-grad)').attr('opacity', 0.55)
+    .attr('pointer-events', 'none');
+
+  // Dim overlays — cover out-of-viewport portions; updated live by zoom handler.
+  const _dimFill = 'rgba(19,16,28,0.68)';
+  axisG.append('rect').attr('class','vp-dim-left')
+    .attr('y', barY - 1).attr('height', barH + 2).attr('rx', 1)
+    .attr('fill', _dimFill).attr('pointer-events', 'none')
+    .attr('x', M.left).attr('width', 0);
+  axisG.append('rect').attr('class','vp-dim-right')
+    .attr('y', barY - 1).attr('height', barH + 2).attr('rx', 1)
+    .attr('fill', _dimFill).attr('pointer-events', 'none')
+    .attr('x', M.left + chartW).attr('width', 0);
+
+  // West: Mechanism
+  attachAxisTip(axisG.append('text').attr('class','axis-label axis-west')
+    .attr('x', M.left).attr('y', lblY).attr('dy','0.35em').attr('text-anchor','start')
+    .style('fill', axisColor(0)).text('Mechanism'), 'west', axisColor(0.12));
+
+  // East: Application
+  attachAxisTip(axisG.append('text').attr('class','axis-label axis-east')
+    .attr('x', M.left + chartW).attr('y', lblY).attr('dy','0.35em').attr('text-anchor','end')
+    .style('fill', axisColor(1)).text('Application'), 'east', axisColor(0.88));
+
+  // ── Y-axis: gold bar on left edge ──
+  axisG.append('rect').attr('class','axis-bar-y')
+    .attr('x', M.left - 4).attr('y', M.top)
+    .attr('width', 3).attr('height', chartH).attr('rx', 1.5)
+    .attr('fill', 'url(#axis-y-grad)').attr('opacity', 0.7)
+    .attr('pointer-events', 'none');
+
+  // North: left-aligned, anchored to top of y-bar; aligns with "Field" and sidebar title
+  attachAxisTip(axisG.append('text').attr('class','axis-label axis-north')
+    .attr('x', M.left).attr('y', 21).attr('text-anchor','start')
+    .style('fill','rgba(196,148,40,0.55)')
+    .text(isPersonalized ? 'Your interests' : 'Relevance'), 'north', '#C49428');
+
+  // South: cold-start only — left-aligned, above x-bar
   axisG.append('text').attr('class','axis-label axis-south')
-    .attr('x', cx).attr('y', H - M.bottom + 18)
-    .attr('text-anchor','middle').text('Low relevance')
-    .style('opacity', isPersonalized ? 0 : 0.6);
-  // West: Theoretical — vertically centered on the left edge
-  axisG.append('text').attr('class','axis-label')
-    .attr('x', M.left + 8).attr('y', cy).attr('dy','0.35em')
-    .attr('text-anchor','start').text('Theoretical');
-  // East: Applied — vertically centered on the right edge
-  axisG.append('text').attr('class','axis-label')
-    .attr('x', W - M.right - 8).attr('y', cy).attr('dy','0.35em')
-    .attr('text-anchor','end').text('Applied');
+    .attr('x', M.left).attr('y', barY - 5).attr('text-anchor','start')
+    .style('fill','rgba(196,148,40,0.35)')
+    .text('Low relevance')
+    .style('opacity', isPersonalized ? 0 : 1);
 }
 
 // Swap N/S axis labels without a full redraw (called on star toggle).
 function updateAxisLabel() {
   const isPersonalized = Object.keys(_starredData).length > 0;
   axisG.selectAll('text.axis-north').text(isPersonalized ? 'Your interests' : 'Relevance');
-  axisG.selectAll('text.axis-south').style('opacity', isPersonalized ? 0 : 0.6);
+  axisG.selectAll('text.axis-south').style('opacity', isPersonalized ? 0 : 1);
 }
 
-// Update the cold-start / star-count note in the legend sidebar.
-function updateAxisNote() {
-  const note = document.getElementById('axis-note');
-  if (!note) return;
-  const n = Object.keys(_starredData).length;
-  const todayStarred = PAPERS.filter(p => p.starred).length;
-  const prevDays = n - todayStarred; // starred from past days (content saved, no ring today)
-  if (n === 0) {
-    note.innerHTML = '<div class="leg-note" style="color:rgba(196,148,40,0.55)">★ Star papers to<br>personalize Y axis</div>';
-  } else {
-    const extra = prevDays > 0 ? '<br>+'+prevDays+' previous' : '';
-    note.innerHTML = '<div class="leg-note" style="color:rgba(196,148,40,0.65)">Y axis: your interests<br>('+todayStarred+' starred today'+extra+')</div>';
-  }
-}
 
 // ═══════════════════════════════════════════════════════
 // SIDEBAR TOGGLE
@@ -1727,7 +1962,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   const today = new Date().toISOString().slice(0, 10);
   const newDate = changes.lastFetch?.newValue ?? today;
   if (PAPERS.length > 0 && newDate === document.getElementById('header-date').textContent && incoming.length === PAPERS.length) return;
-  chrome.storage.local.get(['lastFetch'], ({ lastFetch }) => renderPapers(incoming, lastFetch));
+  chrome.storage.local.get(['lastFetch','appliedHistory'], ({ lastFetch, appliedHistory }) => renderPapers(incoming, lastFetch, appliedHistory));
 });
 
 // ═══════════════════════════════════════════════════════

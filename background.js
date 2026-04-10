@@ -281,6 +281,7 @@ async function fetchHFTrending() {
 // Optional API key — register free at https://www.semanticscholar.org/product/api
 // Leave null to use unauthenticated (1 req/day fine; add key if rate-limited).
 const S2_API_KEY = null;
+const ANTHROPIC_API_KEY = 'REDACTED';
 const S2_BATCH_URL = 'https://api.semanticscholar.org/graph/v1/paper/batch';
 
 // Tier 3 — Frontier AI labs + high-mandate research agencies (dot 1.5× size, very few/day)
@@ -577,14 +578,116 @@ function classifyFormat(title, summary) {
   return 'empirical';
 }
 
+// Returns the contribution sentence ("We introduce/propose/...") if found,
+// plus the preceding sentence for context. Falls back to first sentence.
+function contributionSentence(text) {
+  if (!text) return '';
+  const WE_RE = /\bwe\s+(introduce|propose|present|develop|build|describe|release|deploy|show|demonstrate|create|design|train|fine-?tune|implement|generate|construct|apply|extend|provide|offer|study|analyze|investigate)\b/i;
+  const match = WE_RE.exec(text);
+  if (!match) {
+    // fallback: first sentence
+    const m = text.match(/[^.!?]*[.!?]/);
+    return m ? m[0].trim() : text.slice(0, 120);
+  }
+  // Find the sentence containing the match
+  const before = text.slice(0, match.index);
+  const sentStart = Math.max(before.lastIndexOf('. ') + 2, before.lastIndexOf('.\n') + 2, 0);
+  const tail = text.slice(match.index);
+  const endM = /[.!?]/.exec(tail);
+  const sentEnd = endM ? match.index + endM.index + 1 : text.length;
+  return text.slice(sentStart, Math.min(sentEnd, sentStart + 350)).trim();
+}
+
 function scoreApplied(title, summary) {
-  const text = (title + ' ' + summary).toLowerCase();
-  const aTerms = ['deploy','real-world','production','industry','application','practical','clinical','medical','healthcare','commercial','on-device','edge','robot','autonomous','user study','human evaluation','user interface','open-source','open source','released','api','pipeline','end-to-end system','in the wild'];
-  const tTerms = ['theorem','lemma','proof','regret','sample complexity','convergence rate','upper bound','lower bound','pac learning','formal','asymptotic','theoretical analysis','minimax','information-theoretic'];
+  const text = (title + ' ' + (summary || '')).toLowerCase();
+  const aTerms = [
+    // deployment & real-world use
+    'deploy','real-world','production','industry','practical','commercial',
+    'on-device','edge','in the wild','open-source','open source','released','api',
+    // systems & tools
+    'system','framework','tool','pipeline','end-to-end',
+    // task-solving & benchmarks
+    'benchmark','dataset','state-of-the-art','outperforms','downstream',
+    'fine-tuning','fine-tune','instruction','agent','autonomous','robot',
+    // human-facing
+    'user study','human evaluation','user interface','clinical','medical','healthcare',
+  ];
+  const mTerms = [
+    // mathematical theory
+    'theorem','lemma','proof','regret','sample complexity','convergence',
+    'upper bound','lower bound','pac learning','formal','asymptotic',
+    'minimax','information-theoretic',
+    // mechanistic understanding
+    'mechanistic','interpretability','probing','representations','circuits',
+    'activation','internals','features','attention heads',
+    // analytical intent
+    'we analyze','we study','we investigate','we show that','we demonstrate that',
+    'understanding','insight','why does','how does','what does',
+    'ablation','empirical analysis','scaling law','scaling laws',
+  ];
   const a = aTerms.filter(t => text.includes(t)).length;
-  const th = tTerms.filter(t => text.includes(t)).length;
-  // Base 0.38 (slight theory-lean) so neutral papers don't pile up at centre.
-  return Math.min(1, Math.max(0, 0.38 + a * 0.11 - th * 0.15));
+  const m = mTerms.filter(t => text.includes(t)).length;
+  // Base 0.45 — neither direction is default
+  return Math.min(1, Math.max(0, 0.45 + a * 0.10 - m * 0.12));
+}
+
+async function scoreAppliedChunk(chunk) {
+  const lines = chunk.map((p, i) =>
+    `${i+1}. "${p.title}" — ${contributionSentence(p._summary || '')}`
+  ).join('\n');
+  const prompt = `Classify each research paper on a scale from 0.0 to 1.0:
+0.0 = Mechanism: analyzes, explains, or theorizes about how something works (interpretability, scaling laws, proofs, empirical analysis)
+1.0 = Application: primarily builds or deploys something for real-world use (systems, robots, clinical tools, released software)
+
+Papers:
+${lines}
+
+Output ONLY a JSON array of ${chunk.length} floats in order. No explanation. Example: [0.3,0.8,0.1]`;
+
+  const resp = await fetchWithTimeout('https://api.anthropic.com/v1/messages', 30000, {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!resp.ok) {
+    const errBody = await resp.text().catch(() => '');
+    throw new Error(`Anthropic HTTP ${resp.status}: ${errBody}`);
+  }
+  const data = await resp.json();
+  const text = data.content?.[0]?.text || '';
+  const match = text.match(/\[[\d.,\s]+\]/);
+  if (!match) throw new Error(`No JSON array in response: ${text.slice(0, 100)}`);
+  const scores = JSON.parse(match[0]);
+  // Pad with null if model skipped entries; caller fills gaps with keyword scores
+  while (scores.length < chunk.length) scores.push(null);
+  return scores.slice(0, chunk.length).map(s => s === null ? null : Math.min(1, Math.max(0, Number(s))));
+}
+
+async function scoreAppliedBatch(papers) {
+  if (!ANTHROPIC_API_KEY) return null;
+  const CHUNK = 50;
+  try {
+    const results = [];
+    for (let i = 0; i < papers.length; i += CHUNK) {
+      results.push(...await scoreAppliedChunk(papers.slice(i, i + CHUNK)));
+    }
+    // Fill any nulls with keyword fallback
+    results.forEach((s, i) => { if (s === null) results[i] = scoreApplied(papers[i].title, papers[i]._summary || ''); });
+    console.log(`[arXiv] Haiku scores applied (${results.filter((_, i) => i < papers.length).length} papers).`);
+    return results;
+  } catch (e) {
+    console.warn('[arXiv] Haiku scoring failed, falling back to keywords:', e.message);
+    return null;
+  }
 }
 
 function scoreRelevance(cat, title, summary) {
@@ -779,10 +882,36 @@ async function processAndStore(rawPapers) {
     };
   });
 
+  // LLM scoring pass — replaces keyword values when available
+  const llmScores = await scoreAppliedBatch(papers);
+  if (llmScores) {
+    llmScores.forEach((s, i) => { papers[i].applied = s; });
+  }
+
+  // Compute per-cat and per-format mean applied scores for today
+  const CAT_KEYS = ['cs.LG','cs.CL','cs.IR','cs.AI','cs.CV','cs.HC','cs.CR','cs.RO'];
+  const FMT_KEYS = ['empirical','benchmark','survey','theory','position'];
+  const catScores = {}, fmtScores = {};
+  CAT_KEYS.forEach(cat => {
+    const sub = papers.filter(p => p.cat === cat);
+    catScores[cat] = sub.length ? sub.reduce((s,p) => s + p.applied, 0) / sub.length : null;
+  });
+  FMT_KEYS.forEach(fmt => {
+    const sub = papers.filter(p => p.format === fmt);
+    fmtScores[fmt] = sub.length ? sub.reduce((s,p) => s + p.applied, 0) / sub.length : null;
+  });
+
+  // Append to rolling 7-day history (dedupe today, trim to last 7)
+  const today = new Date().toISOString().slice(0, 10);
+  const { appliedHistory: prevHistory = [] } = await getStorage(['appliedHistory']);
+  const freshHistory = prevHistory.filter(e => e.date !== today);
+  freshHistory.push({ date: today, cats: catScores, formats: fmtScores });
+  const appliedHistory = freshHistory.sort((a,b) => a.date.localeCompare(b.date)).slice(-7);
+
   const clusterCounts = {};
   papers.forEach(p => { const c = p.clusters[0]; clusterCounts[c] = (clusterCounts[c]||0)+1; });
   const t3 = papers.filter(p => p.prestige === 3).length;
   const t2 = papers.filter(p => p.prestige === 2).length;
-  await setStorage({ processedPapers: papers });
+  await setStorage({ processedPapers: papers, appliedHistory });
   console.log(`[arXiv] Stored ${papers.length} papers. Prestige: ★★★${t3} ★★${t2} ★${papers.length-t3-t2}. Clusters: ${Object.entries(clusterCounts).map(([k,v])=>`${k}(${v})`).join(', ')}`);
 }

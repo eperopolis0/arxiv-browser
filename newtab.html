@@ -61,26 +61,26 @@
   #refresh-btn.spinning .refresh-icon { animation: spin 0.75s linear infinite; }
 
   #cluster-bar {
-    padding: 8px 18px 9px;
+    padding: 5px 14px 6px;
     border-bottom: 1px solid rgba(196,148,40,0.10);
-    display: flex; gap: 7px; flex-wrap: wrap; flex-shrink: 0;
+    display: flex; gap: 5px; flex-wrap: wrap; flex-shrink: 0;
     background: rgba(0,0,0,0.22);
   }
   .cluster-btn {
-    padding: 6px 16px; border-radius: 14px;
+    padding: 4px 11px; border-radius: 11px;
     border: 1.5px solid currentColor;
     background: transparent;
-    font-size: 1rem; cursor: pointer; opacity: 0.85;
+    font-size: 0.82rem; cursor: pointer; opacity: 0.85;
     font-family: inherit;
     transition: opacity 0.12s, background 0.12s, box-shadow 0.12s;
   }
-  .cluster-btn .cb-count { font-size: 0.78rem; opacity: 0.6; margin-left: 4px; display: inline-block; min-width: 2.5ch; text-align: right; font-variant-numeric: tabular-nums; }
-  .cluster-btn.active { opacity: 1; background: rgba(196,148,40,0.10); box-shadow: 0 0 10px 1px rgba(196,148,40,0.3); }
+  .cluster-btn .cb-count { font-size: 0.70rem; opacity: 0.6; margin-left: 3px; display: inline-block; min-width: 2.5ch; text-align: right; font-variant-numeric: tabular-nums; }
+  .cluster-btn.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
   .cluster-btn:hover  { opacity: 1; }
-  .cluster-btn.lit    { opacity: 1; border-color: rgba(196,148,40,0.90); box-shadow: 0 0 18px 5px rgba(196,148,40,0.55); }
-  .filter-btn.lit     { opacity: 1; border-color: rgba(196,148,40,0.90); box-shadow: 0 0 14px 4px rgba(196,148,40,0.55); }
-  #cluster-bar.spotlight-active .cluster-btn:not(.lit) { opacity: 0.20; }
-  #legend.spotlight-active .filter-btn:not(.lit) { opacity: 0.20; }
+  .cluster-btn.lit    { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
+  .filter-btn.lit     { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
+  #cluster-bar.spotlight-active .cluster-btn:not(.lit) { opacity: 0.30; }
+  #legend.spotlight-active .filter-btn:not(.lit) { opacity: 0.30; }
   .cluster-btn.zero-count { opacity: 0.28; cursor: pointer; }
   .cluster-btn.zero-count:hover { opacity: 0.6; }
 
@@ -108,32 +108,40 @@
     background: rgba(0,0,0,0.18);
   }
   .leg-section-title {
-    font-size: 0.58rem; text-transform: uppercase;
+    font-size: 0.58rem; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between;
     letter-spacing: 0.12em; color: rgba(196,148,40,0.55); margin-bottom: 6px;
   }
+  .color-mode-toggle {
+    font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.08em;
+    background: transparent; border: 1px solid rgba(196,148,40,0.35); border-radius: 3px;
+    color: rgba(196,148,40,0.45); cursor: pointer; padding: 1px 5px; line-height: 1.4;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .color-mode-toggle:hover { color: rgba(196,148,40,0.85); border-color: rgba(196,148,40,0.65); }
+  .color-mode-toggle.active { color: rgba(196,148,40,0.95); border-color: rgba(196,148,40,0.7); background: rgba(196,148,40,0.12); }
   .leg-btns { display: flex; flex-wrap: wrap; gap: 5px; }
   .leg-btns.single-col { flex-direction: column; flex-wrap: nowrap; }
   .leg-btns.single-col .filter-btn { width: 100%; justify-content: center; }
   .filter-btn {
     display: flex; align-items: center; gap: 4px;
     padding: 4px 8px; border-radius: 10px;
-    border: 1px solid currentColor;
+    border: 1.5px solid currentColor;
     background: transparent;
     font-size: 0.62rem; cursor: pointer;
-    opacity: 0.38; transition: opacity 0.15s, background 0.15s;
+    opacity: 0.85; transition: opacity 0.12s, background 0.12s, box-shadow 0.12s;
     font-family: inherit; white-space: nowrap; overflow: hidden;
   }
-  .filter-btn.active { opacity: 1; background: rgba(196,148,40,0.08); }
-  .filter-btn:hover  { opacity: 0.75; }
-  .filter-btn.zero-count { opacity: 0.25; cursor: pointer; }
-  .filter-btn.zero-count:hover { opacity: 0.55; }
+  .filter-btn.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
+  .filter-btn:hover  { opacity: 1; }
+  .filter-btn.zero-count { opacity: 0.28; cursor: pointer; }
+  .filter-btn.zero-count:hover { opacity: 0.6; }
   .filter-btn.active.zero-count { opacity: 0.45; }
   .filter-btn .fb-count {
     opacity: 0.55; font-size: 0.58rem;
     display: inline-block; min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums;
   }
   .filter-btn.star-btn { color: #c49428; border-color: #c49428; }
-  .filter-btn.star-btn.active { background: rgba(196,148,40,0.13); }
+  .filter-btn.star-btn.active { /* inherits .filter-btn.active */ }
   .leg-note { font-size: 0.63rem; color: rgba(232,217,188,0.25); line-height: 1.65; letter-spacing: 0.02em; }
 
   /* ── Starred Papers Drawer ── */
@@ -222,7 +230,7 @@
     color: rgba(232,217,188,0.6);
     border: 1px solid rgba(196,148,40,0.2);
   }
-  .tt-cluster-chip.active-chip { color: #e8d9bc; border-color: rgba(196,148,40,0.5); background: rgba(196,148,40,0.12); }
+  .tt-cluster-chip.active-chip { color: #e8d9bc; border-color: rgba(196,148,40,0.5); background: rgba(0,0,0,0.55); box-shadow: 0 0 4px 1px rgba(196,148,40,0.4); }
   .tt-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 5px; margin-top: 2px; line-height: 1.35; color: #e8d9bc; }
   .tt-gist { font-size: 0.74rem; color: rgba(232,217,188,0.6); line-height: 1.5; margin-bottom: 9px; }
   .tt-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 7px; }
@@ -258,7 +266,8 @@
   .tt-header-sep { color: rgba(232,217,188,0.2); margin: 0 5px; }
 
   /* ── SVG text ── */
-  .axis-label    { font-size: 11px; fill: #c49428; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'Avenir Next', 'Avenir', sans-serif; }
+  .axis-label    { font-size: 11px; fill: rgba(232,217,188,0.35); letter-spacing: 0.1em; text-transform: uppercase; font-family: 'Avenir Next', 'Avenir', sans-serif; cursor: default; transition: fill 0.15s; }
+  .leg-nav-hint  { font-size: 0.72rem; color: rgba(232,217,188,0.45); line-height: 1.65; letter-spacing: 0.02em; margin-top: 4px; }
   .cluster-label { fill: rgba(232,217,188,0.55); font-weight: 500; pointer-events: none; transition: opacity 0.15s; }
 
   /* ── Search ── */
@@ -330,8 +339,19 @@
   .sb-card.sb-active  { background: rgba(232,217,188,0.055); }
   .sb-card-meta {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 5px; font-size: 0.82rem; opacity: 0.75;
+    margin-bottom: 5px; flex-wrap: wrap; gap: 4px;
   }
+  .sb-meta-tags { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+  .sb-tag {
+    font-size: 0.68rem; padding: 1px 7px; border-radius: 9px;
+    background: transparent; border: 1px solid currentColor;
+    cursor: pointer; font-family: inherit;
+    opacity: 0.42; transition: opacity 0.12s, box-shadow 0.12s;
+    display: inline-block; line-height: 1.5;
+  }
+  .sb-tag.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
+  .sb-tag.lit    { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
+  .sb-tag:hover  { opacity: 1; }
   .sb-unverified {
     font-size: 0.75rem; opacity: 0.45; font-style: italic;
   }
@@ -358,12 +378,15 @@
     display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px;
   }
   .sb-cluster-chip {
-    font-size: 0.63rem; padding: 2px 8px; border-radius: 10px;
-    background: rgba(196,148,40,0.06); color: rgba(232,217,188,0.6);
-    border: 1px solid rgba(196,148,40,0.2);
-    cursor: pointer; transition: opacity 0.12s;
+    font-size: 0.63rem; padding: 2px 9px; border-radius: 11px;
+    background: transparent;
+    border: 1.5px solid currentColor;
+    cursor: pointer; font-family: inherit; transition: opacity 0.12s, box-shadow 0.12s;
+    opacity: 0.42;
   }
-  .sb-cluster-chip:hover { background: rgba(196,148,40,0.14); color: #e8d9bc; border-color: rgba(196,148,40,0.5); }
+  .sb-cluster-chip.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
+  .sb-cluster-chip.lit    { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
+  .sb-cluster-chip:hover  { opacity: 1; color: rgba(232,217,188,0.9); }
   .sb-actions {
     display: flex; gap: 7px; margin-top: 2px;
   }
