@@ -19,3 +19,7 @@ node_modules/
 # Local dev notes
 *.local
 notes.md
+
+# Secrets — never commit API keys
+.env
+.env.*

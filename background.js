@@ -13,7 +13,6 @@ function stripLatex(text) {
 }
 
 const API_BASE = 'https://export.arxiv.org/api/query';
-const HF_PAPERS_API = 'https://huggingface.co/api/daily_papers';
 const LISTING_URL = 'https://arxiv.org/list/cs.AI/new';
 const FALLBACK_COUNT = 150;    // Used if listing page is unavailable (conservative — better to miss a few than show old papers)
 const REQUEST_TIMEOUT = 60000; // 60s
@@ -134,23 +133,18 @@ async function doFetchAndCache() {
   console.log('[arXiv] Fetch started.');
 
   try {
-    // Get today's listing IDs + HF trending in parallel.
-    // fetchTodayListing() returns the authoritative set of paper IDs arXiv placed in
-    // today's announcement — this is the ground truth for what "today's papers" means.
-    const [hfTrending, { count, ids: listingIds }] = await Promise.all([
-      fetchHFTrending(),
-      fetchTodayListing()
+    // Fetch listing IDs and pre-scored JSON in parallel.
+    const [{ count, ids: listingIds }, preScored] = await Promise.all([
+      fetchTodayListing(),
+      fetchPreScoredJSON(today),
     ]);
-    const rawPapers = await fetchArxivBatch(count);
+    const rawPapers = await fetchArxivBatch(count, listingIds);
 
-    // Filter to only papers arXiv explicitly listed in today's announcement.
-    // This is more reliable than a date filter: the listing page is authoritative
-    // regardless of submission date, weekend consolidation, or cross-list timing.
-    // Falls back to a date filter if the listing page was unavailable.
+    // When fetched by id_list, rawPapers are already exactly today's papers.
+    // Falls back to date filter if listing page was unavailable.
     let freshPapers;
     if (listingIds?.size) {
-      freshPapers = rawPapers.filter(p => listingIds.has(p.arxivId));
-      console.log(`[arXiv] ID whitelist filter: ${rawPapers.length} → ${freshPapers.length} papers`);
+      freshPapers = rawPapers;
     } else {
       const latestDate = rawPapers
         .map(p => (p.updated || p.published || '').slice(0, 10))
@@ -161,38 +155,36 @@ async function doFetchAndCache() {
       console.log(`[arXiv] Date fallback filter (${latestDate}): ${rawPapers.length} → ${freshPapers.length} papers`);
     }
 
-    // S2 affiliation lookup — non-fatal; missing → prestige 2 (neutral)
-    const prestigeMap = await fetchS2Affiliations(freshPapers);
+    // S2 affiliation lookup — skip entirely if pre-scored JSON covers today's papers.
+    // The scorer already ran S2 + HTML prestige for every paper overnight.
+    const preScoredCount = freshPapers.filter(p => preScored?.[p.arxivId]).length;
+    const usePreScored = preScored && preScoredCount === freshPapers.length;
+    let prestigeMap = new Map();
+    if (!usePreScored) {
+      console.log(`[arXiv] Pre-scored JSON missing or incomplete (${preScoredCount}/${freshPapers.length}) — running S2 lookup.`);
+      prestigeMap = await fetchS2Affiliations(freshPapers);
+    } else {
+      console.log(`[arXiv] Pre-scored JSON covers all ${freshPapers.length} papers — skipping S2.`);
+    }
 
-    // Cross-reference HF trending + prestige
-    const allEnriched = freshPapers.map(p => {
-      const hf = hfTrending.get(p.arxivId);
-      return {
-        ...p,
-        trending: !!hf,
-        upvotes: hf?.upvotes || 0,
-        prestige: prestigeMap.get(p.arxivId.replace(/v\d+$/, '')) ?? null,
-      };
-    });
-
-    const enriched = allEnriched;
+    const enriched = freshPapers.map(p => ({
+      ...p,
+      prestige: prestigeMap.get(p.arxivId.replace(/v\d+$/, '')) ?? null,
+    }));
 
     await setStorage({
       papers: enriched,
       lastFetch: today,
-      lastFetchTime: Date.now(), // epoch ms — lets newtab detect stale same-day cache
+      lastFetchTime: Date.now(),
       fetchError: null,
-      fetchRetryAfter: null, // clear any previous rate-limit cooldown
+      fetchRetryAfter: null,
       paperCount: enriched.length,
       fetchInProgress: false,
       fetchStartedAt: null
     });
 
     console.log(`[arXiv] Cached ${enriched.length} papers for ${today}.`);
-
-    // processAndStore fires dataUpdated early (with keyword scores) so the tab renders
-    // immediately, then completes Haiku scoring in the background.
-    await processAndStore(enriched);
+    await processAndStore(enriched, preScored);
 
   } catch (err) {
     console.error('[arXiv] Fetch failed:', err.message);
@@ -240,10 +232,13 @@ async function fetchTodayListing() {
     }
 
     // Extract the authoritative paper IDs from New + Cross-submissions sections.
-    // Cut off at the Replacement submissions block so we don't capture revised papers.
+    // The listing page has three <dl id='articles'> blocks in order:
+    //   [1] New submissions  [2] Cross-submissions  [3] Replacement submissions
+    // Split on that tag and take only sections 1 and 2 — skip Replacements entirely.
     // arXiv listing uses `href ="/abs/YYMM.NNNNN"` (note the space before =).
-    const withoutReplacements = html.split(/<dl id='articles'>[^]*?<h3>[^<]*Replacement/)[0];
-    const idMatches = [...withoutReplacements.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)];
+    const dlSections = html.split("<dl id='articles'>");
+    const newAndCross = dlSections.slice(1, 3).join(' '); // sections 1 + 2 only
+    const idMatches = [...newAndCross.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)];
     const ids = new Set(idMatches.map(m => m[1]));
     console.log(`[arXiv] Listing IDs extracted: ${ids.size} (whitelist for today's announcement).`);
 
@@ -254,11 +249,25 @@ async function fetchTodayListing() {
   }
 }
 
-async function fetchArxivBatch(count) {
-  // Fetch cs.AI only. arXiv's cat:cs.AI query returns every paper listed in
-  // arxiv.org/list/cs.AI/new — including cross-listed papers from other cs.* categories.
-  // Request exactly the listing page count — no buffer, since any excess is
-  // filled with previous-day papers that shouldn't be shown.
+async function fetchArxivBatch(count, ids) {
+  // If we have the authoritative ID list from the listing page, fetch those exact
+  // papers by id_list. This handles cross-listed papers that were submitted days
+  // ago to other categories — they'd be missed by a submittedDate-sorted search.
+  // Fall back to the search query if no IDs were extracted.
+  if (ids?.size) {
+    const idArray = [...ids];
+    console.log(`[arXiv] Fetching ${idArray.length} papers by id_list…`);
+    const params = new URLSearchParams({ id_list: idArray.join(','), max_results: idArray.length });
+    const resp = await fetchWithTimeout(`${API_BASE}?${params}`, REQUEST_TIMEOUT);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const xml = await resp.text();
+    const papers = parseAtomXML(xml);
+    console.log(`[arXiv] cs.AI: ${papers.length} papers fetched by id_list.`);
+    return papers;
+  }
+
+  // Fallback: search query sorted by submittedDate (may miss older cross-listings).
+  console.log(`[arXiv] Fetching ${count} cs.AI papers by search query (no ID list)…`);
   const params = new URLSearchParams({
     search_query: 'cat:cs.AI',
     start: 0,
@@ -266,12 +275,6 @@ async function fetchArxivBatch(count) {
     sortBy: 'submittedDate',
     sortOrder: 'descending'
   });
-
-  // Fetch once. If rate-limited, throw immediately so doFetchAndCache can store
-  // a fetchRetryAfter cooldown timestamp. The newtab page drives the retry
-  // countdown — service workers can be killed after ~30s of inactivity so
-  // long sleeps here are unreliable.
-  console.log(`[arXiv] Fetching ${count} cs.AI papers…`);
   const resp = await fetchWithTimeout(`${API_BASE}?${params}`, REQUEST_TIMEOUT);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const xml = await resp.text();
@@ -280,22 +283,6 @@ async function fetchArxivBatch(count) {
   return papers;
 }
 
-async function fetchHFTrending() {
-  const map = new Map();
-  try {
-    const resp = await fetchWithTimeout(HF_PAPERS_API, 15000);
-    if (!resp.ok) return map;
-    const data = await resp.json();
-    data.forEach(item => {
-      const id = item.paper?.id;
-      if (id) map.set(id, { upvotes: item.numUpvotes || 0 });
-    });
-    console.log(`[arXiv] HF trending: ${map.size} papers.`);
-  } catch (e) {
-    console.warn('[arXiv] HF trending failed (non-fatal):', e.message);
-  }
-  return map;
-}
 
 // ═══════════════════════════════════════════════════════
 // PRESTIGE — Semantic Scholar affiliation lookup
@@ -303,101 +290,80 @@ async function fetchHFTrending() {
 // Optional API key — register free at https://www.semanticscholar.org/product/api
 // Leave null to use unauthenticated (1 req/day fine; add key if rate-limited).
 const S2_API_KEY = null;
-const ANTHROPIC_API_KEY = 'REDACTED';
 const S2_BATCH_URL = 'https://api.semanticscholar.org/graph/v1/paper/batch';
 
-// Tier 3 — Frontier AI labs + high-mandate research agencies (dot 1.5× size, very few/day)
+// Pre-scored JSON published daily by GitHub Actions — extension fetches this first.
+// Format: { date, papers: { arxivId: { applied, prestige, cluster, format } } }
+const SCORES_BASE_URL = 'https://raw.githubusercontent.com/eperopolis0/arxiv-browser/main/scores';
+
+async function fetchPreScoredJSON(date) {
+  try {
+    const resp = await fetchWithTimeout(`${SCORES_BASE_URL}/${date}.json`, 10000);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (data?.date === date && data?.papers) {
+      console.log(`[arXiv] Pre-scored JSON loaded: ${Object.keys(data.papers).length} papers.`);
+      return data.papers; // { arxivId: { applied, prestige, cluster, format } }
+    }
+    return null;
+  } catch (e) {
+    console.log(`[arXiv] No pre-scored JSON for ${date} (${e.message}) — will score locally.`);
+    return null;
+  }
+}
+
+// Tier 3 — Pure frontier AI labs only. These are orgs whose primary purpose is
+// frontier AI research — a paper from here is almost always worth flagging.
+// Goal: a handful per day at most.
 const PRESTIGE_TIER3 = [
-  // Frontier AI labs
-  'deepmind','google brain','google research','google ai',
-  'openai','anthropic',
-  'meta ai','fundamental ai research','meta platforms',
-  'microsoft research',
-  'nvidia research',
-  'apple machine learning','apple ai research',
-  'hugging face',
-  'xai','x.ai',
-  'amazon science',
-  // High-mandate research agencies
-  'darpa','defense advanced research projects',
-  'intelligence advanced research projects',
+  'anthropic',
+  'openai',
+  'deepmind','google deepmind','google brain',
+  'meta ai','fundamental ai research','fair ',  // FAIR = Meta's Fundamental AI Research lab
 ];
 
-// Tier 2 — Strong research institutions: well-known universities (R1+), national labs, major institutes
+// Tier 2 — Elite research programs with real AI depth.
+// Matched by institution name in affiliation text; NOT by email domain (too broad).
+// Goal: scannable — maybe 10–30 papers/day.
 const PRESTIGE_TIER2 = [
-  // Strong research universities (existing)
-  'new york university','cornell university','columbia university',
-  'university of michigan','university of washington',
-  'georgia institute of technology','georgia tech',
-  'university of illinois','university of texas',
-  'university of maryland',
-  'university of california',          // catches UCSD, UCLA, UCSB etc.
-  'university of pennsylvania',
-  'johns hopkins university',
-  'university of edinburgh','imperial college',
-  'university college london',
-  'national university of singapore',
-  'nanyang technological university',
-  'zhejiang university','shanghai jiao tong','fudan university',
-  'kaist','seoul national university',
-  'technical university of munich','technische universität münchen',
-  'ku leuven','vrije universiteit',
-  'adobe research','ibm research',
-  'samsung research','sony research',
-  'baidu research','alibaba damo','bytedance research',
-  'salesforce research',
-  'allen institute',
-  // Elite universities (moved from tier 3)
-  'massachusetts institute of technology',
+  // US universities (top CS with strong AI focus)
+  'massachusetts institute of technology','mit csail',
   'stanford university','stanford ai lab',
   'carnegie mellon university',
   'university of california, berkeley','uc berkeley','berkeley artificial intelligence',
   'california institute of technology','caltech',
+  'cornell university','cornell tech',
+  'university of washington',
+  'princeton university',
+  'new york university','courant institute',
+  // International universities with strong AI research
   'university of oxford',
   'university of cambridge',
   'eth zurich','eth zürich',
   'epfl','école polytechnique fédérale de lausanne',
-  'mila','université de montréal','university of toronto',
-  'princeton university',
-  'max planck institute',
-  'tsinghua university','tsinghua',
-  'peking university',
-  // National labs (moved from tier 3)
-  'national institute of standards','nist',
-  'national security agency',
-  'argonne national laboratory',
-  'oak ridge national laboratory',
-  'lawrence berkeley national laboratory',
-  'lawrence livermore national laboratory',
-  'sandia national',
-  'los alamos national laboratory',
-  'pacific northwest national laboratory',
-  'national institutes of health',
-  'air force research laboratory','afrl',
-  'army research laboratory',
-  'naval research laboratory',
-  // International research orgs (moved from tier 3)
-  'alan turing institute',
-  'fraunhofer',
-  'inria',
-  'riken',
-  'chinese academy of sciences',
+  'university of toronto',
+  'mila','université de montréal',
+  'imperial college london',
+  // Dedicated AI research arms of big tech (matched by specific name, not parent company)
+  'google research',
+  'microsoft research',
+  'meta ai','fundamental ai research',
+  'allen institute for ai','allen institute for artificial intelligence',
+  'vector institute',
 ];
 
 // Email domains for fetchHTMLPrestige scan.
+// Tier 3: only orgs with dedicated frontier-AI email domains.
+// Tier 2: top university domains only — no broad company domains.
 const EMAIL_DOMAIN_TIER3 = [
-  'google.com','deepmind.com','anthropic.com','openai.com',
-  'meta.com','microsoft.com','nvidia.com','apple.com',
-  'amazon.com','huggingface.co',
+  'anthropic.com','openai.com','deepmind.com','meta.com',
 ];
 const EMAIL_DOMAIN_TIER2 = [
-  'nyu.edu','cornell.edu','columbia.edu','cmu.edu','mit.edu',
-  'stanford.edu','berkeley.edu','uw.edu','gatech.edu',
-  'illinois.edu','utexas.edu','umd.edu','upenn.edu',
-  'jhu.edu','ed.ac.uk','ic.ac.uk','ucl.ac.uk',
-  'nus.edu.sg','ntu.edu.sg','tum.de',
-  'adobe.com','ibm.com','samsung.com','sony.com',
-  'baidu.com','alibaba-inc.com','bytedance.com','salesforce.com',
+  'mit.edu','stanford.edu','cmu.edu','berkeley.edu',
+  'cornell.edu','uw.edu','princeton.edu','nyu.edu','caltech.edu',
+  'ox.ac.uk','cam.ac.uk','ethz.ch','epfl.ch',
+  'utoronto.ca','mila.quebec',
+  'ic.ac.uk',
 ];
 
 // Extract the HTML between the opening of one div class and the opening of another.
@@ -578,7 +544,6 @@ function parseAtomXML(xml) {
         arxivId, title, summary, published, updated,
         authors, categories, pdfLink,
         absLink: `https://arxiv.org/abs/${arxivId}`,
-        trending: false, upvotes: 0
       });
     }
   }
@@ -619,25 +584,6 @@ function classifyFormat(title, summary) {
   return 'empirical';
 }
 
-// Returns the contribution sentence ("We introduce/propose/...") if found,
-// plus the preceding sentence for context. Falls back to first sentence.
-function contributionSentence(text) {
-  if (!text) return '';
-  const WE_RE = /\bwe\s+(introduce|propose|present|develop|build|describe|release|deploy|show|demonstrate|create|design|train|fine-?tune|implement|generate|construct|apply|extend|provide|offer|study|analyze|investigate)\b/i;
-  const match = WE_RE.exec(text);
-  if (!match) {
-    // fallback: first sentence
-    const m = text.match(/[^.!?]*[.!?]/);
-    return m ? m[0].trim() : text.slice(0, 120);
-  }
-  // Find the sentence containing the match
-  const before = text.slice(0, match.index);
-  const sentStart = Math.max(before.lastIndexOf('. ') + 2, before.lastIndexOf('.\n') + 2, 0);
-  const tail = text.slice(match.index);
-  const endM = /[.!?]/.exec(tail);
-  const sentEnd = endM ? match.index + endM.index + 1 : text.length;
-  return text.slice(sentStart, Math.min(sentEnd, sentStart + 350)).trim();
-}
 
 function scoreApplied(title, summary) {
   const text = (title + ' ' + (summary || '')).toLowerCase();
@@ -672,64 +618,6 @@ function scoreApplied(title, summary) {
   return Math.min(1, Math.max(0, 0.45 + a * 0.10 - m * 0.12));
 }
 
-async function scoreAppliedChunk(chunk) {
-  const lines = chunk.map((p, i) =>
-    `${i+1}. "${p.title}" — ${contributionSentence(p._summary || '')}`
-  ).join('\n');
-  const prompt = `Classify each research paper on a scale from 0.0 to 1.0:
-0.0 = Mechanism: analyzes, explains, or theorizes about how something works (interpretability, scaling laws, proofs, empirical analysis)
-1.0 = Application: primarily builds or deploys something for real-world use (systems, robots, clinical tools, released software)
-
-Papers:
-${lines}
-
-Output ONLY a JSON array of ${chunk.length} floats in order. No explanation. Example: [0.3,0.8,0.1]`;
-
-  const resp = await fetchWithTimeout('https://api.anthropic.com/v1/messages', 30000, {
-    method: 'POST',
-    headers: {
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
-  if (!resp.ok) {
-    const errBody = await resp.text().catch(() => '');
-    throw new Error(`Anthropic HTTP ${resp.status}: ${errBody}`);
-  }
-  const data = await resp.json();
-  const text = data.content?.[0]?.text || '';
-  const match = text.match(/\[[\d.,\s]+\]/);
-  if (!match) throw new Error(`No JSON array in response: ${text.slice(0, 100)}`);
-  const scores = JSON.parse(match[0]);
-  // Pad with null if model skipped entries; caller fills gaps with keyword scores
-  while (scores.length < chunk.length) scores.push(null);
-  return scores.slice(0, chunk.length).map(s => s === null ? null : Math.min(1, Math.max(0, Number(s))));
-}
-
-async function scoreAppliedBatch(papers) {
-  if (!ANTHROPIC_API_KEY) return null;
-  const CHUNK = 50;
-  try {
-    const results = [];
-    for (let i = 0; i < papers.length; i += CHUNK) {
-      results.push(...await scoreAppliedChunk(papers.slice(i, i + CHUNK)));
-    }
-    // Fill any nulls with keyword fallback
-    results.forEach((s, i) => { if (s === null) results[i] = scoreApplied(papers[i].title, papers[i]._summary || ''); });
-    console.log(`[arXiv] Haiku scores applied (${results.filter((_, i) => i < papers.length).length} papers).`);
-    return results;
-  } catch (e) {
-    console.warn('[arXiv] Haiku scoring failed, falling back to keywords:', e.message);
-    return null;
-  }
-}
 
 function scoreRelevance(cat, title, summary) {
   const text = (title + ' ' + summary).toLowerCase();
@@ -747,78 +635,6 @@ function scoreRelevance(cat, title, summary) {
   return Math.min(1, Math.max(0.05, 0.35 + h * 0.10 + m * 0.03 - l * 0.15 + boost));
 }
 
-const STOPWORDS = new Set(['a','an','the','in','on','at','to','for','of','with','and','or','is','are','was','were','this','that','these','those','we','our','it','its','by','from','as','be','been','has','have','had','not','but','which','also','can','using','based','via','paper','propose','model','method','approach','show','shows','learn','learning','deep','new','two','one','three','large','small','high','low','first','present','achieve','result','performance','training','train','trained','task','tasks','data','dataset','set','use','used','different','across','between','both','more','than','without','into','each','other','such','whether','while','when','where','then','their','they','them','thus','however','here','there']);
-
-function tokenize(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(t => t.length > 3 && !STOPWORDS.has(t));
-}
-
-function buildTFIDF(papers) {
-  const docs = papers.map(p => tokenize(p.title + ' ' + (p.summary || '')));
-  const N = docs.length;
-  const df = {};
-  docs.forEach(tokens => new Set(tokens).forEach(t => df[t] = (df[t]||0)+1));
-  const vocab = Object.keys(df)
-    .filter(t => df[t] >= 2 && df[t] <= N / 2)
-    .sort((a,b) => Math.log((N+1)/(df[b]+1)) - Math.log((N+1)/(df[a]+1)))
-    .slice(0, 400);
-  const vi = {};
-  vocab.forEach((t,i) => vi[t] = i);
-  const idf = t => Math.log((N+1)/(df[t]+1));
-  const vectors = docs.map(tokens => {
-    const freq = {};
-    tokens.forEach(t => freq[t] = (freq[t]||0)+1);
-    const maxF = Math.max(...Object.values(freq), 1);
-    const vec = new Float32Array(vocab.length);
-    Object.entries(freq).forEach(([t,f]) => { if (vi[t] !== undefined) vec[vi[t]] = (f/maxF)*idf(t); });
-    const norm = Math.sqrt(vec.reduce((s,x) => s+x*x, 0)) || 1;
-    for (let i = 0; i < vec.length; i++) vec[i] /= norm;
-    return vec;
-  });
-  return { vectors, vocab };
-}
-
-function cosineSim(a, b) {
-  let dot = 0;
-  for (let i = 0; i < a.length; i++) dot += a[i]*b[i];
-  return dot;
-}
-
-function kmeansCluster(vectors, k = 12, maxIter = 25) {
-  if (!vectors.length) return new Int32Array(0);
-  const n = vectors.length, dim = vectors[0].length;
-  k = Math.min(k, n);
-  let s = 42;
-  const rng = () => { s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; };
-  const centroids = [vectors[Math.floor(rng()*n)]];
-  while (centroids.length < k) {
-    const dists = vectors.map(v => 1 - Math.max(0, ...centroids.map(c => cosineSim(v,c))));
-    const sum = dists.reduce((a,b)=>a+b, 0);
-    let r = rng() * sum;
-    let picked = false;
-    for (let i = 0; i < n; i++) { r -= dists[i]; if (r <= 0) { centroids.push(vectors[i]); picked = true; break; } }
-    if (!picked) centroids.push(vectors[Math.floor(rng()*n)]);
-  }
-  const assignments = new Int32Array(n);
-  for (let iter = 0; iter < maxIter; iter++) {
-    let changed = false;
-    for (let i = 0; i < n; i++) {
-      let best = 0, bestSim = -Infinity;
-      for (let j = 0; j < k; j++) { const sim = cosineSim(vectors[i], centroids[j]); if (sim > bestSim) { bestSim = sim; best = j; } }
-      if (assignments[i] !== best) { assignments[i] = best; changed = true; }
-    }
-    if (!changed) break;
-    for (let j = 0; j < k; j++) {
-      const c = new Float32Array(dim);
-      let cnt = 0;
-      for (let i = 0; i < n; i++) if (assignments[i] === j) { for (let d = 0; d < dim; d++) c[d] += vectors[i][d]; cnt++; }
-      if (!cnt) continue;
-      const norm = Math.sqrt(c.reduce((s,x)=>s+x*x,0))||1;
-      for (let d = 0; d < dim; d++) centroids[j][d] = c[d]/norm;
-    }
-  }
-  return assignments;
-}
 
 const CLUSTER_MAP = [
   { name:'Agents & Planning',        keys:['agent','agentic','multi-agent','autonomous agent','tool use','tool call','planning','workflow','orchestrat','chain-of-thought','reasoning trace','decision mak'] },
@@ -852,51 +668,47 @@ function classifyPaper(title, summary, cat) {
 }
 
 
-async function processAndStore(rawPapers) {
+async function processAndStore(rawPapers, preScored = null) {
   if (!rawPapers?.length) {
     console.warn('[arXiv] processAndStore called with 0 papers — skipping.');
     return;
   }
   console.log(`[arXiv] Processing ${rawPapers.length} papers…`);
+
   const papers = rawPapers.map(p => {
     const title   = stripLatex(p.title   || '');
     const summary = stripLatex(p.summary || '');
     const cat = (p.categories || []).find(c => c.startsWith('cs.')) || p.categories?.[0] || 'cs.AI';
-    const cluster = classifyPaper(title, summary, cat);
-    const prestige = p.prestige ?? null; // S2 affiliations at load; HTML verification on click
+    const scored  = preScored?.[p.arxivId];
+    const cluster = scored?.cluster || classifyPaper(title, summary, cat);
+    const prestige = scored?.prestige ?? p.prestige ?? null;
     return {
       id:        p.arxivId,
       title,
       gist:      summary.slice(0, 200).replace(/\s+/g,' ').toLowerCase(),
       cat,
-      format:    classifyFormat(title, summary),
-      applied:   scoreApplied(title, summary),
+      format:    scored?.format || classifyFormat(title, summary),
+      applied:   scored?.applied ?? scoreApplied(title, summary),
       relevance: scoreRelevance(cat, title, summary),
-      upvotes:   p.upvotes || 0,
-      trending:  p.trending || false,
-      prestige,  // 1=unknown 2=research 3=frontier
+      prestige,
       starred:   false,
       clusters:  [cluster],
       _absLink:   p.absLink  || `https://arxiv.org/abs/${p.arxivId}`,
       _pdfLink:   p.pdfLink  || `https://arxiv.org/pdf/${p.arxivId}`,
       _authors:   (p.authors || []).slice(0,3).join(', '),
       _summary:   summary,
-      _published: (p.published || '').slice(0, 10), // YYYY-MM-DD submission date
-      _updated:   (p.updated   || p.published || '').slice(0, 10), // YYYY-MM-DD announcement date
+      _published: (p.published || '').slice(0, 10),
+      _updated:   (p.updated   || p.published || '').slice(0, 10),
     };
   });
 
-  // Store keyword-scored papers immediately so the new tab can render without waiting
-  // for Haiku scoring (which can take 30-300s on large paper sets).
+  const preScoreCount = papers.filter(p => preScored?.[p.id]).length;
+  console.log(preScoreCount === papers.length
+    ? `[arXiv] All ${papers.length} papers pre-scored — rendering instantly.`
+    : `[arXiv] ${preScoreCount}/${papers.length} pre-scored — rendering with keyword fallback for the rest.`
+  );
   await setStorage({ processedPapers: papers });
   chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {});
-  console.log(`[arXiv] Rendered with keyword scores. Starting Haiku scoring…`);
-
-  // LLM scoring pass — replaces keyword values when available
-  const llmScores = await scoreAppliedBatch(papers);
-  if (llmScores) {
-    llmScores.forEach((s, i) => { papers[i].applied = s; });
-  }
 
   // Compute per-cat, per-format, and per-cluster mean applied scores for today
   const CAT_KEYS = ['cs.LG','cs.CL','cs.IR','cs.AI','cs.CV','cs.HC','cs.CR','cs.RO'];
@@ -917,7 +729,6 @@ async function processAndStore(rawPapers) {
   });
 
   // Append to rolling 7-day history (dedupe today, trim to last 7)
-  const today = new Date().toISOString().slice(0, 10);
   const { appliedHistory: prevHistory = [] } = await getStorage(['appliedHistory']);
   const freshHistory = prevHistory.filter(e => e.date !== today);
   freshHistory.push({ date: today, cats: catScores, formats: fmtScores, clusters: clusterScores });

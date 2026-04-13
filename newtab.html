@@ -75,14 +75,18 @@
     transition: opacity 0.12s, background 0.12s, box-shadow 0.12s;
   }
   .cluster-btn .cb-count { font-size: 0.70rem; opacity: 0.6; margin-left: 3px; display: inline-block; min-width: 2.5ch; text-align: right; font-variant-numeric: tabular-nums; }
-  .cluster-btn.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
   .cluster-btn:hover  { opacity: 1; }
-  .cluster-btn.lit    { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
-  .filter-btn.lit     { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
   #cluster-bar.spotlight-active .cluster-btn:not(.lit) { opacity: 0.30; }
-  #legend.spotlight-active .filter-btn:not(.lit) { opacity: 0.30; }
   .cluster-btn.zero-count { opacity: 0.28; cursor: pointer; }
   .cluster-btn.zero-count:hover { opacity: 0.6; }
+
+  /* Shared active/lit states across all button types */
+  .cluster-btn.active, .filter-btn.active, .sb-tag.active, .sb-cluster-chip.active {
+    opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor;
+  }
+  .cluster-btn.lit, .filter-btn.lit, .sb-tag.lit, .sb-cluster-chip.lit {
+    opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor;
+  }
 
   #main { display: flex; flex: 1; overflow: hidden; }
 
@@ -131,7 +135,6 @@
     opacity: 0.85; transition: opacity 0.12s, background 0.12s, box-shadow 0.12s;
     font-family: inherit; white-space: nowrap; overflow: hidden;
   }
-  .filter-btn.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
   .filter-btn:hover  { opacity: 1; }
   .filter-btn.zero-count { opacity: 0.28; cursor: pointer; }
   .filter-btn.zero-count:hover { opacity: 0.6; }
@@ -141,7 +144,6 @@
     display: inline-block; min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums;
   }
   .filter-btn.star-btn { color: #c49428; border-color: #c49428; }
-  .filter-btn.star-btn.active { /* inherits .filter-btn.active */ }
   .leg-note { font-size: 0.63rem; color: rgba(232,217,188,0.25); line-height: 1.65; letter-spacing: 0.02em; }
 
   /* ── Starred Papers Drawer ── */
@@ -266,8 +268,7 @@
   .tt-header-sep { color: rgba(232,217,188,0.2); margin: 0 5px; }
 
   /* ── SVG text ── */
-  .axis-label    { font-size: 11px; fill: rgba(232,217,188,0.35); letter-spacing: 0.1em; text-transform: uppercase; font-family: 'Avenir Next', 'Avenir', sans-serif; cursor: default; transition: fill 0.15s; }
-  .leg-nav-hint  { font-size: 0.72rem; color: rgba(232,217,188,0.45); line-height: 1.65; letter-spacing: 0.02em; margin-top: 4px; }
+  .axis-label    { font-size: 9px; fill: rgba(196,148,40,0.50); letter-spacing: 0.12em; text-transform: uppercase; font-family: 'Avenir Next', 'Avenir', sans-serif; cursor: default; transition: fill 0.15s; }
   .cluster-label { fill: rgba(232,217,188,0.55); font-weight: 500; pointer-events: none; transition: opacity 0.15s; }
 
   /* ── Search ── */
@@ -349,8 +350,6 @@
     opacity: 0.42; transition: opacity 0.12s, box-shadow 0.12s;
     display: inline-block; line-height: 1.5;
   }
-  .sb-tag.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
-  .sb-tag.lit    { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
   .sb-tag:hover  { opacity: 1; }
   .sb-unverified {
     font-size: 0.75rem; opacity: 0.45; font-style: italic;
@@ -384,8 +383,6 @@
     cursor: pointer; font-family: inherit; transition: opacity 0.12s, box-shadow 0.12s;
     opacity: 0.42;
   }
-  .sb-cluster-chip.active { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 5px 1px currentColor; }
-  .sb-cluster-chip.lit    { opacity: 1; background: rgba(0,0,0,0.55); box-shadow: 0 0 9px 2px currentColor; }
   .sb-cluster-chip:hover  { opacity: 1; color: rgba(232,217,188,0.9); }
   .sb-actions {
     display: flex; gap: 7px; margin-top: 2px;

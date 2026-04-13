@@ -1,0 +1,35 @@
+name: Score daily arXiv papers
+
+on:
+  schedule:
+    # 00:30 UTC Mon–Fri = ~8:30pm ET Sun–Thu, ~30 min after arXiv publishes new listings
+    - cron: '30 0 * * 1-5'
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Score today's papers
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          S2_API_KEY: ${{ secrets.S2_API_KEY }}
+        run: node scorer/score-today.mjs
+
+      - name: Commit scores
+        run: |
+          git config user.name  "arxiv-scorer[bot]"
+          git config user.email "arxiv-scorer@users.noreply.github.com"
+          DATE=$(node -e "console.log(new Date().toISOString().slice(0,10))")
+          git add scores/${DATE}.json
+          git diff --cached --quiet || git commit -m "scores: ${DATE}"
+          git push
