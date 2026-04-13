@@ -134,21 +134,32 @@ async function doFetchAndCache() {
   console.log('[arXiv] Fetch started.');
 
   try {
-    // Get today's exact paper count + HF trending in parallel
-    const [hfTrending, count] = await Promise.all([
+    // Get today's listing IDs + HF trending in parallel.
+    // fetchTodayListing() returns the authoritative set of paper IDs arXiv placed in
+    // today's announcement — this is the ground truth for what "today's papers" means.
+    const [hfTrending, { count, ids: listingIds }] = await Promise.all([
       fetchHFTrending(),
-      fetchTodayCount()
+      fetchTodayListing()
     ]);
     const rawPapers = await fetchArxivBatch(count);
 
-    // Filter by submission date: keep papers submitted within the last 5 days.
-    // 5 days covers Monday-from-Friday (3 days) + 2-day buffer for holidays/timezone drift.
-    // Uses `published` (original submission date), not `updated` (last revision date).
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 5);
-    const cutoff = cutoffDate.toISOString().slice(0, 10); // YYYY-MM-DD
-    const freshPapers = rawPapers.filter(p => !p.published || p.published.slice(0, 10) >= cutoff);
-    console.log(`[arXiv] Date filter (>= ${cutoff}): ${rawPapers.length} → ${freshPapers.length} papers`);
+    // Filter to only papers arXiv explicitly listed in today's announcement.
+    // This is more reliable than a date filter: the listing page is authoritative
+    // regardless of submission date, weekend consolidation, or cross-list timing.
+    // Falls back to a date filter if the listing page was unavailable.
+    let freshPapers;
+    if (listingIds?.size) {
+      freshPapers = rawPapers.filter(p => listingIds.has(p.arxivId));
+      console.log(`[arXiv] ID whitelist filter: ${rawPapers.length} → ${freshPapers.length} papers`);
+    } else {
+      const latestDate = rawPapers
+        .map(p => (p.updated || p.published || '').slice(0, 10))
+        .filter(Boolean).sort().at(-1);
+      freshPapers = latestDate
+        ? rawPapers.filter(p => (p.updated || p.published || '').slice(0, 10) === latestDate)
+        : rawPapers;
+      console.log(`[arXiv] Date fallback filter (${latestDate}): ${rawPapers.length} → ${freshPapers.length} papers`);
+    }
 
     // S2 affiliation lookup — non-fatal; missing → prestige 2 (neutral)
     const prestigeMap = await fetchS2Affiliations(freshPapers);
@@ -200,9 +211,11 @@ async function doFetchAndCache() {
   }
 }
 
-// Fetch today's paper count from the listing page heading.
-// e.g. "Fri, 20 Mar 2026 (showing first 50 of 228 entries)"
-async function fetchTodayCount() {
+// Fetch today's paper count AND the authoritative set of paper IDs from the listing page.
+// The listing page is the ground truth for which papers belong to today's announcement.
+// Returns { count, ids } — ids is a Set of arxiv IDs (e.g. "2604.08504").
+// Falls back to { count: FALLBACK_COUNT, ids: null } if the page is unavailable.
+async function fetchTodayListing() {
   try {
     const resp = await fetchWithTimeout(LISTING_URL, 15000);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -210,24 +223,34 @@ async function fetchTodayCount() {
 
     // The listing page has three sections in order:
     //   New submissions (showing N of N entries)
-    //   Cross-listings  (showing N of N entries)
-    //   Replacements    (showing N of N entries)
-    // We want New + Cross-listings, not Replacements.
+    //   Cross-submissions (showing N of N entries)
+    //   Replacement submissions (showing N of N entries)
+    // We want New + Cross-submissions, not Replacements.
     const re = /showing\s+(?:first\s+)?\d+\s+of\s+(\d+)\s+entr/gi;
     const matches = [...html.matchAll(re)];
+    let count;
     if (matches.length >= 2) {
-      const count = parseInt(matches[0][1], 10) + parseInt(matches[1][1], 10);
+      count = parseInt(matches[0][1], 10) + parseInt(matches[1][1], 10);
       console.log(`[arXiv] Listing: ${matches[0][1]} new + ${matches[1][1]} cross-listed = ${count} total.`);
-      return count;
     } else if (matches.length === 1) {
-      const count = parseInt(matches[0][1], 10);
+      count = parseInt(matches[0][1], 10);
       console.log(`[arXiv] Listing: ${count} papers (single section).`);
-      return count;
+    } else {
+      throw new Error('count not found in listing page');
     }
-    throw new Error('count not found in listing page');
+
+    // Extract the authoritative paper IDs from New + Cross-submissions sections.
+    // Cut off at the Replacement submissions block so we don't capture revised papers.
+    // arXiv listing uses `href ="/abs/YYMM.NNNNN"` (note the space before =).
+    const withoutReplacements = html.split(/<dl id='articles'>[^]*?<h3>[^<]*Replacement/)[0];
+    const idMatches = [...withoutReplacements.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)];
+    const ids = new Set(idMatches.map(m => m[1]));
+    console.log(`[arXiv] Listing IDs extracted: ${ids.size} (whitelist for today's announcement).`);
+
+    return { count, ids };
   } catch (e) {
-    console.warn(`[arXiv] Listing page failed (${e.message}), falling back to ${FALLBACK_COUNT}`);
-    return FALLBACK_COUNT;
+    console.warn(`[arXiv] Listing page failed (${e.message}), falling back to count=${FALLBACK_COUNT}, no ID whitelist.`);
+    return { count: FALLBACK_COUNT, ids: null };
   }
 }
 
@@ -875,10 +898,10 @@ async function processAndStore(rawPapers) {
     llmScores.forEach((s, i) => { papers[i].applied = s; });
   }
 
-  // Compute per-cat and per-format mean applied scores for today
+  // Compute per-cat, per-format, and per-cluster mean applied scores for today
   const CAT_KEYS = ['cs.LG','cs.CL','cs.IR','cs.AI','cs.CV','cs.HC','cs.CR','cs.RO'];
   const FMT_KEYS = ['empirical','benchmark','survey','theory','position'];
-  const catScores = {}, fmtScores = {};
+  const catScores = {}, fmtScores = {}, clusterScores = {};
   CAT_KEYS.forEach(cat => {
     const sub = papers.filter(p => p.cat === cat);
     catScores[cat] = sub.length ? sub.reduce((s,p) => s + p.applied, 0) / sub.length : null;
@@ -887,12 +910,17 @@ async function processAndStore(rawPapers) {
     const sub = papers.filter(p => p.format === fmt);
     fmtScores[fmt] = sub.length ? sub.reduce((s,p) => s + p.applied, 0) / sub.length : null;
   });
+  const clusterNames = [...new Set(papers.map(p => p.clusters[0]).filter(Boolean))];
+  clusterNames.forEach(name => {
+    const sub = papers.filter(p => p.clusters[0] === name);
+    clusterScores[name] = sub.length ? sub.reduce((s,p) => s + p.applied, 0) / sub.length : null;
+  });
 
   // Append to rolling 7-day history (dedupe today, trim to last 7)
   const today = new Date().toISOString().slice(0, 10);
   const { appliedHistory: prevHistory = [] } = await getStorage(['appliedHistory']);
   const freshHistory = prevHistory.filter(e => e.date !== today);
-  freshHistory.push({ date: today, cats: catScores, formats: fmtScores });
+  freshHistory.push({ date: today, cats: catScores, formats: fmtScores, clusters: clusterScores });
   const appliedHistory = freshHistory.sort((a,b) => a.date.localeCompare(b.date)).slice(-7);
 
   const clusterCounts = {};

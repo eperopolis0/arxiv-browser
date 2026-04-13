@@ -518,6 +518,7 @@ async function renderPapers(processedPapers, lastFetch, appliedHistory) {
   document.getElementById('vis-count').textContent = PAPERS.length;
 
   logScoreDistribution(PAPERS);
+  applyColorHistory(appliedHistory); // set CAT_COLOR from rolling history before building UI
   buildClusterBar();
   buildLegend();
 
@@ -560,13 +561,15 @@ async function renderPapers(processedPapers, lastFetch, appliedHistory) {
 // (empirically ~0.20–0.78), so the discriminating colors cluster in the range that matters.
 // Individual paper extremes (0.0, 1.0) still get the endpoint colors.
 // [score, L, C, H]
+// Anchored to the bimodal data distribution: theoretical cluster peaks ~0.30, applied ~0.60.
+// Gold crossover sits in the valley between peaks (~0.45) so each cluster gets a distinct hue.
 const AXIS_STOPS = [
   [0.00, 0.48, 0.16, 265],  // deep blue          (extreme mechanism)
-  [0.20, 0.53, 0.15, 250],  // steel blue
-  [0.37, 0.61, 0.11, 218],  // blue-teal          (papers pass through green 0.37→0.50, intentional)
-  [0.50, 0.65, 0.14,  78],  // gold               (neutral crossover — p50 lands here as warm)
-  [0.65, 0.63, 0.13,  45],  // amber
-  [0.80, 0.57, 0.14,  28],  // sienna
+  [0.15, 0.53, 0.15, 250],  // steel blue
+  [0.30, 0.60, 0.14, 180],  // teal               (theoretical peak)
+  [0.45, 0.65, 0.14,  78],  // gold               (crossover — valley between peaks)
+  [0.60, 0.63, 0.13,  45],  // amber              (applied peak)
+  [0.80, 0.55, 0.14,  25],  // sienna
   [1.00, 0.48, 0.16,  20],  // deep red
 ];
 
@@ -644,6 +647,31 @@ function applyColorHistory(history) {
   const fmtAvg = fmt => fmtCount[fmt] ? fmtSum[fmt] / fmtCount[fmt] : 0.5;
   ALL_CATS.sort((a, b) => catAvg(a) - catAvg(b));
   ALL_FORMATS.sort((a, b) => fmtAvg(a) - fmtAvg(b));
+
+  // Rebuild the axis gradient using actual category colors positioned at their
+  // mean applied scores — so the bar reflects what you see on the map today.
+  rebuildAxisGradient(cat => ({ score: catAvg(cat), color: CAT_COLOR[cat] }));
+}
+
+function rebuildAxisGradient(catInfo) {
+  // Collect (score, color) pairs from all categories that have data
+  const stops = Object.keys(CAT_COLOR)
+    .map(cat => catInfo(cat))
+    .filter(d => d.color && d.score != null)
+    .sort((a, b) => a.score - b.score);
+
+  if (!stops.length) return;
+
+  // Remove existing stops and replace with category-derived ones
+  _axisGrad.selectAll('stop').remove();
+  // Anchor at 0 and 1 with the extreme colors
+  _axisGrad.append('stop').attr('offset', '0%').attr('stop-color', axisColor(0));
+  stops.forEach(({ score, color }) => {
+    _axisGrad.append('stop')
+      .attr('offset', `${(score * 100).toFixed(1)}%`)
+      .attr('stop-color', color);
+  });
+  _axisGrad.append('stop').attr('offset', '100%').attr('stop-color', axisColor(1));
 }
 
 function buildClusterBar() {
@@ -1609,12 +1637,37 @@ function applyJitter() {
   const starCount = Object.keys(_starredData || {}).length;
   const JITTER_Y = 0.09 * Math.exp(-starCount / 8);  // decays toward 0 as you star more papers
   const isPersonalized = starCount > 0;
+
+  // Even-spread X jitter within each score bucket: rank papers sharing the same
+  // discrete score and distribute them evenly across the jitter band so columns
+  // don't form. Uses seeded RNG for stable ordering across reloads.
+  const buckets = {};
+  PAPERS.forEach(p => {
+    const key = p.applied.toFixed(2);
+    if (!buckets[key]) buckets[key] = [];
+    buckets[key].push(p);
+  });
+  Object.values(buckets).forEach(group => {
+    // Shuffle group deterministically using each paper's own seed
+    group.sort((a, b) => {
+      const ra = seededRand(parseInt(a.id.replace('.','')) || 12345)();
+      const rb = seededRand(parseInt(b.id.replace('.','')) || 12345)();
+      return ra - rb;
+    });
+    const n = group.length;
+    group.forEach((p, i) => {
+      // Spread evenly from -JITTER_X to +JITTER_X within the bucket
+      const offset = n === 1 ? 0 : (i / (n - 1) - 0.5) * 2 * JITTER_X;
+      p._x = Math.max(0.01, Math.min(0.99, p.applied + offset));
+    });
+  });
+
   PAPERS.forEach(p => {
     const rng  = seededRand(parseInt(p.id.replace('.','')) || 12345);
+    rng(); // consume first value (used for bucket sort above)
     const yBase = isPersonalized
       ? (scoreAffinity(p, _starredData) ?? p.relevance)
       : p.relevance;
-    p._x = Math.max(0.01, Math.min(0.99, p.applied + (rng() - 0.5) * 2 * JITTER_X));
     p._y = Math.max(0.01, Math.min(0.99, yBase     + (rng() - 0.5) * 2 * JITTER_Y));
   });
 }
