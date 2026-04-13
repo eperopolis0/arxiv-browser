@@ -179,10 +179,9 @@ async function doFetchAndCache() {
 
     console.log(`[arXiv] Cached ${enriched.length} papers for ${today}.`);
 
-    // Process papers (scoring + clustering) and store result so new tab renders instantly
+    // processAndStore fires dataUpdated early (with keyword scores) so the tab renders
+    // immediately, then completes Haiku scoring in the background.
     await processAndStore(enriched);
-
-    chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {});
 
   } catch (err) {
     console.error('[arXiv] Fetch failed:', err.message);
@@ -378,16 +377,29 @@ const EMAIL_DOMAIN_TIER2 = [
   'baidu.com','alibaba-inc.com','bytedance.com','salesforce.com',
 ];
 
-// On-click prestige scan: fetch the first 64KB of the arxiv latexml HTML version.
-// The CSS preamble is typically 20–40KB; 64KB reliably reaches the author block.
-// ltx_role_affiliation spans only appear in the authors section — safe from citation pollution.
+// Extract the HTML between the opening of one div class and the opening of another.
+// Used to get the authors section (ltx_authors → ltx_abstract) without depth-counting,
+// which is fragile when nested divs are present or absent.
+function extractBetweenDivs(html, startClass, endClass) {
+  const startRe = new RegExp('<div[^>]*' + startClass + '[^>]*>', 'i');
+  const endRe   = new RegExp('<div[^>]*' + endClass   + '[^>]*>', 'i');
+  const startM  = startRe.exec(html);
+  if (!startM) return null;
+  const endM = endRe.exec(html.slice(startM.index));
+  if (!endM) return null;
+  return html.slice(startM.index, startM.index + endM.index);
+}
+
+// On-click prestige scan: fetch the first 128KB of the arxiv latexml HTML version.
+// Scans only the region between ltx_authors and ltx_abstract — never the body.
+// Handles both ltx_role_affiliation spans and bare text nodes (e.g. Anthropic papers).
 // Returns 3, 2, 1 (confirmed), or null (no HTML version or no affiliation data found).
 async function fetchHTMLPrestige(arxivId) {
   const url = `https://arxiv.org/html/${arxivId}`;
   let text;
   try {
     const resp = await fetchWithTimeout(url, 15000, {
-      headers: { Range: 'bytes=0-65535' }
+      headers: { Range: 'bytes=0-131071' }
     });
     if (resp.status !== 200 && resp.status !== 206) return null;
     text = await resp.text();
@@ -396,20 +408,26 @@ async function fetchHTMLPrestige(arxivId) {
     return null;
   }
 
+  // Extract the authors section: from ltx_authors opening to ltx_abstract opening.
+  // Scoping to this window avoids catching institution names or emails in the paper body.
+  // Falls back to full text only if extraction fails (truncated HTML, unusual structure).
+  const authorsBlock = extractBetweenDivs(text, 'ltx_authors', 'ltx_abstract') || '';
+  const scanSource   = authorsBlock || text;
+
   let affiliationText = '';
   const affRe = /<span[^>]*ltx_role_affiliation[^>]*>([\s\S]*?)<\/span>/gi;
   let affM;
-  while ((affM = affRe.exec(text)) !== null) {
+  while ((affM = affRe.exec(scanSource)) !== null) {
     affiliationText += ' ' + affM[1].replace(/<[^>]+>/g, ' ');
   }
-  // Fallback: small window of ltx_authors block (800 chars — stays in front matter).
+  // Fallback: strip all tags from the authors section (handles bare text nodes
+  // like Anthropic papers where the institution name isn't in a dedicated span).
   if (!affiliationText.trim()) {
-    const authM = /class="[^"]*ltx_authors[^"]*"[^>]*>([\s\S]{0,800})/i.exec(text);
-    if (authM) affiliationText = authM[1].replace(/<[^>]+>/g, ' ');
+    affiliationText = scanSource.replace(/<[^>]+>/g, ' ');
   }
 
-  const emailMatches = text.match(/href="mailto:[^"]+"/gi) || [];
-  const emailText = emailMatches.join(' ');
+  // Email scan also scoped to authors section.
+  const emailText = (scanSource.match(/\b[\w.+%-]+@[\w-]+\.[\w.]+\b/gi) || []).join(' ');
 
   if (!affiliationText.trim() && !emailText) return null;
 
@@ -810,41 +828,6 @@ function classifyPaper(title, summary, cat) {
   return best || 'General ML';
 }
 
-// Scan title + abstract for explicit frontier lab mentions.
-// Papers FROM these labs almost always name themselves in the abstract.
-// Papers merely ABOUT them (e.g. "we evaluate GPT-4") may also match —
-// that's acceptable; those papers are still highly relevant.
-const ABSTRACT_TIER3 = [
-  'google deepmind','google brain','google research','google ai',
-  // 'openai' alone is too broad — catches any paper evaluating GPT-4.
-  // Require phrasing that strongly implies authorship rather than mere use.
-  'openai research','openai alignment','openai safety','we at openai',
-  'anthropic',
-  'meta ai','fundamental ai research','meta fair',
-  'microsoft research',
-  'nvidia research',
-  'apple machine learning','apple intelligence research',
-  'deepmind',
-  'amazon science',
-  // xai (Elon's lab) is indistinguishable from "explainable AI (XAI)" in abstracts — omitted.
-  // Government / national labs
-  'darpa','defense advanced research projects',
-  'national institute of standards and technology',
-  'argonne national','oak ridge national','lawrence berkeley national',
-  'lawrence livermore national','sandia national','los alamos national',
-  'pacific northwest national',
-  'intelligence advanced research projects',
-  'alan turing institute',
-  'fraunhofer','inria','riken',
-  'chinese academy of sciences',
-];
-
-function scorePrestigeFromAbstract(title, summary) {
-  const text = (title + ' ' + (summary || '')).toLowerCase();
-  for (const t of ABSTRACT_TIER3) { if (text.includes(t)) return 3; }
-  for (const t of PRESTIGE_TIER2) { if (text.includes(t)) return 2; }
-  return null; // no match — starts as unverified, HTML scan fills in later
-}
 
 async function processAndStore(rawPapers) {
   if (!rawPapers?.length) {
@@ -857,9 +840,7 @@ async function processAndStore(rawPapers) {
     const summary = stripLatex(p.summary || '');
     const cat = (p.categories || []).find(c => c.startsWith('cs.')) || p.categories?.[0] || 'cs.AI';
     const cluster = classifyPaper(title, summary, cat);
-    const abstractTier = scorePrestigeFromAbstract(title, summary);
-    // Abstract scan takes priority; S2 prestige fills in what abstract misses; null = unverified.
-    const prestige = abstractTier ?? p.prestige ?? null;
+    const prestige = p.prestige ?? null; // S2 affiliations at load; HTML verification on click
     return {
       id:        p.arxivId,
       title,
@@ -881,6 +862,12 @@ async function processAndStore(rawPapers) {
       _updated:   (p.updated   || p.published || '').slice(0, 10), // YYYY-MM-DD announcement date
     };
   });
+
+  // Store keyword-scored papers immediately so the new tab can render without waiting
+  // for Haiku scoring (which can take 30-300s on large paper sets).
+  await setStorage({ processedPapers: papers });
+  chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {});
+  console.log(`[arXiv] Rendered with keyword scores. Starting Haiku scoring…`);
 
   // LLM scoring pass — replaces keyword values when available
   const llmScores = await scoreAppliedBatch(papers);

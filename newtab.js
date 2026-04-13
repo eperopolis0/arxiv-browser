@@ -318,7 +318,7 @@ function toggleStar(p) {
     delete _starredData[p.id];
   }
   saveStarred();
-  dotsG.selectAll('circle.star-glow').filter(d => d === p)
+  dotsG.selectAll('path.star-glow').filter(d => d === p)
     .attr('opacity', p.starred ? 0.30 : 0);
   if (pinned === p) showTip(lastTipEvt, p);
   const n = PAPERS.filter(p=>p.starred).length;
@@ -852,7 +852,7 @@ const zoom = d3.zoom().scaleExtent([1 / SCALE, 12])
       .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
     dotsG.selectAll('circle.phit')
       .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
-    dotsG.selectAll('circle.star-glow')
+    dotsG.selectAll('path.star-glow')
       .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
     // Update dim overlays on gradient bar — the in-viewport band stays bright,
     // out-of-viewport portions are covered with a dark overlay.
@@ -862,8 +862,8 @@ const zoom = d3.zoom().scaleExtent([1 / SCALE, 12])
       const barW = W - M.left - M.right;
       const dom = xSc.domain();
       const span = dom[1] - dom[0];
-      const dL = Math.max(0, Math.min(1, (xSc.invert((M.left      - t.x) / t.k) - dom[0]) / span));
-      const dR = Math.max(0, Math.min(1, (xSc.invert((W - M.right - t.x) / t.k) - dom[0]) / span));
+      const dL = Math.max(0, Math.min(1, (xSc.invert((0 - t.x) / t.k) - dom[0]) / span));
+      const dR = Math.max(0, Math.min(1, (xSc.invert((W - t.x) / t.k) - dom[0]) / span));
       axisG.select('.vp-dim-left')
         .attr('x', M.left)
         .attr('width', Math.max(0, dL * barW));
@@ -1046,7 +1046,7 @@ function verifyPrestige(d, userInitiated = false) {
       dotsG.selectAll('path.pdot').filter(dd => dd === d)
         .attr('d', d3.symbol().type(D3_SYMBOL[d.format] || d3.symbolCircle).size(symSize(d))());
       dotsG.selectAll('circle.phit').filter(dd => dd === d).attr('r', hitR(d));
-      dotsG.selectAll('circle.star-glow').filter(dd => dd === d).attr('r', hitR(d) + 3);
+      // star-glow is fixed size — no update needed when prestige changes
       patchCardPrestige(d);
       if (_tipPaper === d) showTip(lastTipEvt, d);
       updateVisibility();
@@ -1117,7 +1117,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card') && !e.target.closest('#sidebar-toggle') && !e.target.closest('#sidebar-show')) {
     pinned = null; _sbHoveredId = null; tipEl.style.display = 'none';
     dotsG?.selectAll('path.pdot').attr('fill', dd => dotColor(dd)).attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
-    dotsG?.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
+    dotsG?.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd)).attr('fill', dd => dotColor(dd)).attr('stroke', '#C49428');
     resetClusterHighlight();
     document.querySelectorAll('.sb-card.sb-active').forEach(c => c.classList.remove('sb-active'));
   }
@@ -1211,7 +1211,7 @@ function updateVisibility() {
 
   dotsG.selectAll('.phit').attr('pointer-events', d => visibleIds.has(d.id) ? 'all' : 'none');
   // Star ring only shows when the paper itself is visible
-  dotsG.selectAll('circle.star-glow').attr('opacity', d => visibleIds.has(d.id) ? starGlowOpacity(d) : 0);
+  dotsG.selectAll('path.star-glow').attr('opacity', d => visibleIds.has(d.id) ? starGlowOpacity(d) : 0);
 
   // If a spotlight is active (hover or pin), don't stomp fill-opacity — just hide invisible papers.
   const spotlitPaper = pinned || (_sbHoveredId ? PAPERS.find(p => p.id === _sbHoveredId) : null) || _hoveredDot;
@@ -1457,7 +1457,9 @@ function applySidebarSpotlight(d) {
     .attr('fill',           dd => dd === d ? hi : dotColor(dd))
     .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
     .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02);
-  dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0);
+  dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0)
+    .attr('fill', dd => dd === d ? hi : dotColor(dd))
+    .attr('stroke', dd => dd === d ? hi : '#C49428');
   highlightClusters(d.clusters, d);
 }
 
@@ -1507,7 +1509,8 @@ function _sidebarSpotlightReset() {
     .attr('fill',           dd => dotColor(dd))
     .attr('fill-opacity',   dd => dotOpacity(dd))
     .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
-  dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
+  dotsG.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd))
+    .attr('fill', dd => dotColor(dd));
   resetClusterHighlight();
 }
 
@@ -1577,7 +1580,9 @@ function sidebarClick(e) {
       .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02)
       .style('filter', null)
       .filter(dd => dd === d).raise();
-    dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0);
+    dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0)
+      .attr('fill', dd => dd === d ? hi : dotColor(dd))
+    .attr('stroke', dd => dd === d ? hi : '#C49428');
     highlightClusters(d.clusters, d);
     // Position tooltip at the dot's actual screen position (accounting for zoom/pan)
     const svgRect = document.getElementById('chart').getBoundingClientRect();
@@ -1600,7 +1605,7 @@ function seededRand(seed) {
 }
 
 function applyJitter() {
-  const JITTER_X = 0.06;
+  const JITTER_X = 0.12;
   const starCount = Object.keys(_starredData || {}).length;
   const JITTER_Y = 0.09 * Math.exp(-starCount / 8);  // decays toward 0 as you star more papers
   const isPersonalized = starCount > 0;
@@ -1623,7 +1628,7 @@ function animateDots() {
     .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
   dotsG.selectAll('circle.phit').transition().duration(dur).ease(d3.easeCubicInOut)
     .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
-  dotsG.selectAll('circle.star-glow').transition().duration(dur).ease(d3.easeCubicInOut)
+  dotsG.selectAll('path.star-glow').transition().duration(dur).ease(d3.easeCubicInOut)
     .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')');
 }
 
@@ -1696,25 +1701,33 @@ function draw() {
     return 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(scl/currentK)+')';
   }
 
-  // Star ring: stroke only so the dot shape/colour is never obscured,
-  // and pointer-events:none so it never intercepts clicks.
-  // Visibility is managed by updateVisibility (only show when paper is visible).
-  dotsG.selectAll('circle.star-glow').data(PAPERS).join('circle').attr('class','star-glow')
-    .attr('r', d => hitR(d) + 3)
-    .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')')
-    .attr('fill', 'none')
-    .attr('stroke', '#F3B839').attr('stroke-width', 2)
+  // Draw order: starred > prestige > score so important papers win hover priority.
+  const drawKey = d => (d.starred ? 100 : 0) + (d.prestige ?? 1) * 10 + (d.applied ?? 0.5);
+  const sorted  = [...PAPERS].sort((a, b) => drawKey(a) - drawKey(b));
+
+  // Star indicator: fixed-size 5-pointed star drawn behind the dot.
+  // Star scales with prestige like the old ring did — tips extend STAR_EXTRA px beyond hitR.
+  // K_STAR converts circumradius² → D3 symbol area (empirically ~0.775 for symbolStar).
+  const STAR_EXTRA = 16;
+  const K_STAR     = 0.775;
+  const starArea   = d => Math.pow(hitR(d) + STAR_EXTRA, 2) * K_STAR;
+  dotsG.selectAll('path.star-glow').data(sorted).join('path').attr('class','star-glow')
+    .attr('d', d => d3.symbol().type(d3.symbolStar).size(starArea(d))())
+    .attr('transform', d => symTransform(d, 1))
+    .attr('fill', d => dotColor(d)).attr('fill-opacity', 0.6)
+    .attr('stroke', '#C49428').attr('stroke-width', 1.5).attr('stroke-opacity', 0.9)
+    .style('filter', null)
     .attr('opacity', d => { const vis = paperIsVisible(d); return vis ? starGlowOpacity(d) : 0; })
     .attr('pointer-events', 'none');
 
-  dotsG.selectAll('path.pdot').data(PAPERS).join('path').attr('class','pdot')
+  dotsG.selectAll('path.pdot').data(sorted).join('path').attr('class','pdot')
     .attr('d', d => d3.symbol().type(D3_SYMBOL[d.format] || d3.symbolCircle).size(symSize(d))())
     .attr('transform', d => symTransform(d, 1))
     .attr('fill', d => dotColor(d)).attr('fill-opacity', d => dotOpacity(d))
     .attr('stroke', d => dotColor(d)).attr('stroke-width', 0.8).attr('stroke-opacity', d => dotOpacity(d) * 0.7)
     .attr('pointer-events', 'none');
 
-  dotsG.selectAll('circle.phit').data(PAPERS).join('circle').attr('class','phit')
+  dotsG.selectAll('circle.phit').data(sorted).join('circle').attr('class','phit')
     .attr('r', d => hitR(d))
     .attr('transform', d => 'translate('+xSc(d._x)+','+ySc(d._y)+') scale('+(1/currentK)+')')
     .attr('fill', 'transparent').attr('stroke', 'none').attr('cursor', 'pointer')
@@ -1727,7 +1740,9 @@ function draw() {
         .attr('fill',           dd => dd === d ? hi : dotColor(dd))
         .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
         .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02);
-      dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0);
+      dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0)
+        .attr('fill', dd => dd === d ? hi : dotColor(dd))
+    .attr('stroke', dd => dd === d ? hi : '#C49428');
       highlightClusters(d.clusters, d);
       // Defer tooltip to next frame — avoids forced layout (offsetWidth read) triggering
       // synthetic pointer events that immediately fire mouseleave on the phit circle.
@@ -1749,7 +1764,8 @@ function draw() {
         .attr('fill',           dd => dotColor(dd))
         .attr('fill-opacity',   dd => dotOpacity(dd))
         .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
-      dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
+      dotsG.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd))
+        .attr('fill', dd => dotColor(dd)).attr('stroke', '#C49428');
       resetClusterHighlight();
       tipEl.style.display = 'none';
     })
@@ -1762,7 +1778,8 @@ function draw() {
           .attr('fill',           dd => dotColor(dd))
           .attr('fill-opacity',   dd => dotOpacity(dd))
           .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
-        dotsG.selectAll('circle.star-glow').attr('opacity', dd => starGlowOpacity(dd));
+        dotsG.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd))
+          .attr('fill', dd => dotColor(dd));
         resetClusterHighlight();
         tipEl.style.display = 'none';
       } else {
@@ -1775,7 +1792,9 @@ function draw() {
           .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02)
           .style('filter', null)
           .filter(dd => dd === d).raise();
-        dotsG.selectAll('circle.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0);
+        dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0)
+          .attr('fill', dd => dd === d ? hi : dotColor(dd))
+    .attr('stroke', dd => dd === d ? hi : '#C49428');
         highlightClusters(d.clusters, d);
         { const _r = svg.node().getBoundingClientRect(), _t = d3.zoomTransform(svg.node());
           showTip({ clientX: _r.left + _t.applyX(xSc(d._x)), clientY: _r.top + _t.applyY(ySc(d._y)) }, d); }
