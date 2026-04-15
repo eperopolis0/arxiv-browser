@@ -483,7 +483,7 @@ function parseAtomXML(xml) {
     const e = m[1];
 
     const id = (/<id[^>]*>\s*([\s\S]*?)\s*<\/id>/.exec(e) || [])[1] || '';
-    const arxivId = id.replace('http://arxiv.org/abs/', '').trim();
+    const arxivId = id.replace('http://arxiv.org/abs/', '').replace(/v\d+$/, '').trim();
 
     const published = (/<published[^>]*>([\s\S]*?)<\/published>/.exec(e) || [])[1]?.trim() || '';
     const updated   = (/<updated[^>]*>([\s\S]*?)<\/updated>/.exec(e)   || [])[1]?.trim() || '';
@@ -661,12 +661,12 @@ async function processAndStore(rawPapers, preScored = null) {
     const title   = stripLatex(p.title   || '');
     const summary = stripLatex(p.summary || '');
     const cat = (p.categories || []).find(c => c.startsWith('cs.')) || p.categories?.[0] || 'cs.AI';
-    const scored  = preScored?.[p.arxivId];
+    const scored  = preScored?.[p.arxivId.replace(/v\d+$/, '')];
     const cluster = scored?.cluster || classifyPaper(title, summary, cat);
     const prestige = scored?.prestige ?? prevPrestige.get(p.arxivId) ?? p.prestige ?? null;
     const format  = scored?.format || classifyFormat(title, summary);
     return {
-      id:        p.arxivId,
+      id:        p.arxivId.replace(/v\d+$/, ''),
       title,
       gist:      summary.slice(0, 200).replace(/\s+/g,' ').toLowerCase(),
       cat,
