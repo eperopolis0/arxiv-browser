@@ -648,6 +648,7 @@ async function processAndStore(rawPapers, preScored = null) {
     console.warn('[arXiv] processAndStore called with 0 papers — skipping.');
     return;
   }
+  const today = new Date().toISOString().slice(0, 10);
   console.log(`[arXiv] Processing ${rawPapers.length} papers…`);
 
   // Carry forward prestige scores from any previous processedPapers — avoids
