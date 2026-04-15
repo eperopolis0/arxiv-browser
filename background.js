@@ -282,7 +282,7 @@ async function fetchArxivBatch(count, ids) {
 // ═══════════════════════════════════════════════════════
 
 // Pre-scored JSON published daily by GitHub Actions — extension fetches this first.
-// Format: { date, papers: { arxivId: { applied, prestige, cluster, format } } }
+/// Format: { date, papers: { arxivId: { applied, prestige, cluster, format } } }
 const SCORES_BASE_URL = 'https://raw.githubusercontent.com/eperopolis0/arxiv-browser/main/scores';
 
 async function fetchPreScoredJSON(date) {

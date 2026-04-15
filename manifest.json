@@ -12,7 +12,8 @@
     "https://export.arxiv.org/*",
     "https://huggingface.co/*",
     "https://ar5iv.labs.arxiv.org/*",
-    "https://api.anthropic.com/*"
+    "https://api.anthropic.com/*",
+    "https://raw.githubusercontent.com/*"
   ],
   "background": {
     "service_worker": "background.js"
