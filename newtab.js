@@ -30,7 +30,7 @@ let ALL_CLUSTERS = [];
 const ALL_CATS     = ['cs.LG','cs.CL','cs.IR','cs.AI','cs.CV','cs.HC','cs.CR','cs.RO'];
 const ALL_FORMATS  = ['theory','position','empirical','benchmark','survey'];
 const ALL_PRESTIGE = [3, 2, 1];
-const PRESTIGE_LABEL  = { 3:'Frontier ✦✦✦', 2:'Elite ✦✦', 1:'Open ✦' };
+const PRESTIGE_LABEL  = { 3:'Frontier ✦✦✦', 2:'Elite ✦✦', 1:'Community ✦' };
 const PRESTIGE_LABEL_R = PRESTIGE_LABEL;
 const PRESTIGE_COLOR = { 3:'rgba(196,148,40,0.95)', 2:'rgba(232,217,188,0.70)', 1:'rgba(232,217,188,0.42)' };
 let activeCats     = new Set(); // empty = show all; non-empty = show only selected
@@ -592,9 +592,10 @@ function axisColor(score) {
 }
 
 function dotColor(d) {
-  if (colorMode === 'cluster') return CLUSTER_COLOR[d.clusters?.[0]] || axisColor(d.applied ?? 0.5);
-  if (colorMode === 'score')   return axisColor(d.applied ?? 0.5);
-  return CAT_COLOR[d.cat] || axisColor(d.applied ?? 0.5); // 'field' — unknown cats get score color
+  const t = d._colorT ?? d._x ?? d.applied ?? 0.5;
+  if (colorMode === 'cluster') return CLUSTER_COLOR[d.clusters?.[0]] || axisColor(t);
+  if (colorMode === 'score')   return axisColor(t);
+  return CAT_COLOR[d.cat] || axisColor(t); // 'field' — unknown cats get score color
 }
 
 // Returns a bright, pale version of a dot's color for hover/pin highlight.
@@ -937,7 +938,6 @@ tipEl.addEventListener('click', e => {
     updateVisibility();
     showTip(lastTipEvt, p);
   } else if (action === 'togglePrestige') {
-    if (p.prestige === null) { verifyPrestige(p, true); return; }
     const tier = parseInt(el.dataset.tier);
     activePrestige.has(tier) ? activePrestige.delete(tier) : activePrestige.add(tier);
     const btn = document.querySelector('[data-prestige="'+tier+'"]');
@@ -988,20 +988,19 @@ function patchCardPrestige(d) {
   const span = card.querySelector('.sb-prestige');
   if (!span) return;
   const presColor = PRESTIGE_COLOR[d.prestige ?? 1];
-  const presLabel = d.prestige === null ? 'Unverified ✦' : PRESTIGE_LABEL_R[d.prestige ?? 1];
+  const presLabel = PRESTIGE_LABEL_R[d.prestige ?? 1];
   span.style.color = presColor;
   span.textContent = presLabel;
   span.style.pointerEvents = '';
-  span.style.cursor = d.prestige === null ? 'pointer' : '';
-  if (d.prestige === null) span.dataset.sbAction = 'verify';
-  else delete span.dataset.sbAction;
+  span.style.cursor = '';
+  delete span.dataset.sbAction;
 }
 
 // In-flight guard — prevents double-verifying the same paper (e.g. user click + auto-verify race).
 const _verifyingIds = new Set();
 
 // Fetch HTML affiliations for a paper and update prestige in place.
-// Called on auto-verify (load), dot click, and when user clicks "Unverified ✦".
+// Called on auto-verify (load), dot click, and when user clicks "Unverified ?".
 // Always trusts a successful HTML fetch result (allows corrections in both directions).
 // Only guard: tier==null means fetch failed — don't touch prestige in that case.
 // userInitiated: when true, enforces an 800ms min display of "↻ Verifying…" and shows
@@ -1077,7 +1076,7 @@ function showTip(evt, p) {
   const tier       = p.prestige ?? 1;
   const tierActive = !activePrestige.size || activePrestige.has(tier);
   const isVerifying = _verifyingIds.has(p.id);
-  const prestigeText = isVerifying ? '↻ Verifying…' : (p.prestige === null ? 'Unverified ✦' : PRESTIGE_LABEL_R[tier]);
+  const prestigeText = isVerifying ? '↻ Verifying…' : PRESTIGE_LABEL_R[tier];
   const badgeStyle = (color, active) =>
     'color:'+color+';border-color:'+color+';cursor:pointer;opacity:'+(active?'1':'0.38')+';';
   tipEl.innerHTML =
@@ -1100,7 +1099,7 @@ function showTip(evt, p) {
     '<button class="tt-star-btn '+(p.starred?'starred':'')+'" data-tip-action="star">'+
       (p.starred ? '\u2605 Starred \u2014 click to unstar' : '\u2606 Star this paper')+
     '</button>'+
-    '<div class="tt-hint" style="margin-top:6px">'+(pinned===p?'click dot again to unpin':'click to pin \u00b7 chips toggle filters')+'</div>';
+    '<div class="tt-hint" style="margin-top:6px">'+(pinned===p?'click anywhere to unpin':'click to pin \u00b7 tags filter papers')+'</div>';
   lastTipEvt = evt;
   tipEl.style.pointerEvents = (pinned === p) ? 'auto' : 'none';
   tipEl.style.display = 'block';
@@ -1394,7 +1393,7 @@ function renderSidebar() {
 
   listEl.innerHTML = entries.map(({ p }) => {
     const presColor  = PRESTIGE_COLOR[p.prestige ?? 1];
-    const presLabel  = p.prestige === null ? 'Unverified ✦' : PRESTIGE_LABEL_R[p.prestige ?? 1];
+    const presLabel  = PRESTIGE_LABEL_R[p.prestige ?? 1];
     const pdfHref    = esc(p._pdfLink || 'https://arxiv.org/pdf/'+p.id);
     const catActive  = activeCats.has(p.cat);
     const fmtActive  = activeFormats.has(p.format);
@@ -1411,9 +1410,7 @@ function renderSidebar() {
       + '<button class="sb-tag'+(catActive?' active':'')+'" data-sb-action="toggleCat" data-cat="'+p.cat+'" style="color:'+(CAT_COLOR[p.cat]||'#94A3B8')+'">'+(CAT_LABEL[p.cat]||p.cat)+'</button>'
       + (FMT_LABEL[p.format] ? '<button class="sb-tag'+(fmtActive?' active':'')+'" data-sb-action="toggleFmt" data-fmt="'+p.format+'" style="color:'+(FMT_COLOR[p.format]||'#94A3B8')+'">'+FMT_LABEL[p.format]+'</button>' : '')
       + '</span>'
-      + (p.prestige === null
-          ? '<button class="sb-tag" data-sb-action="verify" style="color:'+presColor+'">'+presLabel+'</button>'
-          : '<button class="sb-tag'+(tierActive?' active':'')+'" data-sb-action="togglePrestige" data-prestige="'+tier+'" style="color:'+presColor+'">'+presLabel+'</button>')
+      + '<button class="sb-tag'+(tierActive?' active':'')+'" data-sb-action="togglePrestige" data-prestige="'+tier+'" style="color:'+presColor+'">'+presLabel+'</button>'
       + '</div>'
       + (clusterChipsSb ? '<div class="sb-clusters">'+clusterChipsSb+'</div>' : '')
       + (function() {
@@ -1637,9 +1634,17 @@ function applyJitter() {
     group.forEach((p, i) => {
       // Spread evenly from -JITTER_X to +JITTER_X within the bucket
       const offset = n === 1 ? 0 : (i / (n - 1) - 0.5) * 2 * JITTER_X;
-      p._x = p.applied + offset; // no clamp — jitter can extend past 0/1 boundaries
+        p._x = p.applied + offset; // no clamp — jitter can extend past 0/1 boundaries
     });
   });
+
+  // Normalize _x to the actual scale domain so dot color matches the axis bar gradient.
+  // The bar gradient spans [0,1] across [min(_x)-PAD, max(_x)+PAD], so a paper at _x=0
+  // sits at ~PAD/range, not 0 — _colorT captures that fraction for consistent coloring.
+  const PAD = 0.08;
+  const allX = PAPERS.map(p => p._x);
+  const xMin = Math.min(...allX) - PAD, xMax = Math.max(...allX) + PAD;
+  PAPERS.forEach(p => { p._colorT = (p._x - xMin) / (xMax - xMin); });
 
   PAPERS.forEach(p => {
     const rng  = seededRand(parseInt(p.id.replace('.','')) || 12345);
