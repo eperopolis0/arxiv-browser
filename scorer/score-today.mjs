@@ -229,7 +229,7 @@ async function scoreAllWithHaiku(papers) {
 
 const PRESTIGE_TIER3 = [
   'anthropic','openai','deepmind','google deepmind','google brain',
-  'meta ai','fundamental ai research','fair ',
+  'meta ai','fundamental ai research',
 ];
 const PRESTIGE_TIER2 = [
   'massachusetts institute of technology','mit csail',
@@ -259,7 +259,7 @@ function scoreTierFromText(text) {
   for (const d of EMAIL_DOMAIN_TIER3) { if (t.includes('@' + d)) return 3; }
   for (const kw of PRESTIGE_TIER2) { if (t.includes(kw)) return 2; }
   for (const d of EMAIL_DOMAIN_TIER2) { if (t.includes('@' + d)) return 2; }
-  return 1;
+  return null; // affiliation found but unrecognized — leave as unverified
 }
 
 function extractBetweenDivs(html, startClass, endClass) {
@@ -279,15 +279,16 @@ async function fetchHTMLPrestige(arxivId) {
     });
     if (resp.status !== 200 && resp.status !== 206) return null;
     const text = await resp.text();
-    const authorsBlock = extractBetweenDivs(text, 'ltx_authors', 'ltx_abstract') || '';
-    const scanSource   = authorsBlock || text;
+    const authorsBlock = extractBetweenDivs(text, 'ltx_authors', 'ltx_abstract');
+    if (!authorsBlock) return null; // non-standard HTML structure — don't scan full page
+    const scanSource = authorsBlock;
     let affiliationText = '';
     const affRe = /<span[^>]*ltx_role_affiliation[^>]*>([\s\S]*?)<\/span>/gi;
     let affM;
     while ((affM = affRe.exec(scanSource)) !== null) {
       affiliationText += ' ' + affM[1].replace(/<[^>]+>/g, ' ');
     }
-    const authorsSrc = authorsBlock || '';
+    const authorsSrc = authorsBlock;
     const emailText = (authorsSrc.match(/\b[\w.+%-]+@[\w-]+\.[\w.]+\b/gi) || []).join(' ');
     if (!affiliationText.trim() && !emailText) return null;
     return scoreTierFromText(affiliationText + ' ' + emailText);

@@ -309,7 +309,7 @@ const PRESTIGE_TIER3 = [
   'anthropic',
   'openai',
   'deepmind','google deepmind','google brain',
-  'meta ai','fundamental ai research','fair ',  // FAIR = Meta's Fundamental AI Research lab
+  'meta ai','fundamental ai research',  // FAIR covered by 'fundamental ai research'
 ];
 
 // Tier 2 — Elite research programs with real AI depth.
@@ -418,7 +418,7 @@ async function fetchHTMLPrestige(arxivId) {
   for (const d of EMAIL_DOMAIN_TIER3) { if (scanText.includes('@' + d)) return 3; }
   for (const t of PRESTIGE_TIER2) { if (scanText.includes(t)) return 2; }
   for (const d of EMAIL_DOMAIN_TIER2) { if (scanText.includes('@' + d)) return 2; }
-  return 1; // affiliation found but no notable institution — confirmed Independent
+  return null; // affiliation found but unrecognized institution — leave as unverified
 }
 
 // Thresholds for author citation count → tier.

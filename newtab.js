@@ -778,7 +778,10 @@ function buildLegend() {
   drawerBtn.id = 'view-starred-btn';
   const allStarN = Object.keys(_starredData).length;
   drawerBtn.innerHTML = 'All\u2011Time \u2605 <span class="fb-count">' + allStarN + '</span>';
-  drawerBtn.addEventListener('click', openStarredDrawer);
+  drawerBtn.addEventListener('click', () => {
+    const drawer = document.getElementById('starred-drawer');
+    drawer.classList.contains('open') ? closeStarredDrawer() : openStarredDrawer();
+  });
   starSec.appendChild(starBtn);
   starSec.appendChild(drawerBtn);
   starWrapper.appendChild(starSec);
@@ -1806,14 +1809,7 @@ function drawDots() {
         highlightClusters(d.clusters, d);
         const _r = svg.node().getBoundingClientRect(), _t = d3.zoomTransform(svg.node());
         showTip({ clientX: _r.left + _t.applyX(xSc(d._x)), clientY: _r.top + _t.applyY(ySc(d._y)) }, d);
-        // Expand sidebar if collapsed, then scroll to card
-        const sbEl = document.getElementById('sidebar');
-        if (sbEl.classList.contains('collapsed')) {
-          sbEl.classList.remove('collapsed');
-          const sbTab = document.getElementById('sidebar-tab');
-          if (sbTab) { sbTab.textContent = '›'; sbTab.title = 'Hide paper list'; }
-          startTipTracking();
-        }
+        // Scroll to card in sidebar
         const scrollToCard = () => {
           let sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
             .find(c => c.dataset.id === d.id);
@@ -1971,22 +1967,6 @@ function stopTipTracking() {
 const sidebarEl = document.getElementById('sidebar');
 sidebarEl.addEventListener('transitionend', stopTipTracking);
 
-document.getElementById('legend-tab').addEventListener('click', () => {
-  const leg = document.getElementById('legend');
-  const tab = document.getElementById('legend-tab');
-  const collapsed = leg.classList.toggle('collapsed');
-  tab.textContent = collapsed ? '›' : '‹';
-  tab.title = collapsed ? 'Show legend' : 'Hide legend';
-});
-
-document.getElementById('sidebar-tab').addEventListener('click', () => {
-  const sb = document.getElementById('sidebar');
-  const tab = document.getElementById('sidebar-tab');
-  const collapsed = sb.classList.toggle('collapsed');
-  tab.textContent = collapsed ? '‹' : '›';
-  tab.title = collapsed ? 'Show paper list' : 'Hide paper list';
-  if (!collapsed) startTipTracking();
-});
 
 
 // ═══════════════════════════════════════════════════════
