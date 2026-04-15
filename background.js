@@ -25,7 +25,7 @@ chrome.runtime.onInstalled.addListener(() => {
   scheduleDailyAlarm();
   // Clear processedPapers so any code changes to clustering/scoring take effect immediately.
   // Also clear stale in-progress flags from the dead previous session.
-  chrome.storage.local.set({ fetchInProgress: false, fetchStartedAt: null, processedPapers: [] }, () => doFetchAndCache());
+  chrome.storage.local.set({ fetchInProgress: false, fetchStartedAt: null, processedPapers: [], scoreStats: null, scoreStatsLastDate: null }, () => doFetchAndCache());
 });
 
 // Fires when the browser itself starts — ensures we don't wait up to 60min for the alarm
@@ -155,22 +155,7 @@ async function doFetchAndCache() {
       console.log(`[arXiv] Date fallback filter (${latestDate}): ${rawPapers.length} → ${freshPapers.length} papers`);
     }
 
-    // S2 affiliation lookup — skip entirely if pre-scored JSON covers today's papers.
-    // The scorer already ran S2 + HTML prestige for every paper overnight.
-    const preScoredCount = freshPapers.filter(p => preScored?.[p.arxivId]).length;
-    const usePreScored = preScored && preScoredCount === freshPapers.length;
-    let prestigeMap = new Map();
-    if (!usePreScored) {
-      console.log(`[arXiv] Pre-scored JSON missing or incomplete (${preScoredCount}/${freshPapers.length}) — running S2 lookup.`);
-      prestigeMap = await fetchS2Affiliations(freshPapers);
-    } else {
-      console.log(`[arXiv] Pre-scored JSON covers all ${freshPapers.length} papers — skipping S2.`);
-    }
-
-    const enriched = freshPapers.map(p => ({
-      ...p,
-      prestige: prestigeMap.get(p.arxivId.replace(/v\d+$/, '')) ?? null,
-    }));
+    const enriched = freshPapers.map(p => ({ ...p, prestige: null }));
 
     await setStorage({
       papers: enriched,
@@ -185,6 +170,9 @@ async function doFetchAndCache() {
 
     console.log(`[arXiv] Cached ${enriched.length} papers for ${today}.`);
     await processAndStore(enriched, preScored);
+    // Prestige is resolved by the nightly pre-scored JSON (preScored path).
+    // Local bulk HTML fetching removed — too slow for same-day papers and
+    // unnecessary once the agent pipeline is running.
 
   } catch (err) {
     console.error('[arXiv] Fetch failed:', err.message);
@@ -256,13 +244,18 @@ async function fetchArxivBatch(count, ids) {
   // Fall back to the search query if no IDs were extracted.
   if (ids?.size) {
     const idArray = [...ids];
-    console.log(`[arXiv] Fetching ${idArray.length} papers by id_list…`);
-    const params = new URLSearchParams({ id_list: idArray.join(','), max_results: idArray.length });
-    const resp = await fetchWithTimeout(`${API_BASE}?${params}`, REQUEST_TIMEOUT);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const xml = await resp.text();
-    const papers = parseAtomXML(xml);
-    console.log(`[arXiv] cs.AI: ${papers.length} papers fetched by id_list.`);
+    const CHUNK = 120; // arXiv API rejects very long id_list URLs; 120 IDs ≈ safe limit
+    console.log(`[arXiv] Fetching ${idArray.length} papers by id_list in chunks of ${CHUNK}…`);
+    const chunks = [];
+    for (let i = 0; i < idArray.length; i += CHUNK) chunks.push(idArray.slice(i, i + CHUNK));
+    const results = await Promise.all(chunks.map(async chunk => {
+      const params = new URLSearchParams({ id_list: chunk.join(','), max_results: chunk.length });
+      const resp = await fetchWithTimeout(`${API_BASE}?${params}`, REQUEST_TIMEOUT);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return parseAtomXML(await resp.text());
+    }));
+    const papers = results.flat();
+    console.log(`[arXiv] cs.AI: ${papers.length} papers fetched by id_list (${chunks.length} chunks).`);
     return papers;
   }
 
@@ -285,12 +278,8 @@ async function fetchArxivBatch(count, ids) {
 
 
 // ═══════════════════════════════════════════════════════
-// PRESTIGE — Semantic Scholar affiliation lookup
+// PRESTIGE — arXiv HTML affiliation scan
 // ═══════════════════════════════════════════════════════
-// Optional API key — register free at https://www.semanticscholar.org/product/api
-// Leave null to use unauthenticated (1 req/day fine; add key if rate-limited).
-const S2_API_KEY = null;
-const S2_BATCH_URL = 'https://api.semanticscholar.org/graph/v1/paper/batch';
 
 // Pre-scored JSON published daily by GitHub Actions — extension fetches this first.
 // Format: { date, papers: { arxivId: { applied, prestige, cluster, format } } }
@@ -387,7 +376,7 @@ async function fetchHTMLPrestige(arxivId) {
   const url = `https://arxiv.org/html/${arxivId}`;
   let text;
   try {
-    const resp = await fetchWithTimeout(url, 15000, {
+    const resp = await fetchWithTimeout(url, 6000, {
       headers: { Range: 'bytes=0-131071' }
     });
     if (resp.status !== 200 && resp.status !== 206) return null;
@@ -400,23 +389,25 @@ async function fetchHTMLPrestige(arxivId) {
   // Extract the authors section: from ltx_authors opening to ltx_abstract opening.
   // Scoping to this window avoids catching institution names or emails in the paper body.
   // Falls back to full text only if extraction fails (truncated HTML, unusual structure).
-  const authorsBlock = extractBetweenDivs(text, 'ltx_authors', 'ltx_abstract') || '';
-  const scanSource   = authorsBlock || text;
+  // Scope everything to the authors block — never fall back to full page text.
+  // Papers that merely *discuss* or *cite* frontier labs would get false tier-3 hits.
+  const authorsBlock = extractBetweenDivs(text, 'ltx_authors', 'ltx_abstract');
+  if (!authorsBlock) return null;
 
   let affiliationText = '';
   const affRe = /<span[^>]*ltx_role_affiliation[^>]*>([\s\S]*?)<\/span>/gi;
   let affM;
-  while ((affM = affRe.exec(scanSource)) !== null) {
+  while ((affM = affRe.exec(authorsBlock)) !== null) {
     affiliationText += ' ' + affM[1].replace(/<[^>]+>/g, ' ');
   }
   // Fallback: strip all tags from the authors section (handles bare text nodes
   // like Anthropic papers where the institution name isn't in a dedicated span).
   if (!affiliationText.trim()) {
-    affiliationText = scanSource.replace(/<[^>]+>/g, ' ');
+    affiliationText = authorsBlock.replace(/<[^>]+>/g, ' ');
   }
 
-  // Email scan also scoped to authors section.
-  const emailText = (scanSource.match(/\b[\w.+%-]+@[\w-]+\.[\w.]+\b/gi) || []).join(' ');
+  // Email scan scoped to authors section only.
+  const emailText = (authorsBlock.match(/\b[\w.+%-]+@[\w-]+\.[\w.]+\b/gi) || []).join(' ');
 
   if (!affiliationText.trim() && !emailText) return null;
 
@@ -438,64 +429,39 @@ async function fetchHTMLPrestige(arxivId) {
 // physicist with 10k citations from an AI researcher at Google — too noisy for ★★★.
 const CITE_TIER2 = 800;    // active researcher with a real publication track record
 
-// Score using S2 affiliations + citation count → tier 1 or 2 only (never 3).
-// Tier 3 is assigned by scorePrestigeFromAbstract() in processAndStore.
-function scorePrestige(affiliations, maxCitations) {
-  if (affiliations?.length) {
-    const text = affiliations.join(' ').toLowerCase();
-    // Affiliation matches tier 3 list → still only return 2 from S2 path.
-    // The abstract scan in processAndStore will upgrade to 3 if warranted.
-    for (const t of PRESTIGE_TIER3) { if (text.includes(t)) return 2; }
-    for (const t of PRESTIGE_TIER2) { if (text.includes(t)) return 2; }
-  }
-  if (maxCitations >= CITE_TIER2) return 2;
-  if (affiliations?.length) return 1;
-  return null; // no S2 data — caller defaults to 1
-}
+// Fetch HTML prestige for all null-prestige papers in processedPapers.
+// Uses a concurrent pool of 8 workers — keeps total time ~30-60s for ~500 papers
+// vs ~300s for the old serial approach in newtab.js.
+// Writes results back to processedPapers in storage when done.
+async function fetchPrestigeForAll() {
+  const { processedPapers = [] } = await getStorage(['processedPapers']);
+  const queue = processedPapers.filter(p => p.prestige === null);
+  if (!queue.length) { console.log('[arXiv] All papers already have prestige — skipping.'); return; }
 
-async function fetchS2Affiliations(papers) {
-  const prestigeMap = new Map();
-  if (!papers.length) return prestigeMap;
+  console.log(`[arXiv] Fetching prestige for ${queue.length} papers (8 concurrent)…`);
+  let idx = 0, resolved = 0;
 
-  // Batch up to 500 arxiv IDs per S2 request.
-  // Request both affiliations (for lab matching) and citationCount (fallback).
-  // Strip version suffix (e.g. "2503.12345v1" → "2503.12345") — S2 rejects versioned IDs with HTTP 400.
-  const ids = papers.map(p => `ARXIV:${p.arxivId.replace(/v\d+$/, '')}`);
-  const chunks = [];
-  for (let i = 0; i < ids.length; i += 500) chunks.push(ids.slice(i, i + 500));
-
-  for (const chunk of chunks) {
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (S2_API_KEY) headers['x-api-key'] = S2_API_KEY;
-
-      const resp = await fetchWithTimeout(
-        S2_BATCH_URL + '?fields=authors.affiliations,authors.citationCount', 30000,
-        { method: 'POST', headers, body: JSON.stringify({ ids: chunk }) }
-      );
-      if (!resp.ok) {
-        console.warn(`[S2] Batch failed: HTTP ${resp.status} — prestige defaults to 2`);
-        break;
-      }
-
-      const data = await resp.json();
-      let matched = 0;
-      data.forEach((paper, i) => {
-        if (!paper) return;
-        const arxivId = chunk[i].replace('ARXIV:', '');
-        const authors = paper.authors || [];
-        const allAffiliations = authors.flatMap(a => (a.affiliations || []).map(af => af.name || af));
-        const maxCitations = Math.max(0, ...authors.map(a => a.citationCount || 0));
-        const tier = scorePrestige(allAffiliations, maxCitations);
-        if (tier !== null) { prestigeMap.set(arxivId, tier); matched++; }
-      });
-      console.log(`[S2] Scored ${matched}/${data.length} papers (affiliations + citation count).`);
-    } catch (e) {
-      console.warn(`[S2] Fetch failed (${e.message}) — prestige defaults to 2`);
+  async function worker() {
+    while (idx < queue.length) {
+      const p = queue[idx++];
+      const tier = await fetchHTMLPrestige(p.id).catch(() => null);
+      p.prestige = tier;  // null = unverified (HTML not available yet); tier 1/2/3 = confirmed
+      if (tier !== null) resolved++;
     }
   }
 
-  return prestigeMap;
+  await Promise.all(Array.from({ length: 8 }, worker));
+
+  // Write updated prestige values back into processedPapers
+  const idToTier = new Map(queue.map(p => [p.id, p.prestige]));
+  processedPapers.forEach(p => { if (idToTier.has(p.id)) p.prestige = idToTier.get(p.id); });
+  await setStorage({ processedPapers });
+
+  const t3 = processedPapers.filter(p => p.prestige === 3).length;
+  const t2 = processedPapers.filter(p => p.prestige === 2).length;
+  const tNull = processedPapers.filter(p => p.prestige === null).length;
+  console.log(`[arXiv] Prestige done — ✦✦✦${t3} ✦✦${t2} ✦${processedPapers.length - t3 - t2 - tNull} unverified:${tNull}`);
+  chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {});
 }
 
 // ── Helpers ───────────────────────────────────────────
@@ -576,8 +542,12 @@ function setStorage(obj) {
 // ═══════════════════════════════════════════════════════
 
 function classifyFormat(title, summary) {
+  const titleL = title.toLowerCase();
   const text = (title + ' ' + summary).toLowerCase();
-  if (/\b(benchmark|dataset|leaderboard|evaluation suite|corpus|annotated)\b/.test(text)) return 'benchmark';
+  // Title-only for dataset/corpus — too common as passing mentions in abstracts.
+  // "benchmark" fires anywhere; "we benchmark X" in abstract is usually still a benchmark paper.
+  if (/\b(benchmark|leaderboard|evaluation suite)\b/.test(text)) return 'benchmark';
+  if (/\b(dataset|corpus)\b/.test(titleL)) return 'benchmark';
   if (/\b(survey|overview|review|tutorial|comprehensive study|systematic review)\b/.test(text)) return 'survey';
   if (/\b(theorem|lemma|proof|regret bound|sample complexity|convergence rate|upper bound|lower bound|pac learning|information.theoretic|complexity analysis|formal(ly| proof)|provably)\b/.test(text)) return 'theory';
   if (/\b(position paper|we argue|we contend|we call for|we urge|manifesto|perspective|opinion)\b/.test(text)) return 'position';
@@ -585,16 +555,22 @@ function classifyFormat(title, summary) {
 }
 
 
-function scoreApplied(title, summary) {
+function scoreApplied(title, summary, cat, format) {
   const text = (title + ' ' + (summary || '')).toLowerCase();
+  // Format prior: classifyFormat uses word-boundary regex — stronger signal than keyword counts
+  const FORMAT_PRIOR = { theory:0.15, survey:0.28, empirical:0.32, benchmark:0.58, position:0.38 };
+  const base = FORMAT_PRIOR[format] ?? 0.32;
+  // Category nudge: some fields are structurally applied/mechanistic regardless of abstract text
+  const CAT_ADJ = { 'cs.RO':0.12, 'cs.HC':0.10, 'cs.IR':0.06, 'cs.CV':0.04, 'cs.LG':-0.04 };
+  const catAdj = CAT_ADJ[cat] ?? 0;
   const aTerms = [
     // deployment & real-world use
-    'deploy','real-world','production','industry','practical','commercial',
+    'deploy','real-world','production','commercial',
     'on-device','edge','in the wild','open-source','open source','released','api',
     // systems & tools
     'system','framework','tool','pipeline','end-to-end',
     // task-solving & benchmarks
-    'benchmark','dataset','state-of-the-art','outperforms','downstream',
+    'dataset','state-of-the-art','outperforms','downstream',
     'fine-tuning','fine-tune','instruction','agent','autonomous','robot',
     // human-facing
     'user study','human evaluation','user interface','clinical','medical','healthcare',
@@ -603,19 +579,18 @@ function scoreApplied(title, summary) {
     // mathematical theory
     'theorem','lemma','proof','regret','sample complexity','convergence',
     'upper bound','lower bound','pac learning','formal','asymptotic',
-    'minimax','information-theoretic',
+    'minimax','information-theoretic','information theoretic',
     // mechanistic understanding
     'mechanistic','interpretability','probing','representations','circuits',
     'activation','internals','features','attention heads',
     // analytical intent
-    'we analyze','we study','we investigate','we show that','we demonstrate that',
+    'we analyze','we study','we investigate','we show that',
     'understanding','insight','why does','how does','what does',
     'ablation','empirical analysis','scaling law','scaling laws',
   ];
   const a = aTerms.filter(t => text.includes(t)).length;
   const m = mTerms.filter(t => text.includes(t)).length;
-  // Base 0.45 — neither direction is default
-  return Math.min(1, Math.max(0, 0.45 + a * 0.10 - m * 0.12));
+  return Math.min(1, Math.max(0, base + catAdj + a * 0.10 - m * 0.12));
 }
 
 
@@ -644,7 +619,7 @@ const CLUSTER_MAP = [
   { name:'Vision: Detection',        keys:['object detect','instance segment','semantic segment','bounding box','yolo','detr','panoptic','depth estimat','pose estimat','3d reconstruction','point cloud','lidar','nerf'] },
   { name:'Reinforcement Learning',   keys:['reinforcement learn','reward model','policy gradient','value function','q-learning','ppo','actor-critic','offline rl','exploration','bandit','markov','mcts','game play'] },
   { name:'Robotics & Embodied',      keys:['robot','manipulation','gripper','locomotion','embodied','sim-to-real','dexterous','imitation learn','motor control','navigation','autonomous driv'] },
-  { name:'Audio & Speech',           keys:['speech recognit','speech synthesis','speech emotion','emotion recognit','text-to-speech','speaker verif','speaker diariz','audio classif','audio-language','audio model','sound event','music generat','acoustic model','asr','tts','voice conver','codec','prosody','audio','sound','music','speaker'] },
+  { name:'Audio & Speech',           keys:['speech recognit','speech synthesis','speech emotion','emotion recognit','text-to-speech','speaker verif','speaker diariz','audio classif','audio-language','audio model','sound event','music generat','acoustic model','asr','tts','voice conver','codec','prosody','audio','music','spoken language','speech model','audio generation','speech processing'] },
   { name:'Time Series & Signals',    keys:['time series','forecasting','temporal','anomaly detect','sensor','signal process','streaming','event stream','sequential data'] },
   { name:'Language & Translation',   keys:['machine translat','multilingual','low-resource','cross-lingual','nmt','tokeniz','morpholog','dialect','language transfer','bilingual'] },
   { name:'Efficiency & Compression', keys:['quantiz','pruning','distillation','compression','efficient','lightweight','mobile','edge deploy','inference speed','throughput','latency','hardware','sparsity'] },
@@ -675,20 +650,26 @@ async function processAndStore(rawPapers, preScored = null) {
   }
   console.log(`[arXiv] Processing ${rawPapers.length} papers…`);
 
+  // Carry forward prestige scores from any previous processedPapers — avoids
+  // re-fetching HTML for papers we already verified on a manual refresh.
+  const { processedPapers: prev = [] } = await getStorage(['processedPapers']);
+  const prevPrestige = new Map(prev.map(p => [p.id, p.prestige]));
+
   const papers = rawPapers.map(p => {
     const title   = stripLatex(p.title   || '');
     const summary = stripLatex(p.summary || '');
     const cat = (p.categories || []).find(c => c.startsWith('cs.')) || p.categories?.[0] || 'cs.AI';
     const scored  = preScored?.[p.arxivId];
     const cluster = scored?.cluster || classifyPaper(title, summary, cat);
-    const prestige = scored?.prestige ?? p.prestige ?? null;
+    const prestige = scored?.prestige ?? prevPrestige.get(p.arxivId) ?? p.prestige ?? null;
+    const format  = scored?.format || classifyFormat(title, summary);
     return {
       id:        p.arxivId,
       title,
       gist:      summary.slice(0, 200).replace(/\s+/g,' ').toLowerCase(),
       cat,
-      format:    scored?.format || classifyFormat(title, summary),
-      applied:   scored?.applied ?? scoreApplied(title, summary),
+      format,
+      applied:   scored?.applied ?? scoreApplied(title, summary, cat, format),
       relevance: scoreRelevance(cat, title, summary),
       prestige,
       starred:   false,
@@ -740,4 +721,68 @@ async function processAndStore(rawPapers, preScored = null) {
   const t2 = papers.filter(p => p.prestige === 2).length;
   await setStorage({ processedPapers: papers, appliedHistory });
   console.log(`[arXiv] Stored ${papers.length} papers. Prestige: ★★★${t3} ★★${t2} ★${papers.length-t3-t2}. Clusters: ${Object.entries(clusterCounts).map(([k,v])=>`${k}(${v})`).join(', ')}`);
+
+  await updateScoreStats(papers);
+}
+
+// ── Score Stats (Welford running aggregates) ──────────────
+// Accumulates per-format, per-cat, per-cluster mean + variance of applied scores
+// across all time. Used later to compute discriminability weights that replace
+// the hardcoded FORMAT_PRIOR / CAT_ADJ tables.
+//
+// Uses Welford's online algorithm (https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford%27s_online_algorithm)
+// so we never need to re-read historical paper scores — each batch is a single O(n) pass.
+//
+// Guard: keyed by date so re-processing the same day's papers (e.g. on browser restart)
+// doesn't double-count.
+
+async function updateScoreStats(papers) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { scoreStats: prev = null, scoreStatsLastDate = null } = await getStorage(['scoreStats', 'scoreStatsLastDate']);
+
+  if (scoreStatsLastDate === today) {
+    console.log('[arXiv] scoreStats already updated for today — skipping.');
+    return;
+  }
+
+  const stats = prev || {
+    v: 1,
+    global:  { n: 0, mean: 0, m2: 0 },
+    format:  {},
+    cat:     {},
+    cluster: {}
+  };
+
+  function welford(s, x) {
+    s.n++;
+    const d1 = x - s.mean;
+    s.mean += d1 / s.n;
+    s.m2   += d1 * (x - s.mean);  // uses updated mean — keeps m2 numerically stable
+  }
+
+  function slot(obj, key) {
+    if (!obj[key]) obj[key] = { n: 0, mean: 0, m2: 0 };
+    return obj[key];
+  }
+
+  for (const p of papers) {
+    const x = p.applied;
+    welford(stats.global, x);
+    welford(slot(stats.format,  p.format),       x);
+    welford(slot(stats.cat,     p.cat),           x);
+    const cl = p.clusters?.[0];
+    if (cl) welford(slot(stats.cluster, cl),      x);
+  }
+
+  stats.updatedAt = today;
+  await setStorage({ scoreStats: stats, scoreStatsLastDate: today });
+
+  // Log top clusters by mean applied score (min n=10 to filter noise)
+  const topClusters = Object.entries(stats.cluster)
+    .filter(([, g]) => g.n >= 10)
+    .sort((a, b) => b[1].mean - a[1].mean)
+    .slice(0, 6)
+    .map(([k, g]) => `${k}(μ=${g.mean.toFixed(2)},n=${g.n})`)
+    .join(', ');
+  console.log(`[arXiv] scoreStats updated — global: μ=${stats.global.mean.toFixed(3)}, n=${stats.global.n} | clusters: ${topClusters}`);
 }

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Button Style Mockups</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #13101c;
+    color: #e8d9bc;
+    font-family: 'Avenir Next', 'Avenir', -apple-system, sans-serif;
+    padding: 32px;
+    display: flex;
+    gap: 48px;
+    align-items: flex-start;
+    overflow: visible;
+  }
+
+  .panel {
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow: visible;
+  }
+
+  .panel.thermo {
+    width: 160px;   /* extra room so bulb doesn't get crowded */
+  }
+
+  .panel-title {
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(196,148,40,0.55);
+    margin-bottom: 2px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(196,148,40,0.15);
+  }
+
+  .section { display: flex; flex-direction: column; gap: 5px; overflow: visible; }
+  .section-label {
+    font-size: 0.52rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(232,217,188,0.3);
+    margin-bottom: 2px;
+  }
+
+  /* ── CURRENT (baseline) ── */
+  .current .chip {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    border: 1.5px solid currentColor;
+    background: transparent;
+    font-size: 0.62rem;
+    opacity: 0.85;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .current .chip:hover { opacity: 1; }
+  .current .chip .n {
+    opacity: 0.55; font-size: 0.58rem;
+    margin-left: auto; min-width: 2ch; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── A: LIST ROWS ── */
+  .list-rows .chip {
+    display: flex; align-items: center;
+    padding: 3px 4px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    opacity: 0.8;
+    border-radius: 4px;
+    transition: opacity 0.1s, background 0.1s;
+  }
+  .list-rows .chip:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+  .list-rows .chip .label { flex: 1; }
+  .list-rows .chip .n {
+    font-size: 0.68rem; font-weight: 600;
+    color: rgba(232,217,188,0.7);
+    min-width: 3ch; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── B: DOT PREFIX ── */
+  .dot-prefix .chip {
+    display: flex; align-items: center; gap: 7px;
+    padding: 3px 4px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    opacity: 0.82;
+    border-radius: 4px;
+    transition: opacity 0.1s, background 0.1s;
+  }
+  .dot-prefix .chip:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+  .dot-prefix .chip .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; flex-shrink: 0;
+  }
+  .dot-prefix .chip .label { flex: 1; }
+  .dot-prefix .chip .n {
+    font-size: 0.68rem; font-weight: 600;
+    color: rgba(232,217,188,0.7);
+    min-width: 3ch; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── C: BULB PILL ── */
+  .bulb .chip {
+    display: flex; align-items: center;
+    border-radius: 20px;
+    border: 1.5px solid currentColor;
+    background: transparent;
+    font-size: 0.63rem;
+    opacity: 0.85;
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.1s;
+  }
+  .bulb .chip:hover { opacity: 1; }
+  .bulb .chip .label {
+    padding: 3px 9px 3px 10px;
+    flex: 1;
+  }
+  .bulb .chip .n {
+    background: currentColor;
+    color: #13101c;
+    font-size: 0.65rem; font-weight: 700;
+    padding: 3px 8px;
+    min-width: 2.4ch; text-align: center;
+    font-variant-numeric: tabular-nums;
+    border-radius: 0 18px 18px 0;
+    flex-shrink: 0;
+  }
+
+  /* ── D: SPLIT PILL (label left, badge circle right) ── */
+  .split .chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 3px 3px 10px;
+    border-radius: 20px;
+    border: 1.5px solid currentColor;
+    background: transparent;
+    font-size: 0.63rem;
+    opacity: 0.85;
+    cursor: pointer;
+    transition: opacity 0.1s;
+  }
+  .split .chip:hover { opacity: 1; }
+  .split .chip .label { flex: 1; }
+  .split .chip .n {
+    background: currentColor;
+    color: #13101c;
+    font-size: 0.62rem; font-weight: 700;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  /* wide numbers fall back to pill */
+  .split .chip .n.wide {
+    width: auto; border-radius: 10px; padding: 0 5px;
+  }
+
+  /* ── A*: LIST ROWS, white count ── */
+  .list-rows-white .chip {
+    display: flex; align-items: center;
+    padding: 3px 4px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    opacity: 0.8;
+    border-radius: 4px;
+    transition: opacity 0.1s, background 0.1s;
+  }
+  .list-rows-white .chip:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+  .list-rows-white .chip .label { flex: 1; }
+  .list-rows-white .chip .n {
+    font-size: 0.72rem; font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    min-width: 3ch; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── F: THERMOMETER (pill tube + overlapping bulb circle) ── */
+  /* Wrapper holds pill + circle as siblings so browser doesn't clip inside <button> */
+  .thermo .chip-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-right: 16px;          /* space for the overhanging bulb */
+  }
+  .thermo .chip-wrap:hover .tube { opacity: 1; }
+  .thermo .tube {
+    display: flex; align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid currentColor;
+    background: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.63rem;
+    opacity: 0.85;
+    cursor: pointer;
+    transition: opacity 0.1s;
+    flex: 1;
+    white-space: nowrap;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .thermo .bulb {
+    position: absolute;
+    right: -16px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: currentColor;     /* uses field color from .c-* on wrapper */
+    outline: 2.5px solid #13101c; /* dark gap ring between bulb and tube */
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .thermo .bulb.wide {
+    width: auto; border-radius: 14px; padding: 0 7px; right: -22px;
+  }
+  /* text inside bulb — dark, independent of currentColor */
+  .thermo .bulb .n {
+    color: #13101c;
+    font-size: 0.60rem; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  /* ── E: LOLLIPOP (pill label + detached circle badge) ── */
+  .lollipop .chip {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.63rem;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.1s;
+  }
+  .lollipop .chip:hover { opacity: 1; }
+  .lollipop .chip .label {
+    padding: 3px 10px;
+    border: 1.5px solid currentColor;
+    border-radius: 20px;
+    flex: 1;
+  }
+  .lollipop .chip .n {
+    width: 26px; height: 26px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.62rem; font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .lollipop .chip .n.wide {
+    width: auto; border-radius: 13px; padding: 0 6px;
+  }
+
+  /* shared colors */
+  .c-lg  { color: oklch(0.48 0.160 262); }
+  .c-cl  { color: oklch(0.54 0.150 245); }
+  .c-ai  { color: oklch(0.62 0.090 185); }
+  .c-cv  { color: oklch(0.62 0.110 140); }
+  .c-hc  { color: oklch(0.63 0.130  68); }
+  .c-cr  { color: oklch(0.58 0.150  38); }
+  .c-ro  { color: oklch(0.49 0.160  22); }
+</style>
+</head>
+<body>
+
+<!-- CURRENT -->
+<div class="panel current">
+  <div class="panel-title">Current</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <button class="chip c-lg"><span>ML Methods</span><span class="n">57</span></button>
+    <button class="chip c-cl"><span>NLP</span><span class="n">52</span></button>
+    <button class="chip c-ai"><span>General AI</span><span class="n">193</span></button>
+    <button class="chip c-cv"><span>Vision</span><span class="n">72</span></button>
+    <button class="chip c-hc"><span>HCI</span><span class="n">14</span></button>
+    <button class="chip c-cr"><span>Safety</span><span class="n">15</span></button>
+    <button class="chip c-ro"><span>Robotics</span><span class="n">13</span></button>
+  </div>
+</div>
+
+<!-- A*: LIST ROWS white count -->
+<div class="panel list-rows-white">
+  <div class="panel-title">A* — White count</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <button class="chip c-lg"><span class="label">ML Methods</span><span class="n">57</span></button>
+    <button class="chip c-cl"><span class="label">NLP</span><span class="n">52</span></button>
+    <button class="chip c-ai"><span class="label">General AI</span><span class="n">193</span></button>
+    <button class="chip c-cv"><span class="label">Vision</span><span class="n">72</span></button>
+    <button class="chip c-hc"><span class="label">HCI</span><span class="n">14</span></button>
+    <button class="chip c-cr"><span class="label">Safety</span><span class="n">15</span></button>
+    <button class="chip c-ro"><span class="label">Robotics</span><span class="n">13</span></button>
+  </div>
+</div>
+
+<!-- A: LIST ROWS -->
+<div class="panel list-rows">
+  <div class="panel-title">A — List rows</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <button class="chip c-lg"><span class="label">ML Methods</span><span class="n">57</span></button>
+    <button class="chip c-cl"><span class="label">NLP</span><span class="n">52</span></button>
+    <button class="chip c-ai"><span class="label">General AI</span><span class="n">193</span></button>
+    <button class="chip c-cv"><span class="label">Vision</span><span class="n">72</span></button>
+    <button class="chip c-hc"><span class="label">HCI</span><span class="n">14</span></button>
+    <button class="chip c-cr"><span class="label">Safety</span><span class="n">15</span></button>
+    <button class="chip c-ro"><span class="label">Robotics</span><span class="n">13</span></button>
+  </div>
+</div>
+
+<!-- B: DOT PREFIX -->
+<div class="panel dot-prefix">
+  <div class="panel-title">B — Dot prefix</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <button class="chip c-lg"><span class="dot"></span><span class="label">ML Methods</span><span class="n">57</span></button>
+    <button class="chip c-cl"><span class="dot"></span><span class="label">NLP</span><span class="n">52</span></button>
+    <button class="chip c-ai"><span class="dot"></span><span class="label">General AI</span><span class="n">193</span></button>
+    <button class="chip c-cv"><span class="dot"></span><span class="label">Vision</span><span class="n">72</span></button>
+    <button class="chip c-hc"><span class="dot"></span><span class="label">HCI</span><span class="n">14</span></button>
+    <button class="chip c-cr"><span class="dot"></span><span class="label">Safety</span><span class="n">15</span></button>
+    <button class="chip c-ro"><span class="dot"></span><span class="label">Robotics</span><span class="n">13</span></button>
+  </div>
+</div>
+
+<!-- C: BULB PILL -->
+<div class="panel bulb">
+  <div class="panel-title">C — Bulb pill</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <button class="chip c-lg"><span class="label">ML Methods</span><span class="n">57</span></button>
+    <button class="chip c-cl"><span class="label">NLP</span><span class="n">52</span></button>
+    <button class="chip c-ai"><span class="label">General AI</span><span class="n">193</span></button>
+    <button class="chip c-cv"><span class="label">Vision</span><span class="n">72</span></button>
+    <button class="chip c-hc"><span class="label">HCI</span><span class="n">14</span></button>
+    <button class="chip c-cr"><span class="label">Safety</span><span class="n">15</span></button>
+    <button class="chip c-ro"><span class="label">Robotics</span><span class="n">13</span></button>
+  </div>
+</div>
+
+<!-- E: LOLLIPOP -->
+<div class="panel lollipop">
+  <div class="panel-title">E — Lollipop</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <button class="chip c-lg"><span class="label">ML Methods</span><span class="n wide">57</span></button>
+    <button class="chip c-cl"><span class="label">NLP</span><span class="n">52</span></button>
+    <button class="chip c-ai"><span class="label">General AI</span><span class="n wide">193</span></button>
+    <button class="chip c-cv"><span class="label">Vision</span><span class="n">72</span></button>
+    <button class="chip c-hc"><span class="label">HCI</span><span class="n">14</span></button>
+    <button class="chip c-cr"><span class="label">Safety</span><span class="n">15</span></button>
+    <button class="chip c-ro"><span class="label">Robotics</span><span class="n">13</span></button>
+  </div>
+</div>
+
+<!-- F: THERMOMETER -->
+<div class="panel thermo">
+  <div class="panel-title">F — Thermometer</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <div class="chip-wrap c-lg"><button class="tube">ML Methods</button><span class="bulb wide"><span class="n">57</span></span></div>
+    <div class="chip-wrap c-cl"><button class="tube">NLP</button><span class="bulb"><span class="n">52</span></span></div>
+    <div class="chip-wrap c-ai"><button class="tube">General AI</button><span class="bulb wide"><span class="n">193</span></span></div>
+    <div class="chip-wrap c-cv"><button class="tube">Vision</button><span class="bulb"><span class="n">72</span></span></div>
+    <div class="chip-wrap c-hc"><button class="tube">HCI</button><span class="bulb"><span class="n">14</span></span></div>
+    <div class="chip-wrap c-cr"><button class="tube">Safety</button><span class="bulb"><span class="n">15</span></span></div>
+    <div class="chip-wrap c-ro"><button class="tube">Robotics</button><span class="bulb"><span class="n">13</span></span></div>
+  </div>
+</div>
+
+<!-- D: SPLIT PILL (circle badge) -->
+<div class="panel split">
+  <div class="panel-title">D — Circle badge</div>
+  <div class="section">
+    <div class="section-label">Field · color</div>
+    <button class="chip c-lg"><span class="label">ML Methods</span><span class="n wide">57</span></button>
+    <button class="chip c-cl"><span class="label">NLP</span><span class="n">52</span></button>
+    <button class="chip c-ai"><span class="label">General AI</span><span class="n wide">193</span></button>
+    <button class="chip c-cv"><span class="label">Vision</span><span class="n">72</span></button>
+    <button class="chip c-hc"><span class="label">HCI</span><span class="n">14</span></button>
+    <button class="chip c-cr"><span class="label">Safety</span><span class="n">15</span></button>
+    <button class="chip c-ro"><span class="label">Robotics</span><span class="n">13</span></button>
+  </div>
+</div>
+
+</body>
+</html>

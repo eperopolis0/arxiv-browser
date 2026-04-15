@@ -1,0 +1,40 @@
+name: Nightly arXiv scorer
+
+on:
+  schedule:
+    # 02:30 UTC = ~10:30 PM ET Mon–Fri, after arXiv posts ~10 PM ET
+    # Runs Tue–Sat UTC (= Mon–Fri evening ET)
+    - cron: '30 2 * * 2-6'
+  workflow_dispatch:   # allow manual runs from GitHub UI
+
+permissions:
+  contents: write      # needed to push scores/*.json
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run scorer
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scorer/score-today.mjs
+
+      - name: Commit and push scores
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          DATE=$(date -u +%Y-%m-%d)
+          git add "scores/${DATE}.json"
+          git diff --cached --quiet && echo "No new scores to commit" && exit 0
+          git commit -m "scores: ${DATE}"
+          git push

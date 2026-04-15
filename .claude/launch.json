@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "static-preview",
-      "runtimeExecutable": "/usr/local/bin/python3",
-      "runtimeArgs": ["-m", "http.server", "3000", "--directory", "/Users/ricky/Desktop/Projects/arxiv-browser"],
-      "port": 3000
+      "name": "mockup",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "3131", "."],
+      "port": 3131
     }
   ]
 }

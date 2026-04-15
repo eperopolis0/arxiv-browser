@@ -15,10 +15,8 @@ const ROOT = join(__dirname, '..');
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 if (!ANTHROPIC_API_KEY) { console.error('ANTHROPIC_API_KEY not set'); process.exit(1); }
 
-const API_BASE     = 'https://export.arxiv.org/api/query';
-const LISTING_URL  = 'https://arxiv.org/list/cs.AI/new';
-const S2_BATCH_URL = 'https://api.semanticscholar.org/graph/v1/paper/batch';
-const S2_API_KEY   = process.env.S2_API_KEY || null;
+const API_BASE    = 'https://export.arxiv.org/api/query';
+const LISTING_URL = 'https://arxiv.org/list/cs.AI/new';
 
 // ── Fetch helpers ──────────────────────────────────────────────────────────────
 
@@ -113,8 +111,10 @@ async function fetchPapers(ids) {
 // ── Format + cluster classification (deterministic, no API needed) ─────────────
 
 function classifyFormat(title, summary) {
+  const titleL = title.toLowerCase();
   const text = (title + ' ' + summary).toLowerCase();
-  if (/\b(benchmark|dataset|leaderboard|evaluation suite|corpus|annotated)\b/.test(text)) return 'benchmark';
+  if (/\b(benchmark|leaderboard|evaluation suite)\b/.test(text)) return 'benchmark';
+  if (/\b(dataset|corpus)\b/.test(titleL)) return 'benchmark';
   if (/\b(survey|overview|review|tutorial|comprehensive study|systematic review)\b/.test(text)) return 'survey';
   if (/\b(theorem|lemma|proof|regret bound|sample complexity|convergence rate|upper bound|lower bound|pac learning|information.theoretic|complexity analysis|formal(ly| proof)|provably)\b/.test(text)) return 'theory';
   if (/\b(position paper|we argue|we contend|we call for|we urge|manifesto|perspective|opinion)\b/.test(text)) return 'position';
@@ -129,7 +129,7 @@ const CLUSTER_MAP = [
   { name:'Vision: Detection',        keys:['object detect','instance segment','semantic segment','bounding box','yolo','detr','panoptic','depth estimat','pose estimat','3d reconstruction','point cloud','lidar','nerf'] },
   { name:'Reinforcement Learning',   keys:['reinforcement learn','reward model','policy gradient','value function','q-learning','ppo','actor-critic','offline rl','exploration','bandit','markov','mcts','game play'] },
   { name:'Robotics & Embodied',      keys:['robot','manipulation','gripper','locomotion','embodied','sim-to-real','dexterous','imitation learn','motor control','navigation','autonomous driv'] },
-  { name:'Audio & Speech',           keys:['speech recognit','speech synthesis','speech emotion','emotion recognit','text-to-speech','speaker verif','speaker diariz','audio classif','audio-language','audio model','sound event','music generat','acoustic model','asr','tts','voice conver','codec','prosody','audio','sound','music','speaker'] },
+  { name:'Audio & Speech',           keys:['speech recognit','speech synthesis','speech emotion','emotion recognit','text-to-speech','speaker verif','speaker diariz','audio classif','audio-language','audio model','sound event','music generat','acoustic model','asr','tts','voice conver','codec','prosody','audio','music'] },
   { name:'Time Series & Signals',    keys:['time series','forecasting','temporal','anomaly detect','sensor','signal process','streaming','event stream','sequential data'] },
   { name:'Language & Translation',   keys:['machine translat','multilingual','low-resource','cross-lingual','nmt','tokeniz','morpholog','dialect','language transfer','bilingual'] },
   { name:'Efficiency & Compression', keys:['quantiz','pruning','distillation','compression','efficient','lightweight','mobile','edge deploy','inference speed','throughput','latency','hardware','sparsity'] },
@@ -225,7 +225,7 @@ async function scoreAllWithHaiku(papers) {
   return scores;
 }
 
-// ── Prestige — S2 affiliations ─────────────────────────────────────────────────
+// ── Prestige — HTML affiliation scan ──────────────────────────────────────────
 
 const PRESTIGE_TIER3 = [
   'anthropic','openai','deepmind','google deepmind','google brain',
@@ -247,7 +247,6 @@ const PRESTIGE_TIER2 = [
   'university of toronto','mila','université de montréal',
   'imperial college london',
   'google research','microsoft research',
-  'meta ai','fundamental ai research',
   'allen institute for ai','allen institute for artificial intelligence',
   'vector institute',
 ];
@@ -263,54 +262,6 @@ function scoreTierFromText(text) {
   return 1;
 }
 
-function scoreTierFromAffsAndCitations(affiliations, maxCitations) {
-  if (affiliations?.length) {
-    const text = affiliations.join(' ').toLowerCase();
-    for (const kw of PRESTIGE_TIER3) { if (text.includes(kw)) return 2; } // S2 path caps at 2
-    for (const kw of PRESTIGE_TIER2) { if (text.includes(kw)) return 2; }
-  }
-  if (maxCitations >= 1000) return 2;
-  if (affiliations?.length) return 1;
-  return null;
-}
-
-async function fetchS2Prestige(papers) {
-  const prestigeMap = new Map();
-  if (!papers.length) return prestigeMap;
-  const ids = papers.map(p => `ARXIV:${p.arxivId}`);
-  const BATCH = 500;
-  for (let i = 0; i < ids.length; i += BATCH) {
-    const chunk = ids.slice(i, i + BATCH);
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (S2_API_KEY) headers['x-api-key'] = S2_API_KEY;
-      const resp = await fetchWithTimeout(
-        S2_BATCH_URL + '?fields=authors.affiliations,authors.citationCount', 30000,
-        { method: 'POST', headers, body: JSON.stringify({ ids: chunk }) }
-      );
-      if (!resp.ok) { console.warn(`[s2] HTTP ${resp.status} — skipping`); break; }
-      const data = await resp.json();
-      let matched = 0;
-      data.forEach((paper, idx) => {
-        if (!paper) return;
-        const arxivId = chunk[idx].replace('ARXIV:', '');
-        const authors = paper.authors || [];
-        const allAffs = authors.flatMap(a => (a.affiliations || []).map(af => af.name || af));
-        const maxCite = Math.max(0, ...authors.map(a => a.citationCount || 0));
-        const tier = scoreTierFromAffsAndCitations(allAffs, maxCite);
-        if (tier !== null) { prestigeMap.set(arxivId, tier); matched++; }
-      });
-      console.log(`[s2] ${matched}/${chunk.length} papers scored`);
-    } catch (e) {
-      console.warn(`[s2] Failed (${e.message}) — skipping prestige for this batch`);
-    }
-    if (i + BATCH < ids.length) await sleep(2000);
-  }
-  return prestigeMap;
-}
-
-// ── Prestige — HTML affiliation scan (upgrades tier to 3 if frontier lab found) ─
-
 function extractBetweenDivs(html, startClass, endClass) {
   const startRe = new RegExp('<div[^>]*' + startClass + '[^>]*>', 'i');
   const endRe   = new RegExp('<div[^>]*' + endClass   + '[^>]*>', 'i');
@@ -323,7 +274,7 @@ function extractBetweenDivs(html, startClass, endClass) {
 
 async function fetchHTMLPrestige(arxivId) {
   try {
-    const resp = await fetchWithTimeout(`https://arxiv.org/html/${arxivId}`, 15000, {
+    const resp = await fetchWithTimeout(`https://arxiv.org/html/${arxivId}`, 12000, {
       headers: { Range: 'bytes=0-131071' },
     });
     if (resp.status !== 200 && resp.status !== 206) return null;
@@ -336,8 +287,8 @@ async function fetchHTMLPrestige(arxivId) {
     while ((affM = affRe.exec(scanSource)) !== null) {
       affiliationText += ' ' + affM[1].replace(/<[^>]+>/g, ' ');
     }
-    if (!affiliationText.trim()) affiliationText = scanSource.replace(/<[^>]+>/g, ' ');
-    const emailText = (scanSource.match(/\b[\w.+%-]+@[\w-]+\.[\w.]+\b/gi) || []).join(' ');
+    const authorsSrc = authorsBlock || '';
+    const emailText = (authorsSrc.match(/\b[\w.+%-]+@[\w-]+\.[\w.]+\b/gi) || []).join(' ');
     if (!affiliationText.trim() && !emailText) return null;
     return scoreTierFromText(affiliationText + ' ' + emailText);
   } catch (e) {
@@ -345,22 +296,22 @@ async function fetchHTMLPrestige(arxivId) {
   }
 }
 
-async function upgradePrestigeWithHTML(papers, s2Map) {
-  // Only fetch HTML for papers where S2 didn't confirm tier 3 already.
-  // Frontier labs often post HTML versions — catching them here is cheap.
-  const needsHTML = papers.filter(p => (s2Map.get(p.arxivId) ?? 0) < 3);
-  console.log(`[html] Checking ${needsHTML.length} papers for tier-3 affiliations…`);
-  const BATCH = 10;
-  const result = new Map(s2Map);
-  for (let i = 0; i < needsHTML.length; i += BATCH) {
-    const chunk = needsHTML.slice(i, i + BATCH);
+async function fetchPrestigeForAll(papers) {
+  console.log(`[html] Checking ${papers.length} papers for affiliations…`);
+  const prestigeMap = new Map();
+  const CONCURRENCY = 10;
+  for (let i = 0; i < papers.length; i += CONCURRENCY) {
+    const chunk = papers.slice(i, i + CONCURRENCY);
     await Promise.all(chunk.map(async p => {
       const tier = await fetchHTMLPrestige(p.arxivId);
-      if (tier !== null) result.set(p.arxivId, Math.max(tier, result.get(p.arxivId) ?? 0));
+      if (tier !== null) prestigeMap.set(p.arxivId, tier);
     }));
-    if (i + BATCH < needsHTML.length) await sleep(2000);
+    if (i + CONCURRENCY < papers.length) await sleep(1500);
+    if ((i / CONCURRENCY) % 10 === 0) console.log(`[html] ${Math.min(i + CONCURRENCY, papers.length)}/${papers.length} done`);
   }
-  return result;
+  const matched = prestigeMap.size;
+  console.log(`[html] ${matched}/${papers.length} papers got prestige`);
+  return prestigeMap;
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────────
@@ -382,9 +333,8 @@ async function main() {
   // 3. Score applied dimension with Haiku
   const appliedScores = await scoreAllWithHaiku(papers);
 
-  // 4. Prestige — S2 first, then HTML upgrade to tier 3
-  const s2Map = await fetchS2Prestige(papers);
-  const prestigeMap = await upgradePrestigeWithHTML(papers, s2Map);
+  // 4. Prestige — HTML affiliation scan (nightly agent runs after HTML pages exist)
+  const prestigeMap = await fetchPrestigeForAll(papers);
 
   // 5. Build output
   const output = { date: today, papers: {} };

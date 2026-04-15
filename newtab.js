@@ -30,8 +30,9 @@ let ALL_CLUSTERS = [];
 const ALL_CATS     = ['cs.LG','cs.CL','cs.IR','cs.AI','cs.CV','cs.HC','cs.CR','cs.RO'];
 const ALL_FORMATS  = ['theory','position','empirical','benchmark','survey'];
 const ALL_PRESTIGE = [3, 2, 1];
-const PRESTIGE_LABEL = { 3:'★★★ Frontier', 2:'★★ Elite', 1:'★ Community' };
-const PRESTIGE_COLOR = { 3:'#9BAAB8',      2:'#7A8C9C',     1:'#5E6E7C' };
+const PRESTIGE_LABEL  = { 3:'Frontier ✦✦✦', 2:'Elite ✦✦', 1:'Open ✦' };
+const PRESTIGE_LABEL_R = PRESTIGE_LABEL;
+const PRESTIGE_COLOR = { 3:'rgba(196,148,40,0.95)', 2:'rgba(232,217,188,0.70)', 1:'rgba(232,217,188,0.42)' };
 let activeCats     = new Set(); // empty = show all; non-empty = show only selected
 let activeFormats  = new Set();
 let activePrestige = new Set();
@@ -128,20 +129,26 @@ function showError(msg) {
 // was killed before it could store processedPapers)
 // ═══════════════════════════════════════════════════════
 function classifyFormat(title, summary) {
+  const titleL = title.toLowerCase();
   const text = (title + ' ' + summary).toLowerCase();
-  if (/\b(benchmark|dataset|leaderboard|evaluation suite|corpus|annotated)\b/.test(text)) return 'benchmark';
+  if (/\b(benchmark|leaderboard|evaluation suite)\b/.test(text)) return 'benchmark';
+  if (/\b(dataset|corpus)\b/.test(titleL)) return 'benchmark';
   if (/\b(survey|overview|review|tutorial|comprehensive study|systematic review)\b/.test(text)) return 'survey';
   if (/\b(theorem|lemma|proof|regret bound|sample complexity|convergence rate|upper bound|lower bound|pac learning|information.theoretic|complexity analysis|formal(ly| proof)|provably)\b/.test(text)) return 'theory';
   if (/\b(position paper|we argue|we contend|we call for|we urge|manifesto|perspective|opinion)\b/.test(text)) return 'position';
   return 'empirical';
 }
-function scoreApplied(title, summary) {
+function scoreApplied(title, summary, cat, format) {
   const text = (title + ' ' + summary).toLowerCase();
-  const a = ['deploy','real-world','production','industry','application','practical','clinical','medical','healthcare','commercial','on-device','edge','robot','autonomous','user study','human evaluation','user interface','open-source','open source','released','api','pipeline','end-to-end system','in the wild','case study','field study','we implement','system design'].filter(t=>text.includes(t)).length;
-  const th = ['theorem','lemma','proof','regret','sample complexity','convergence rate','upper bound','lower bound','pac learning','formally','asymptotic','theoretical analysis','minimax','information-theoretic','we prove','we show that','hardness','np-hard','complexity class','tight bound','impossibility','approximation ratio','competitive ratio','optimal algorithm'].filter(t=>text.includes(t)).length;
-  // Base 0.38 (slight theory-lean) so neutral papers don't pile up at centre.
-  // Each theory term subtracts 0.15; each applied term adds 0.11.
-  return Math.min(1, Math.max(0, 0.38 + a * 0.11 - th * 0.15));
+  // Format prior: classifyFormat uses word-boundary regex — stronger signal than keyword counts
+  const FORMAT_PRIOR = { theory:0.15, survey:0.28, empirical:0.32, benchmark:0.58, position:0.38 };
+  const base = FORMAT_PRIOR[format] ?? 0.28;
+  // Category nudge: some fields are structurally applied/mechanistic regardless of abstract text
+  const CAT_ADJ = { 'cs.RO':0.12, 'cs.HC':0.10, 'cs.IR':0.06, 'cs.CV':0.04, 'cs.LG':-0.04 };
+  const catAdj = CAT_ADJ[cat] ?? 0;
+  const a = ['deploy','real-world','production','application','clinical','medical','healthcare','commercial','on-device','edge','robot','autonomous','user study','human evaluation','user interface','open-source','open source','released','api','pipeline','end-to-end system','in the wild','case study','field study','we implement','system design'].filter(t=>text.includes(t)).length;
+  const th = ['theorem','lemma','proof','regret','sample complexity','convergence rate','upper bound','lower bound','pac learning','formally','asymptotic','theoretical analysis','minimax','information-theoretic','information theoretic','we prove','we show that','hardness','np-hard','complexity class','tight bound','impossibility','approximation ratio','competitive ratio','optimal algorithm','complexity analysis'].filter(t=>text.includes(t)).length;
+  return Math.min(1, Math.max(0, base + catAdj + a * 0.11 - th * 0.18));
 }
 function scoreRelevance(cat, title, summary) {
   const text = (title + ' ' + summary).toLowerCase();
@@ -191,7 +198,7 @@ const CLUSTER_MAP = [
   { name:'Vision: Detection',        keys:['object detect','instance segment','semantic segment','bounding box','yolo','detr','panoptic','depth estimat','pose estimat','3d reconstruction','point cloud','lidar','nerf'] },
   { name:'Reinforcement Learning',   keys:['reinforcement learn','reward model','policy gradient','value function','q-learning','ppo','actor-critic','offline rl','exploration','bandit','markov','mcts','game play'] },
   { name:'Robotics & Embodied',      keys:['robot','manipulation','gripper','locomotion','embodied','sim-to-real','dexterous','imitation learn','motor control','navigation','autonomous driv'] },
-  { name:'Audio & Speech',           keys:['speech recognit','speech synthesis','speech emotion','emotion recognit','text-to-speech','speaker verif','speaker diariz','audio classif','audio-language','audio model','sound event','music generat','acoustic model','asr','tts','voice conver','codec','prosody','audio','sound','music','speaker'] },
+  { name:'Audio & Speech',           keys:['speech recognit','speech synthesis','speech emotion','emotion recognit','text-to-speech','speaker verif','speaker diariz','audio classif','audio-language','audio model','sound event','music generat','acoustic model','asr','tts','voice conver','codec','prosody','audio','music','spoken language','speech model','audio generation','speech processing'] },
   { name:'Time Series & Signals',    keys:['time series','forecasting','temporal','anomaly detect','sensor','signal process','streaming','event stream','sequential data'] },
   { name:'Language & Translation',   keys:['machine translat','multilingual','low-resource','cross-lingual','nmt','tokeniz','morpholog','dialect','language transfer','bilingual'] },
   { name:'Efficiency & Compression', keys:['quantiz','pruning','distillation','compression','efficient','lightweight','mobile','edge deploy','inference speed','throughput','latency','hardware','sparsity'] },
@@ -224,8 +231,9 @@ function processRawPapers(rawPapers) {
     const summary = stripLatex(p.summary || '');
     const cat = (p.categories||[]).find(c=>c.startsWith('cs.'))||p.categories?.[0]||'cs.AI';
     const cluster = classifyPaper(title, summary, cat);
+    const format = classifyFormat(title, summary);
     return { id:p.arxivId, title, gist:summary.slice(0,200).replace(/\s+/g,' ').toLowerCase(),
-      cat, format:classifyFormat(title, summary), applied:scoreApplied(title, summary),
+      cat, format, applied:scoreApplied(title, summary, cat, format),
       relevance:scoreRelevance(cat, title, summary),
       starred:false, clusters:[cluster], _absLink:p.absLink||'https://arxiv.org/abs/'+p.arxivId,
       _pdfLink:p.pdfLink||'https://arxiv.org/pdf/'+p.arxivId,
@@ -474,6 +482,7 @@ async function renderPapers(processedPapers, lastFetch, appliedHistory) {
   document.getElementById('vis-count').textContent = PAPERS.length;
 
   logScoreDistribution(PAPERS);
+  logClusterDistribution(PAPERS);
   applyColorHistory(appliedHistory); // set CAT_COLOR from rolling history before building UI
   buildClusterBar();
   buildLegend();
@@ -501,14 +510,8 @@ async function renderPapers(processedPapers, lastFetch, appliedHistory) {
   hideLoading();
   draw();
   renderSidebar();
-
-  // Background-verify prestige via arXiv HTML — only needed when pre-scored JSON
-  // didn't cover these papers. If all papers have prestige set, skip entirely.
-  const needsVerify = PAPERS.filter(p => p.prestige === null);
-  if (needsVerify.length > 0) {
-    console.log(`[arXiv] Auto-verifying prestige for ${needsVerify.length} unscored papers…`);
-    needsVerify.forEach((p, i) => setTimeout(() => verifyPrestige(p), i * 600));
-  }
+  // Prestige is now resolved by background.js at fetch time — no auto-verify here.
+  // Manual click-to-verify on null prestige dots is still supported via verifyPrestige().
 }
 
 // ─── Color scale ───
@@ -520,14 +523,39 @@ async function renderPapers(processedPapers, lastFetch, appliedHistory) {
 // Gold crossover at 0.45 (valley between peaks) splits papers ~50-50 cool vs warm.
 // Cool half: purple → blue → teal. Warm half: gold → amber → red.
 const AXIS_STOPS = [
-  [0.00, 0.48, 0.18, 305],  // purple             (extreme mechanism)
-  [0.15, 0.50, 0.17, 265],  // blue
-  [0.30, 0.60, 0.14, 195],  // teal               (theoretical peak)
-  [0.45, 0.65, 0.14,  78],  // gold               (crossover — valley between peaks)
-  [0.60, 0.63, 0.13,  45],  // amber              (applied peak)
-  [0.80, 0.55, 0.14,  25],  // sienna
+  [0.00, 0.48, 0.18, 305],  // purple
+  [0.17, 0.50, 0.17, 265],  // blue
+  [0.33, 0.60, 0.14, 195],  // teal
+  [0.50, 0.65, 0.14,  78],  // gold    ← midpoint: warm/cool crossover
+  [0.67, 0.62, 0.13,  45],  // amber
+  [0.83, 0.55, 0.14,  25],  // sienna
   [1.00, 0.48, 0.16,  20],  // deep red
 ];
+
+function logClusterDistribution(papers) {
+  const groups = {};
+  papers.forEach(p => {
+    const c = p.clusters?.[0] || 'General ML';
+    if (!groups[c]) groups[c] = [];
+    groups[c].push(p);
+  });
+
+  const sorted = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+  console.log(`[arXiv] Cluster distribution (${sorted.length} clusters):`);
+  sorted.forEach(([name, ps]) => {
+    const mean = (ps.reduce((s, p) => s + (p.applied ?? 0.5), 0) / ps.length).toFixed(3);
+    console.log(`[arXiv]   ${name.padEnd(26)} n=${String(ps.length).padStart(3)}  μ=${mean}`);
+  });
+
+  // Spotlight the fallback — show titles so we can see what's slipping through
+  const fallback = groups['General ML'] || [];
+  if (fallback.length) {
+    console.log(`[arXiv] General ML titles (${fallback.length} papers — potential cluster gaps):`);
+    fallback
+      .sort((a, b) => (b.applied ?? 0.5) - (a.applied ?? 0.5))
+      .forEach(p => console.log(`[arXiv]   [${(p.applied ?? 0.5).toFixed(2)}] ${p.title}`));
+  }
+}
 
 function logScoreDistribution(papers) {
   const scores = papers.map(p => p.applied ?? 0.5).sort((a, b) => a - b);
@@ -633,15 +661,12 @@ function rebuildAxisGradient(catInfo) {
 function buildClusterBar() {
   const clusterBarEl = document.getElementById('cluster-bar');
   clusterBarEl.innerHTML = '';
-  const clusterMean = name => {
-    const members = PAPERS.filter(p => p.clusters.includes(name));
-    return members.length ? members.reduce((s,p) => s + p.applied, 0) / members.length : 0.5;
-  };
-  const sortedClusters = [...ALL_CLUSTERS].sort((a,b) => clusterMean(a) - clusterMean(b));
+  const clusterCount = name => PAPERS.filter(p => p.clusters.includes(name)).length;
+  const sortedClusters = [...ALL_CLUSTERS].sort((a,b) => clusterCount(b) - clusterCount(a) || a.localeCompare(b));
   CLUSTER_COLOR = {};
   sortedClusters.forEach(name => {
     const members  = PAPERS.filter(p => p.clusters.includes(name));
-    CLUSTER_COLOR[name] = axisColor(clusterMean(name));
+    CLUSTER_COLOR[name] = '#9BAAB8'; // neutral — cluster buttons match blob color
     const btn = document.createElement('button');
     btn.className   = 'cluster-btn';
     btn.style.color = CLUSTER_COLOR[name];
@@ -658,11 +683,11 @@ function buildClusterBar() {
 
 // ─── Build legend ───
 function buildLegend() {
-  const legendEl = document.getElementById('legend');
+  const legendEl = document.getElementById('legend-content');
   legendEl.innerHTML = '';
 
   const fieldSec = document.createElement('div');
-  fieldSec.innerHTML = '<div class="leg-section-title">Field</div>';
+  fieldSec.innerHTML = '<div class="leg-section-title"><span class="title-noun">Field</span> \u00b7 <span class="title-attr">color</span></div>';
   const fieldBtns = document.createElement('div');
   fieldBtns.className = 'leg-btns single-col';
   ALL_CATS.forEach(cat => {
@@ -684,9 +709,12 @@ function buildLegend() {
   fieldSec.appendChild(fieldBtns);
   legendEl.appendChild(fieldSec);
 
-  const FMT_SYM = { empirical:'\u25cf', benchmark:'\u25b2', survey:'\u25a0', theory:'\u2605', position:'\u25c6' };
+  const fmtIcon = fmt => {
+    const path = d3.symbol().type(D3_SYMBOL[fmt]).size(88)();
+    return `<svg class="fb-icon" viewBox="-8 -8 16 16" width="1em" height="1em" style="flex-shrink:0;display:block"><path d="${path}" fill="currentColor"/></svg>`;
+  };
   const fmtSec = document.createElement('div');
-  fmtSec.innerHTML = '<div class="leg-section-title">Format \u00b7 shape</div>';
+  fmtSec.innerHTML = '<div class="leg-section-title"><span class="title-noun">Format</span> \u00b7 <span class="title-attr">shape</span></div>';
   const fmtBtns = document.createElement('div');
   fmtBtns.className = 'leg-btns single-col';
   ALL_FORMATS.forEach(fmt => {
@@ -695,7 +723,7 @@ function buildLegend() {
     btn.className = 'filter-btn';
     btn.style.color = FMT_COLOR[fmt];
     btn.style.borderColor = FMT_COLOR[fmt];
-    btn.innerHTML = FMT_SYM[fmt] + ' ' + FMT_LABEL[fmt] + ' <span class="fb-count">' + count + '</span>';
+    btn.innerHTML = FMT_LABEL[fmt] + ' ' + fmtIcon(fmt) + '<span class="fb-count">' + count + '</span>';
     btn.dataset.format = fmt;
     btn.addEventListener('click', () => {
       activeFormats.has(fmt) ? activeFormats.delete(fmt) : activeFormats.add(fmt);
@@ -709,7 +737,7 @@ function buildLegend() {
 
   // ── Prestige · size ──
   const prestSec = document.createElement('div');
-  prestSec.innerHTML = '<div class="leg-section-title">Prestige \u00b7 size</div>';
+  prestSec.innerHTML = '<div class="leg-section-title"><span class="title-noun">Prestige</span> \u00b7 <span class="title-attr">size</span></div>';
   const prestBtns = document.createElement('div');
   prestBtns.className = 'leg-btns single-col';
   ALL_PRESTIGE.forEach(tier => {
@@ -732,33 +760,29 @@ function buildLegend() {
 
   // ── Starred ──
   const starWrapper = document.createElement('div');
-  starWrapper.innerHTML = '<div class="leg-section-title">Starred</div>';
+  starWrapper.innerHTML = '<div class="leg-section-title"><span class="title-noun">Favorite</span> \u00b7 <span class="title-attr">starred</span></div>';
   const starSec = document.createElement('div');
   starSec.className = 'leg-btns single-col';
   const starN = PAPERS.filter(p => p.starred).length;
   const starBtn = document.createElement('button');
   starBtn.className = 'filter-btn star-btn';
   starBtn.id = 'star-filter-btn';
-  starBtn.innerHTML = '\u2605 Show only <span class="fb-count" id="star-count">' + starN + '</span>';
+  starBtn.innerHTML = 'Today \u2605 <span class="fb-count" id="star-count">' + starN + '</span>';
   starBtn.addEventListener('click', () => {
     starFilterActive = !starFilterActive;
     starBtn.classList.toggle('active', starFilterActive);
     updateVisibility();
   });
-  starSec.appendChild(starBtn);
-  starWrapper.appendChild(starSec);
-  legendEl.appendChild(starWrapper);
-
-  // ── View Starred library ──
-  const drawerSec = document.createElement('div');
-  drawerSec.style.cssText = 'margin-top:4px';
   const drawerBtn = document.createElement('button');
   drawerBtn.className = 'filter-btn star-btn';
   drawerBtn.id = 'view-starred-btn';
-  drawerBtn.innerHTML = '\u2605 Starred library';
+  const allStarN = Object.keys(_starredData).length;
+  drawerBtn.innerHTML = 'All\u2011Time \u2605 <span class="fb-count">' + allStarN + '</span>';
   drawerBtn.addEventListener('click', openStarredDrawer);
-  drawerSec.appendChild(drawerBtn);
-  legendEl.appendChild(drawerSec);
+  starSec.appendChild(starBtn);
+  starSec.appendChild(drawerBtn);
+  starWrapper.appendChild(starSec);
+  legendEl.appendChild(starWrapper);
 
 }
 
@@ -768,7 +792,7 @@ function buildLegend() {
 const svg     = d3.select('#chart');
 const clusterNameEl = document.getElementById('cluster-name-display');
 const chartEl = document.getElementById('chart-area');
-const M       = { top:14, right:20, bottom:40, left:28 };
+const M       = { top:8, right:4, bottom:24, left:4 };
 
 const defs = svg.append('defs');
 defs.append('filter').attr('id','blob-blur').append('feGaussianBlur').attr('stdDeviation', 10);
@@ -804,7 +828,7 @@ const BLOB_STRK_DIM  = 0.03,  BLOB_STRK_BASE  = 0.18,  BLOB_STRK_HI  = 1.00;
 
 // Prestige opacity — module-level so click handlers outside renderPapers can use it
 // null = not yet verified → treated as ★ until HTML scan runs
-// 1    = ★  Community  (unknown or lesser-known affiliation)
+// 1    = ★  Open       (unknown or lesser-known affiliation)
 // 2    = ★★ Elite      (strong university, national lab, major research institute)
 // 3    = ★★★ Frontier  (frontier AI lab or high-mandate research agency)
 const PRESTIGE_OPACITY = { 1: 0.42, 2: 0.85, 3: 1.00 };
@@ -961,7 +985,7 @@ function patchCardPrestige(d) {
   const span = card.querySelector('.sb-prestige');
   if (!span) return;
   const presColor = PRESTIGE_COLOR[d.prestige ?? 1];
-  const presLabel = d.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[d.prestige ?? 1];
+  const presLabel = d.prestige === null ? 'Unverified ✦' : PRESTIGE_LABEL_R[d.prestige ?? 1];
   span.style.color = presColor;
   span.textContent = presLabel;
   span.style.pointerEvents = '';
@@ -974,7 +998,7 @@ function patchCardPrestige(d) {
 const _verifyingIds = new Set();
 
 // Fetch HTML affiliations for a paper and update prestige in place.
-// Called on auto-verify (load), dot click, and when user clicks "★ Unverified".
+// Called on auto-verify (load), dot click, and when user clicks "Unverified ✦".
 // Always trusts a successful HTML fetch result (allows corrections in both directions).
 // Only guard: tier==null means fetch failed — don't touch prestige in that case.
 // userInitiated: when true, enforces an 800ms min display of "↻ Verifying…" and shows
@@ -1050,7 +1074,7 @@ function showTip(evt, p) {
   const tier       = p.prestige ?? 1;
   const tierActive = !activePrestige.size || activePrestige.has(tier);
   const isVerifying = _verifyingIds.has(p.id);
-  const prestigeText = isVerifying ? '↻ Verifying…' : (p.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[tier]);
+  const prestigeText = isVerifying ? '↻ Verifying…' : (p.prestige === null ? 'Unverified ✦' : PRESTIGE_LABEL_R[tier]);
   const badgeStyle = (color, active) =>
     'color:'+color+';border-color:'+color+';cursor:pointer;opacity:'+(active?'1':'0.38')+';';
   tipEl.innerHTML =
@@ -1097,10 +1121,10 @@ function moveTip(evt) {
 }
 
 document.addEventListener('click', e => {
-  if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card') && !e.target.closest('#sidebar-toggle') && !e.target.closest('#sidebar-show')) {
+  if (!e.target.closest('#tooltip') && !e.target.closest('.phit') && !e.target.closest('.sb-card')) {
     pinned = null; _sbHoveredId = null; tipEl.style.display = 'none';
     dotsG?.selectAll('path.pdot').attr('fill', dd => dotColor(dd)).attr('fill-opacity', dd => dotOpacity(dd)).attr('stroke-opacity', dd => dotOpacity(dd) * 0.7).style('filter', null);
-    dotsG?.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd)).attr('fill', dd => dotColor(dd)).attr('fill-opacity', 0.6).attr('stroke', '#C49428');
+    dotsG?.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd)).attr('stroke', '#C49428');
     resetClusterHighlight();
     document.querySelectorAll('.sb-card.sb-active').forEach(c => c.classList.remove('sb-active'));
   }
@@ -1367,7 +1391,7 @@ function renderSidebar() {
 
   listEl.innerHTML = entries.map(({ p }) => {
     const presColor  = PRESTIGE_COLOR[p.prestige ?? 1];
-    const presLabel  = p.prestige === null ? '★ Unverified' : PRESTIGE_LABEL[p.prestige ?? 1];
+    const presLabel  = p.prestige === null ? 'Unverified ✦' : PRESTIGE_LABEL_R[p.prestige ?? 1];
     const pdfHref    = esc(p._pdfLink || 'https://arxiv.org/pdf/'+p.id);
     const catActive  = activeCats.has(p.cat);
     const fmtActive  = activeFormats.has(p.format);
@@ -1441,8 +1465,6 @@ function applySidebarSpotlight(d) {
     .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
     .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02);
   dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0)
-    .attr('fill', dd => dd === d ? hi : dotColor(dd))
-    .attr('fill-opacity', dd => dd === d ? 1.0 : 0.6)
     .attr('stroke', dd => dd === d ? hi : '#C49428');
   highlightClusters(d.clusters, d);
 }
@@ -1493,8 +1515,7 @@ function _sidebarSpotlightReset() {
     .attr('fill',           dd => dotColor(dd))
     .attr('fill-opacity',   dd => dotOpacity(dd))
     .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
-  dotsG.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd))
-    .attr('fill', dd => dotColor(dd)).attr('fill-opacity', 0.6);
+  dotsG.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd));
   resetClusterHighlight();
 }
 
@@ -1565,8 +1586,7 @@ function sidebarClick(e) {
       .style('filter', null)
       .filter(dd => dd === d).raise();
     dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0)
-      .attr('fill', dd => dd === d ? hi : dotColor(dd))
-    .attr('stroke', dd => dd === d ? hi : '#C49428');
+      .attr('stroke', dd => dd === d ? hi : '#C49428');
     highlightClusters(d.clusters, d);
     // Position tooltip at the dot's actual screen position (accounting for zoom/pan)
     const svgRect = document.getElementById('chart').getBoundingClientRect();
@@ -1614,7 +1634,7 @@ function applyJitter() {
     group.forEach((p, i) => {
       // Spread evenly from -JITTER_X to +JITTER_X within the bucket
       const offset = n === 1 ? 0 : (i / (n - 1) - 0.5) * 2 * JITTER_X;
-      p._x = Math.max(0.01, Math.min(0.99, p.applied + offset));
+      p._x = p.applied + offset; // no clamp — jitter can extend past 0/1 boundaries
     });
   });
 
@@ -1624,7 +1644,7 @@ function applyJitter() {
     const yBase = isPersonalized
       ? (scoreAffinity(p, _starredData) ?? p.relevance)
       : p.relevance;
-    p._y = Math.max(0.01, Math.min(0.99, yBase     + (rng() - 0.5) * 2 * JITTER_Y));
+    p._y = yBase + (rng() - 0.5) * 2 * JITTER_Y; // no clamp — matches x jitter behavior
   });
 }
 
@@ -1654,8 +1674,7 @@ function drawBlobs() {
     const pts = members.map(p => [xSc(p._x), ySc(p._y)]);
     const cx  = d3.mean(pts, d=>d[0]);
     const cy  = d3.mean(pts, d=>d[1]);
-    const domCat = [...d3.rollup(members, v=>v.length, d=>d.cat)].sort((a,b)=>b[1]-a[1])[0][0];
-    const color  = CAT_COLOR[domCat] || '#94A3B8';
+    const color = '#9BAAB8'; // neutral blue-grey — blobs show grouping, not score
     let pathStr = null;
     if (pts.length >= 3) {
       const hull = d3.polygonHull(pts);
@@ -1693,24 +1712,29 @@ function drawDots() {
   const drawKey = d => (d.starred ? 100 : 0) + (d.prestige ?? 1) * 10 + (d.applied ?? 0.5);
   const sorted  = [...PAPERS].sort((a, b) => drawKey(a) - drawKey(b));
 
-  const STAR_EXTRA = 16;
-  const K_STAR     = 0.775;
-  const starArea   = d => Math.pow(hitR(d) + STAR_EXTRA, 2) * K_STAR;
-  dotsG.selectAll('path.star-glow').data(sorted).join('path').attr('class','star-glow')
-    .attr('d', d => d3.symbol().type(d3.symbolStar).size(starArea(d))())
-    .attr('transform', d => symTransform(d, 1))
-    .attr('fill', d => dotColor(d)).attr('fill-opacity', 0.6)
-    .attr('stroke', '#C49428').attr('stroke-width', 1.5).attr('stroke-opacity', 0.9)
-    .style('filter', null)
-    .attr('opacity', d => paperIsVisible(d) ? starGlowOpacity(d) : 0)
-    .attr('pointer-events', 'none');
-
   dotsG.selectAll('path.pdot').data(sorted).join('path').attr('class','pdot')
     .attr('d', d => d3.symbol().type(D3_SYMBOL[d.format] || d3.symbolCircle).size(symSize(d))())
     .attr('transform', d => symTransform(d, 1))
     .attr('fill', d => dotColor(d)).attr('fill-opacity', d => dotOpacity(d))
     .attr('stroke', d => dotColor(d)).attr('stroke-width', 0.8).attr('stroke-opacity', d => dotOpacity(d) * 0.7)
     .attr('pointer-events', 'none');
+
+  // Star glows render AFTER dots so they sit above other papers' dots.
+  // Then each starred paper's own dot is raised on top of its star.
+  const STAR_EXTRA = 16;
+  const K_STAR     = 0.775;
+  const starArea   = d => Math.pow(hitR(d) + STAR_EXTRA, 2) * K_STAR;
+  dotsG.selectAll('path.star-glow').data(sorted).join('path').attr('class','star-glow')
+    .attr('d', d => d3.symbol().type(d3.symbolStar).size(starArea(d))())
+    .attr('transform', d => symTransform(d, 1))
+    .attr('fill', 'none')
+    .attr('stroke', '#C49428').attr('stroke-width', 1.5).attr('stroke-opacity', 0.9)
+    .style('filter', null)
+    .attr('opacity', d => paperIsVisible(d) ? starGlowOpacity(d) : 0)
+    .attr('pointer-events', 'none');
+
+  // Raise each starred paper's dot above its star glow
+  dotsG.selectAll('path.pdot').filter(d => d.starred).raise();
 
   dotsG.selectAll('circle.phit').data(sorted).join('circle').attr('class','phit')
     .attr('r', d => hitR(d))
@@ -1726,8 +1750,6 @@ function drawDots() {
         .attr('fill-opacity',   dd => dd === d ? 1   : sameCluster(dd) ? dotOpacity(dd) : 0.06)
         .attr('stroke-opacity', dd => dd === d ? 0.6 : sameCluster(dd) ? dotOpacity(dd) * 0.7 : 0.02);
       dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.20) : 0)
-        .attr('fill', dd => dd === d ? hi : dotColor(dd))
-        .attr('fill-opacity', dd => dd === d ? 1.0 : 0.6)
         .attr('stroke', dd => dd === d ? hi : '#C49428');
       highlightClusters(d.clusters, d);
       // Defer tooltip — avoids forced layout triggering synthetic mouseleave on phit.
@@ -1748,6 +1770,12 @@ function drawDots() {
         .attr('stroke-opacity', dd => dotOpacity(dd) * 0.7);
       dotsG.selectAll('path.star-glow').attr('opacity', dd => starGlowOpacity(dd))
         .attr('fill', dd => dotColor(dd)).attr('fill-opacity', 0.6).attr('stroke', '#C49428');
+      // If cursor already entered a sidebar card, hand off spotlight to it
+      // instead of resetting — prevents the phit overlap zone from nuking sidebar hover.
+      if (_sbHoveredId) {
+        const hov = PAPERS.find(p => p.id === _sbHoveredId);
+        if (hov) { applySidebarSpotlight(hov); return; }
+      }
       resetClusterHighlight();
       tipEl.style.display = 'none';
     })
@@ -1774,14 +1802,18 @@ function drawDots() {
           .style('filter', null)
           .filter(dd => dd === d).raise();
         dotsG.selectAll('path.star-glow').attr('opacity', dd => dd.starred ? (dd === d ? 0.80 : 0.05) : 0)
-          .attr('fill', dd => dd === d ? hi : dotColor(dd))
-          .attr('fill-opacity', dd => dd === d ? 1.0 : 0.6)
           .attr('stroke', dd => dd === d ? hi : '#C49428');
         highlightClusters(d.clusters, d);
         const _r = svg.node().getBoundingClientRect(), _t = d3.zoomTransform(svg.node());
         showTip({ clientX: _r.left + _t.applyX(xSc(d._x)), clientY: _r.top + _t.applyY(ySc(d._y)) }, d);
         // Expand sidebar if collapsed, then scroll to card
         const sbEl = document.getElementById('sidebar');
+        if (sbEl.classList.contains('collapsed')) {
+          sbEl.classList.remove('collapsed');
+          const sbTab = document.getElementById('sidebar-tab');
+          if (sbTab) { sbTab.textContent = '›'; sbTab.title = 'Hide paper list'; }
+          startTipTracking();
+        }
         const scrollToCard = () => {
           let sbCard = [...document.querySelectorAll('#sidebar-list .sb-card')]
             .find(c => c.dataset.id === d.id);
@@ -1792,15 +1824,7 @@ function drawDots() {
           }
           if (sbCard) sbCard.scrollIntoView({ behavior: 'instant', block: 'start' });
         };
-        if (sbEl.classList.contains('collapsed')) {
-          sbEl.classList.remove('collapsed');
-          document.getElementById('sidebar-show').style.display = 'none';
-          draw();
-          startTipTracking();
-          sbEl.addEventListener('transitionend', scrollToCard, { once: true });
-        } else {
-          scrollToCard();
-        }
+        scrollToCard();
         if (d.prestige !== 3) verifyPrestige(d, true);
       }
     });
@@ -1810,9 +1834,9 @@ function drawAxes(W, H) {
   axisG.selectAll('*').remove();
   const chartW = W - M.left - M.right;
   const chartH = H - M.top  - M.bottom;
-  const barY   = H - M.bottom + 6;
+  const barY   = H - M.bottom + 4;
   const barH   = 3;
-  const lblY   = barY + barH + 13;
+  const lblY   = barY + barH + 6;
   const isPersonalized = Object.keys(_starredData).length > 0;
 
   function attachAxisTip(sel, key, hoverColor) {
@@ -1842,7 +1866,7 @@ function drawAxes(W, H) {
 
   axisG.append('rect').attr('class','axis-bar')
     .attr('x', M.left).attr('y', barY)
-    .attr('width', chartW).attr('height', barH).attr('rx', 1.5)
+    .attr('width', Math.max(0, chartW)).attr('height', barH).attr('rx', 1.5)
     .attr('fill', 'url(#axis-x-grad)').attr('opacity', 0.55)
     .attr('pointer-events', 'none');
 
@@ -1858,7 +1882,7 @@ function drawAxes(W, H) {
 
   attachAxisTip(axisG.append('text').attr('class','axis-label axis-west')
     .attr('x', M.left).attr('y', lblY).attr('dy','0.35em').attr('text-anchor','start')
-    .style('fill', axisColor(0)).text('Mechanism'), 'west', axisColor(0.12));
+    .style('fill', axisColor(0)).text('Mechanism'), 'west', axisColor(0.03));
 
   attachAxisTip(axisG.append('text').attr('class','axis-label axis-east')
     .attr('x', M.left + chartW).attr('y', lblY).attr('dy','0.35em').attr('text-anchor','end')
@@ -1866,12 +1890,12 @@ function drawAxes(W, H) {
 
   axisG.append('rect').attr('class','axis-bar-y')
     .attr('x', M.left - 4).attr('y', M.top)
-    .attr('width', 3).attr('height', chartH).attr('rx', 1.5)
+    .attr('width', 3).attr('height', Math.max(0, chartH)).attr('rx', 1.5)
     .attr('fill', 'url(#axis-y-grad)').attr('opacity', 0.7)
     .attr('pointer-events', 'none');
 
   attachAxisTip(axisG.append('text').attr('class','axis-label axis-north')
-    .attr('x', M.left + 13).attr('y', 21).attr('text-anchor','start')
+    .attr('x', M.left + 13).attr('y', 13).attr('dy','0.35em').attr('text-anchor','start')
     .text(isPersonalized ? 'Your interests' : 'Relevance'), 'north', '#C49428');
 
   axisG.append('text').attr('class','axis-label axis-south')
@@ -1947,18 +1971,23 @@ function stopTipTracking() {
 const sidebarEl = document.getElementById('sidebar');
 sidebarEl.addEventListener('transitionend', stopTipTracking);
 
-document.getElementById('sidebar-toggle').addEventListener('click', () => {
-  sidebarEl.classList.add('collapsed');
-  document.getElementById('sidebar-show').style.display = 'inline';
-  draw();
-  startTipTracking();
+document.getElementById('legend-tab').addEventListener('click', () => {
+  const leg = document.getElementById('legend');
+  const tab = document.getElementById('legend-tab');
+  const collapsed = leg.classList.toggle('collapsed');
+  tab.textContent = collapsed ? '›' : '‹';
+  tab.title = collapsed ? 'Show legend' : 'Hide legend';
 });
-document.getElementById('sidebar-show').addEventListener('click', () => {
-  sidebarEl.classList.remove('collapsed');
-  document.getElementById('sidebar-show').style.display = 'none';
-  draw();
-  startTipTracking();
+
+document.getElementById('sidebar-tab').addEventListener('click', () => {
+  const sb = document.getElementById('sidebar');
+  const tab = document.getElementById('sidebar-tab');
+  const collapsed = sb.classList.toggle('collapsed');
+  tab.textContent = collapsed ? '‹' : '›';
+  tab.title = collapsed ? 'Show paper list' : 'Hide paper list';
+  if (!collapsed) startTipTracking();
 });
+
 
 // ═══════════════════════════════════════════════════════
 // LIVE UPDATE — re-render any open tab when new papers land in storage
