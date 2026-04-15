@@ -121,7 +121,8 @@ async function doFetchAndCache() {
   if (lastFetch === today && papers?.length > 0) {
     if (!processedPapers?.length) {
       console.log(`[arXiv] Papers already fetched for today but processedPapers missing — re-processing.`);
-      await processAndStore(papers);
+      const preScored = await fetchPreScoredJSON(today);
+      await processAndStore(papers, preScored);
       chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {});
     } else {
       console.log(`[arXiv] Already have ${papers.length} papers for today. Skipping.`);
