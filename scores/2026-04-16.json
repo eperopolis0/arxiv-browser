@@ -8,55 +8,55 @@
       "format": "position"
     },
     "2604.14034": {
-      "applied": 0.15,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "survey"
     },
     "2604.14004": {
-      "applied": 0.25,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.14001": {
-      "applied": 0.35,
+      "applied": 0.25,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "empirical"
     },
     "2604.13956": {
-      "applied": 0.7,
+      "applied": 0.65,
       "prestige": 2,
       "cluster": "Image & Video Generation",
       "format": "empirical"
     },
     "2604.13954": {
-      "applied": 0.3,
+      "applied": 0.35,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
     "2604.13940": {
-      "applied": 0.8,
+      "applied": 0.75,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
     "2604.13891": {
-      "applied": 0.65,
+      "applied": 0.55,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13888": {
-      "applied": 0.75,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
     "2604.13814": {
-      "applied": 0.75,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -74,19 +74,19 @@
       "format": "empirical"
     },
     "2604.13609": {
-      "applied": 0.15,
+      "applied": 0.05,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
     },
     "2604.13552": {
-      "applied": 0.25,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
     },
     "2604.13517": {
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
@@ -98,7 +98,7 @@
       "format": "empirical"
     },
     "2604.13481": {
-      "applied": 0.75,
+      "applied": 0.9,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "empirical"
@@ -116,7 +116,7 @@
       "format": "theory"
     },
     "2604.13316": {
-      "applied": 0.4,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -128,25 +128,25 @@
       "format": "position"
     },
     "2604.13242": {
-      "applied": 0.1,
+      "applied": 0.25,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "position"
     },
     "2604.13217": {
-      "applied": 0.75,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
     "2604.13206": {
-      "applied": 0.05,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13101": {
-      "applied": 0.65,
+      "applied": 0.75,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -157,92 +157,80 @@
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
+    "2604.13699": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
     "2604.14142": {
-      "applied": 0.3,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
     },
     "2604.14137": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
     "2604.14116": {
-      "applied": 0.7,
+      "applied": 0.75,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
-    "2604.13699": {
-      "applied": 0.8,
-      "prestige": null,
-      "cluster": "Agents & Planning",
-      "format": "empirical"
-    },
-    "2604.13991": {
-      "applied": 0.4,
-      "prestige": null,
-      "cluster": "Foundation Models",
-      "format": "empirical"
-    },
-    "2604.13899": {
-      "applied": 0.2,
-      "prestige": null,
-      "cluster": "Foundation Models",
-      "format": "empirical"
-    },
-    "2604.13882": {
-      "applied": 0.1,
-      "prestige": null,
-      "cluster": "Safety & Alignment",
-      "format": "benchmark"
-    },
-    "2604.13849": {
+    "2604.13288": {
       "applied": 0.9,
       "prestige": null,
-      "cluster": "Agents & Planning",
+      "cluster": "Language & Translation",
+      "format": "benchmark"
+    },
+    "2604.13285": {
+      "applied": 0.65,
+      "prestige": null,
+      "cluster": "Foundation Models",
       "format": "empirical"
     },
-    "2604.13847": {
+    "2604.13279": {
       "applied": 0.4,
       "prestige": null,
       "cluster": "Efficiency & Compression",
-      "format": "benchmark"
+      "format": "empirical"
     },
     "2604.13243": {
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
     },
     "2604.13236": {
-      "applied": 0.9,
+      "applied": 0.85,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13226": {
-      "applied": 0.3,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
     },
     "2604.13108": {
-      "applied": 0.5,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13107": {
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13102": {
-      "applied": 0.9,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -254,7 +242,7 @@
       "format": "benchmark"
     },
     "2604.13071": {
-      "applied": 0.8,
+      "applied": 0.85,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -266,7 +254,7 @@
       "format": "benchmark"
     },
     "2604.13056": {
-      "applied": 0.5,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -278,37 +266,31 @@
       "format": "empirical"
     },
     "2604.13540": {
-      "applied": 0.3,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Visual Understanding",
       "format": "empirical"
     },
-    "2604.13515": {
-      "applied": 0.2,
-      "prestige": null,
-      "cluster": "Fine-tuning & Adaptation",
-      "format": "empirical"
-    },
     "2604.13474": {
-      "applied": 0.2,
+      "applied": 0.75,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
     "2604.13466": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
     "2604.13418": {
-      "applied": 0.2,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
     "2604.13385": {
-      "applied": 0.1,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "General ML",
       "format": "empirical"
@@ -326,46 +308,28 @@
       "format": "empirical"
     },
     "2604.13759": {
-      "applied": 0.4,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
     },
     "2604.13737": {
-      "applied": 0.2,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
     "2604.13042": {
-      "applied": 0.6,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13041": {
-      "applied": 0.5,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
-    },
-    "2604.13288": {
-      "applied": 0.8,
-      "prestige": null,
-      "cluster": "Language & Translation",
-      "format": "benchmark"
-    },
-    "2604.13285": {
-      "applied": 0.6,
-      "prestige": null,
-      "cluster": "Foundation Models",
-      "format": "empirical"
-    },
-    "2604.13279": {
-      "applied": 0.7,
-      "prestige": null,
-      "cluster": "Efficiency & Compression",
-      "format": "empirical"
     },
     "2604.14089": {
       "applied": 0.9,
@@ -374,19 +338,55 @@
       "format": "empirical"
     },
     "2604.13440": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
     },
+    "2604.13991": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.13899": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.13882": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "benchmark"
+    },
+    "2604.13849": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.13847": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "benchmark"
+    },
+    "2604.13515": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Fine-tuning & Adaptation",
+      "format": "empirical"
+    },
     "2604.13763": {
-      "applied": 0.6,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13695": {
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -398,13 +398,13 @@
       "format": "empirical"
     },
     "2604.13630": {
-      "applied": 0.8,
+      "applied": 0.9,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
     "2604.13620": {
-      "applied": 0.5,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "benchmark"
@@ -422,31 +422,31 @@
       "format": "benchmark"
     },
     "2604.13979": {
-      "applied": 0.4,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Retrieval & Knowledge",
       "format": "benchmark"
     },
     "2604.13977": {
-      "applied": 0.1,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
     },
     "2604.13826": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Fine-tuning & Adaptation",
       "format": "empirical"
     },
     "2604.13244": {
-      "applied": 0.2,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "benchmark"
     },
     "2604.13175": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "theory"
@@ -458,13 +458,13 @@
       "format": "empirical"
     },
     "2604.13109": {
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "survey"
     },
     "2604.13097": {
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Robotics & Embodied",
       "format": "empirical"
@@ -475,32 +475,26 @@
       "cluster": "Reinforcement Learning",
       "format": "position"
     },
-    "2604.13085": {
-      "applied": 0.5,
-      "prestige": null,
-      "cluster": "Reinforcement Learning",
-      "format": "empirical"
-    },
     "2604.13076": {
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
     },
     "2604.13066": {
-      "applied": 0.4,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "benchmark"
     },
     "2604.13061": {
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "theory"
     },
     "2604.13054": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Visual Understanding",
       "format": "position"
@@ -512,7 +506,7 @@
       "format": "empirical"
     },
     "2604.13521": {
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Retrieval & Knowledge",
       "format": "empirical"
@@ -524,7 +518,7 @@
       "format": "theory"
     },
     "2604.13455": {
-      "applied": 0.6,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Time Series & Signals",
       "format": "empirical"
@@ -542,7 +536,7 @@
       "format": "empirical"
     },
     "2604.13398": {
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
@@ -560,15 +554,21 @@
       "format": "empirical"
     },
     "2604.14140": {
-      "applied": 0,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
     "2604.14113": {
-      "applied": 0.5,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "General ML",
+      "format": "empirical"
+    },
+    "2604.13085": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
       "format": "empirical"
     },
     "2604.13531": {
@@ -578,13 +578,13 @@
       "format": "benchmark"
     },
     "2604.13459": {
-      "applied": 0.6,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
     "2604.13417": {
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -608,7 +608,7 @@
       "format": "empirical"
     },
     "2604.13777": {
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "benchmark"
@@ -626,37 +626,37 @@
       "format": "empirical"
     },
     "2604.13705": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "theory"
     },
     "2604.13694": {
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Fine-tuning & Adaptation",
       "format": "empirical"
     },
     "2604.13686": {
-      "applied": 0.3,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "benchmark"
     },
     "2604.13645": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Robotics & Embodied",
       "format": "empirical"
     },
     "2604.13583": {
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "benchmark"
     },
     "2604.13567": {
-      "applied": 0.2,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "General ML",
       "format": "empirical"
@@ -668,13 +668,13 @@
       "format": "empirical"
     },
     "2604.14125": {
-      "applied": 0.75,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Robotics & Embodied",
       "format": "empirical"
     },
     "2604.14084": {
-      "applied": 0.15,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -686,52 +686,46 @@
       "format": "survey"
     },
     "2604.14016": {
-      "applied": 0.6,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
     },
     "2604.14013": {
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
     "2604.13993": {
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Visual Understanding",
       "format": "benchmark"
     },
     "2604.13812": {
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
     },
     "2604.11840": {
-      "applied": 0.15,
+      "applied": 0.3,
       "prestige": 2,
       "cluster": "Foundation Models",
       "format": "position"
     },
     "2604.13283": {
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
     },
     "2604.13262": {
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
-    },
-    "2604.13258": {
-      "applied": 0,
-      "prestige": null,
-      "cluster": "Safety & Alignment",
-      "format": "benchmark"
     },
     "2604.13252": {
       "applied": 0.4,
@@ -740,13 +734,13 @@
       "format": "benchmark"
     },
     "2604.13248": {
-      "applied": 0.85,
+      "applied": 0.9,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
     },
     "2604.13218": {
-      "applied": 0.05,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -776,7 +770,7 @@
       "format": "benchmark"
     },
     "2604.13059": {
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "benchmark"
@@ -788,7 +782,7 @@
       "format": "survey"
     },
     "2604.13037": {
-      "applied": 0.4,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "General ML",
       "format": "empirical"
@@ -800,16 +794,22 @@
       "format": "empirical"
     },
     "2604.13151": {
-      "applied": 0.1,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13073": {
-      "applied": 0.1,
+      "applied": 0,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
+    },
+    "2604.13258": {
+      "applied": 0,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "benchmark"
     },
     "2604.13518": {
       "applied": 0,
@@ -818,25 +818,25 @@
       "format": "position"
     },
     "2604.13504": {
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Robotics & Embodied",
       "format": "benchmark"
     },
     "2604.13462": {
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.13432": {
-      "applied": 0.2,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
     },
     "2604.13416": {
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -854,7 +854,7 @@
       "format": "empirical"
     },
     "2604.13757": {
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -872,19 +872,19 @@
       "format": "theory"
     },
     "2604.13565": {
-      "applied": 0.2,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
     },
     "2604.13959": {
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
     "2604.13924": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Time Series & Signals",
       "format": "benchmark"
@@ -896,7 +896,7 @@
       "format": "empirical"
     },
     "2604.13203": {
-      "applied": 0.7,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "survey"
@@ -908,7 +908,7 @@
       "format": "empirical"
     },
     "2604.13127": {
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "empirical"
@@ -926,13 +926,13 @@
       "format": "survey"
     },
     "2604.13081": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
     },
     "2604.13079": {
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -950,7 +950,7 @@
       "format": "benchmark"
     },
     "2604.13448": {
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
