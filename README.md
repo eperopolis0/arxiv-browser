@@ -2,7 +2,7 @@
 
 Replace your new tab with an interactive scatter map of today's arXiv AI/ML papers, clustered by topic and filterable by field, format, and your starred papers.
 
-<img width="3420" height="2214" alt="image" src="https://github.com/user-attachments/assets/9ba8c33b-0a46-4eea-a180-65916bb0bf84" />
+<img width="2880" height="1864" alt="image" src="https://github.com/user-attachments/assets/9ba8c33b-0a46-4eea-a180-65916bb0bf84" />
 
 ## What it does
 
