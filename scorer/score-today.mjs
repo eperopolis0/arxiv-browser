@@ -54,25 +54,42 @@ async function fetchTodayListing() {
     throw new Error('Could not find paper count in listing page');
   }
 
-  // Split on <dl id='articles'> — take sections 1+2 (New + Cross).
-  // Also include replacements newly cross-listed to cs.AI (primary subject ≠ cs.AI).
+  // Split on <dl id='articles'> — take sections 1+2 (New + Cross), skip Replacements.
   const dlSections = html.split("<dl id='articles'>");
   const newAndCross = dlSections.slice(1, 3).join(' ');
   const idMatches = [...newAndCross.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)];
   const ids = new Set(idMatches.map(m => m[1]));
 
-  const replSection = dlSections[3] || '';
-  for (const entry of replSection.split(/<dt[\s>]/)) {
-    const idMatch = entry.match(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/);
-    if (!idMatch) continue;
-    const primaryMatch = entry.match(/class="primary-subject">([^<]+)<\/span>/);
-    if (!primaryMatch || primaryMatch[1].includes('cs.AI')) continue;
-    if (!entry.includes('Artificial Intelligence (cs.AI)')) continue;
-    ids.add(idMatch[1]);
+  // Diff against /recent to catch papers arXiv counts as new but puts in replacements.
+  // Fetch show=(count+50) so we cover the full day even on busy Tuesdays.
+  // Only add extras if the diff is ≤ 5 — larger diffs mean a bulk replacement day.
+  try {
+    const recentResp = await fetchWithTimeout(
+      `https://arxiv.org/list/cs.AI/recent?skip=0&show=${count + 50}`, 20000
+    );
+    if (recentResp.ok) {
+      const recentHtml = await recentResp.text();
+      // /recent groups by date under <h3> headers — take only the first section (today).
+      const parts = recentHtml.split(/<h3[\s>]/);
+      const todaySection = parts.length >= 2 ? parts[0] + parts[1] : recentHtml;
+      const recentIds = new Set(
+        [...todaySection.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)].map(m => m[1])
+      );
+      const extras = [...recentIds].filter(id => !ids.has(id));
+      if (extras.length > 0 && extras.length <= 5) {
+        console.log(`[listing] /recent has ${extras.length} extra(s) vs /new — adding: ${extras.join(', ')}`);
+        extras.forEach(id => ids.add(id));
+      } else if (extras.length > 5) {
+        console.log(`[listing] /recent has ${extras.length} extras vs /new — too many, skipping (bulk replacement day).`);
+      }
+    }
+  } catch (e) {
+    console.warn(`[listing] /recent diff failed: ${e.message} — continuing with /new IDs only.`);
   }
 
-  console.log(`[listing] ${ids.size} IDs extracted`);
-  return { count, ids: [...ids] };
+  const idList = [...ids];
+  console.log(`[listing] ${idList.length} IDs extracted`);
+  return { count, ids: idList };
 }
 
 // ── arXiv API — fetch full metadata by ID list ─────────────────────────────────

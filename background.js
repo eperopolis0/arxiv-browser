@@ -258,25 +258,12 @@ async function fetchTodayListing() {
     // Extract the authoritative paper IDs from New + Cross-submissions sections.
     // The listing page has three <dl id='articles'> blocks in order:
     //   [1] New submissions  [2] Cross-submissions  [3] Replacement submissions
-    // Split on that tag and take sections 1 and 2, plus any replacement entries
-    // that are newly cross-listed to cs.AI (primary subject ≠ cs.AI but cs.AI
-    // appears in subjects). These show as "replaced" on /new because a new version
-    // added the cs.AI cross-list, but arXiv counts them as new on /recent.
+    // We take only sections 1 and 2 — replacements are revised versions of existing
+    // papers, not new work, even when they add a cs.AI cross-list.
     const dlSections = html.split("<dl id='articles'>");
     const newAndCross = dlSections.slice(1, 3).join(' '); // sections 1 + 2 only
     const idMatches = [...newAndCross.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)];
     const ids = new Set(idMatches.map(m => m[1]));
-
-    // Scan replacements section for papers newly cross-listed to cs.AI
-    const replSection = dlSections[3] || '';
-    for (const entry of replSection.split(/<dt[\s>]/)) {
-      const idMatch = entry.match(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/);
-      if (!idMatch) continue;
-      const primaryMatch = entry.match(/class="primary-subject">([^<]+)<\/span>/);
-      if (!primaryMatch || primaryMatch[1].includes('cs.AI')) continue; // already a cs.AI paper
-      if (!entry.includes('Artificial Intelligence (cs.AI)')) continue; // not cross-listed to cs.AI
-      ids.add(idMatch[1]);
-    }
 
     console.log(`[arXiv] Listing IDs extracted: ${ids.size} (whitelist for today's announcement).`);
 
