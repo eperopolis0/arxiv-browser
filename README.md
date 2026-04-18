@@ -6,11 +6,11 @@ Replace your new tab with an interactive scatter map of today's arXiv AI/ML pape
 
 ## What it does
 
-Every morning the extension fetches that day's papers from arXiv across 8 AI/ML categories (cs.AI, cs.LG, cs.CV, cs.CL, cs.RO, cs.CR, cs.HC, cs.IR) and cross-references them against HuggingFace trending. When you open a new tab you see:
+Every morning the extension fetches that day's papers from arXiv across 8 AI/ML categories (cs.AI, cs.LG, cs.CV, cs.CL, cs.RO, cs.CR, cs.HC, cs.IR). When you open a new tab you see:
 
 - **Scatter plot** — papers positioned by how applied vs. theoretical they are (x-axis) and how relevant to current AI research (y-axis)
 - **Topic clusters** — glowing blobs group papers into ~12 auto-detected research areas (Agents & Planning, Image & Video Generation, Reinforcement Learning, etc.)
-- **Filters** — toggle by field (color), format (shape: ● empirical, ▲ benchmark, ■ survey), or your starred papers
+- **Filters** — toggle by field (color), format (shape: ● empirical, ▲ benchmark, ■ survey...), or your starred papers
 - **Tooltips** — hover any dot to see title, abstract gist, field, format, and a direct arxiv link; click to pin
 - **Stars** — star papers you want to read later; they persist across sessions
 
