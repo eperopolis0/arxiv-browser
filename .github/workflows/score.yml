@@ -2,9 +2,9 @@ name: Nightly arXiv scorer
 
 on:
   schedule:
-    # 02:30 UTC = ~10:30 PM ET Mon–Fri, after arXiv posts ~10 PM ET
+    # 02:00 UTC = 10:00 PM ET, ~2 hours after arXiv listing rotates (~8 PM ET)
     # Runs Tue–Sat UTC (= Mon–Fri evening ET)
-    - cron: '30 2 * * 2-6'
+    - cron: '0 2 * * 2-6'
   workflow_dispatch:   # allow manual runs from GitHub UI
 
 permissions:

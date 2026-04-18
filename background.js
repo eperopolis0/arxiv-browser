@@ -14,6 +14,13 @@ function stripLatex(text) {
 
 const API_BASE = 'https://export.arxiv.org/api/query';
 const LISTING_URL = 'https://arxiv.org/list/cs.AI/new';
+
+// arXiv's listing page rotates at ~8 PM ET (00:00 UTC).  Using ET-aligned
+// dates prevents the extension from caching stale papers under tomorrow's
+// date when a tab opens between 8 PM ET and midnight ET.
+function arxivDate() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
 const FALLBACK_COUNT = 150;    // Used if listing page is unavailable (conservative — better to miss a few than show old papers)
 const REQUEST_TIMEOUT = 60000; // 60s
 const ALARM_NAME = 'arxiv-daily-fetch';
@@ -117,7 +124,7 @@ async function doFetchAndCache() {
 
   // Check if we already have fresh data for today
   const { lastFetch, papers, processedPapers } = await getStorage(['lastFetch', 'papers', 'processedPapers']);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = arxivDate();
   if (lastFetch === today && papers?.length > 0) {
     if (!processedPapers?.length) {
       console.log(`[arXiv] Papers already fetched for today but processedPapers missing — re-processing.`);
@@ -134,46 +141,74 @@ async function doFetchAndCache() {
   console.log('[arXiv] Fetch started.');
 
   try {
-    // Fetch listing IDs and pre-scored JSON in parallel.
-    const [{ count, ids: listingIds }, preScored] = await Promise.all([
-      fetchTodayListing(),
-      fetchPreScoredJSON(today),
-    ]);
-    const rawPapers = await fetchArxivBatch(count, listingIds);
+    // Primary path: load everything from pre-scored JSON (CDN, fast, no arXiv API).
+    // The nightly scorer stores full paper metadata alongside scores so the extension
+    // never needs to hit arXiv API under normal conditions.
+    const preScored = await fetchPreScoredJSON(today);
+    const preScoredEntries = preScored ? Object.entries(preScored) : [];
+    const hasMetadata = preScoredEntries.length > 0 && preScoredEntries[0][1].title;
 
-    // When fetched by id_list, rawPapers are already exactly today's papers.
-    // Falls back to date filter if listing page was unavailable.
-    let freshPapers;
-    if (listingIds?.size) {
-      freshPapers = rawPapers;
+    if (hasMetadata) {
+      const rawPapers = preScoredEntries.map(([arxivId, d]) => ({
+        arxivId,
+        title:      d.title,
+        summary:    d.summary,
+        authors:    d.authors || [],
+        categories: d.categories || ['cs.AI'],
+        cat:        d.cat || 'cs.AI',
+        published:  d.published || '',
+        prestige:   null,
+      }));
+
+      await setStorage({
+        papers: rawPapers,
+        lastFetch: today,
+        lastFetchTime: Date.now(),
+        fetchError: null,
+        fetchRetryAfter: null,
+        paperCount: rawPapers.length,
+        fetchInProgress: false,
+        fetchStartedAt: null,
+      });
+
+      console.log(`[arXiv] Loaded ${rawPapers.length} papers from pre-scored JSON (no arXiv API call).`);
+      await processAndStore(rawPapers, preScored);
+
     } else {
-      const latestDate = rawPapers
-        .map(p => (p.updated || p.published || '').slice(0, 10))
-        .filter(Boolean).sort().at(-1);
-      freshPapers = latestDate
-        ? rawPapers.filter(p => (p.updated || p.published || '').slice(0, 10) === latestDate)
-        : rawPapers;
-      console.log(`[arXiv] Date fallback filter (${latestDate}): ${rawPapers.length} → ${freshPapers.length} papers`);
+      // Fallback: fetch from arXiv API (pre-scored JSON missing or old format).
+      console.log('[arXiv] Pre-scored JSON unavailable or lacks metadata — falling back to arXiv API.');
+      const [{ count, ids: listingIds }] = await Promise.all([fetchTodayListing()]);
+      const rawPapers = await fetchArxivBatch(count, listingIds);
+
+      let freshPapers;
+      if (listingIds?.size) {
+        freshPapers = rawPapers;
+      } else {
+        const latestDate = rawPapers
+          .map(p => (p.updated || p.published || '').slice(0, 10))
+          .filter(Boolean).sort().at(-1);
+        freshPapers = latestDate
+          ? rawPapers.filter(p => (p.updated || p.published || '').slice(0, 10) === latestDate)
+          : rawPapers;
+        console.log(`[arXiv] Date fallback filter (${latestDate}): ${rawPapers.length} → ${freshPapers.length} papers`);
+      }
+
+      const enriched = freshPapers.map(p => ({ ...p, prestige: null }));
+
+      await setStorage({
+        papers: enriched,
+        lastFetch: today,
+        lastFetchTime: Date.now(),
+        fetchError: null,
+        fetchRetryAfter: null,
+        paperCount: enriched.length,
+        fetchInProgress: false,
+        fetchStartedAt: null,
+      });
+
+      console.log(`[arXiv] Cached ${enriched.length} papers for ${today} (arXiv API fallback).`);
+      await processAndStore(enriched, preScored);
     }
-
-    const enriched = freshPapers.map(p => ({ ...p, prestige: null }));
-
-    await setStorage({
-      papers: enriched,
-      lastFetch: today,
-      lastFetchTime: Date.now(),
-      fetchError: null,
-      fetchRetryAfter: null,
-      paperCount: enriched.length,
-      fetchInProgress: false,
-      fetchStartedAt: null
-    });
-
-    console.log(`[arXiv] Cached ${enriched.length} papers for ${today}.`);
-    await processAndStore(enriched, preScored);
-    // Prestige is resolved by the nightly pre-scored JSON (preScored path).
-    // Local bulk HTML fetching removed — too slow for same-day papers and
-    // unnecessary once the agent pipeline is running.
 
   } catch (err) {
     console.error('[arXiv] Fetch failed:', err.message);
@@ -223,12 +258,26 @@ async function fetchTodayListing() {
     // Extract the authoritative paper IDs from New + Cross-submissions sections.
     // The listing page has three <dl id='articles'> blocks in order:
     //   [1] New submissions  [2] Cross-submissions  [3] Replacement submissions
-    // Split on that tag and take only sections 1 and 2 — skip Replacements entirely.
-    // arXiv listing uses `href ="/abs/YYMM.NNNNN"` (note the space before =).
+    // Split on that tag and take sections 1 and 2, plus any replacement entries
+    // that are newly cross-listed to cs.AI (primary subject ≠ cs.AI but cs.AI
+    // appears in subjects). These show as "replaced" on /new because a new version
+    // added the cs.AI cross-list, but arXiv counts them as new on /recent.
     const dlSections = html.split("<dl id='articles'>");
     const newAndCross = dlSections.slice(1, 3).join(' '); // sections 1 + 2 only
     const idMatches = [...newAndCross.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)];
     const ids = new Set(idMatches.map(m => m[1]));
+
+    // Scan replacements section for papers newly cross-listed to cs.AI
+    const replSection = dlSections[3] || '';
+    for (const entry of replSection.split(/<dt[\s>]/)) {
+      const idMatch = entry.match(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/);
+      if (!idMatch) continue;
+      const primaryMatch = entry.match(/class="primary-subject">([^<]+)<\/span>/);
+      if (!primaryMatch || primaryMatch[1].includes('cs.AI')) continue; // already a cs.AI paper
+      if (!entry.includes('Artificial Intelligence (cs.AI)')) continue; // not cross-listed to cs.AI
+      ids.add(idMatch[1]);
+    }
+
     console.log(`[arXiv] Listing IDs extracted: ${ids.size} (whitelist for today's announcement).`);
 
     return { count, ids };
@@ -649,7 +698,7 @@ async function processAndStore(rawPapers, preScored = null) {
     console.warn('[arXiv] processAndStore called with 0 papers — skipping.');
     return;
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = arxivDate();
   console.log(`[arXiv] Processing ${rawPapers.length} papers…`);
 
   // Carry forward prestige scores from any previous processedPapers — avoids
@@ -739,7 +788,7 @@ async function processAndStore(rawPapers, preScored = null) {
 // doesn't double-count.
 
 async function updateScoreStats(papers) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = arxivDate();
   const { scoreStats: prev = null, scoreStatsLastDate = null } = await getStorage(['scoreStats', 'scoreStatsLastDate']);
 
   if (scoreStatsLastDate === today) {

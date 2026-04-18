@@ -54,13 +54,25 @@ async function fetchTodayListing() {
     throw new Error('Could not find paper count in listing page');
   }
 
-  // Split on <dl id='articles'> — take sections 1+2 (New + Cross), skip 3 (Replacements)
+  // Split on <dl id='articles'> — take sections 1+2 (New + Cross).
+  // Also include replacements newly cross-listed to cs.AI (primary subject ≠ cs.AI).
   const dlSections = html.split("<dl id='articles'>");
   const newAndCross = dlSections.slice(1, 3).join(' ');
   const idMatches = [...newAndCross.matchAll(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/g)];
-  const ids = [...new Set(idMatches.map(m => m[1]))];
-  console.log(`[listing] ${ids.length} IDs extracted`);
-  return { count, ids };
+  const ids = new Set(idMatches.map(m => m[1]));
+
+  const replSection = dlSections[3] || '';
+  for (const entry of replSection.split(/<dt[\s>]/)) {
+    const idMatch = entry.match(/href\s*="\/abs\/(\d{4}\.\d{4,6})(?:v\d+)?"/);
+    if (!idMatch) continue;
+    const primaryMatch = entry.match(/class="primary-subject">([^<]+)<\/span>/);
+    if (!primaryMatch || primaryMatch[1].includes('cs.AI')) continue;
+    if (!entry.includes('Artificial Intelligence (cs.AI)')) continue;
+    ids.add(idMatch[1]);
+  }
+
+  console.log(`[listing] ${ids.size} IDs extracted`);
+  return { count, ids: [...ids] };
 }
 
 // ── arXiv API — fetch full metadata by ID list ─────────────────────────────────
@@ -337,10 +349,19 @@ async function main() {
   // 4. Prestige — HTML affiliation scan (nightly agent runs after HTML pages exist)
   const prestigeMap = await fetchPrestigeForAll(papers);
 
-  // 5. Build output
+  // 5. Build output — include full paper metadata so the extension can skip
+  //    the arXiv API entirely and load everything from this one CDN file.
   const output = { date: today, papers: {} };
   papers.forEach((p, i) => {
     output.papers[p.arxivId] = {
+      // Metadata (extension uses these directly)
+      title:      p.title,
+      summary:    p.summary,
+      authors:    p.authors,
+      categories: p.categories,
+      cat:        p.cat,
+      published:  (p.published || '').slice(0, 10),
+      // Scores
       applied:  Math.round(appliedScores[i] * 100) / 100,
       prestige: prestigeMap.get(p.arxivId) ?? null,
       cluster:  classifyCluster(p.title, p.summary),

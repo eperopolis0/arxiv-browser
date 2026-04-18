@@ -1,6 +1,13 @@
 // ═══════════════════════════════════════════════════════
 // PAPER STORAGE & CONSTANTS
 // ═══════════════════════════════════════════════════════
+
+// ET-aligned date — matches arXiv's publication calendar so the date doesn't
+// flip at 8 PM ET (midnight UTC) before the listing has actually rotated.
+function arxivDate() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
 let PAPERS = [];
 
 // Full-spectrum arc: deep blue → teal → green → olive → amber → sienna → red.
@@ -293,6 +300,7 @@ function toggleStar(p) {
   if (countEl) countEl.textContent = Object.keys(_starredData).length;
   if (document.getElementById('starred-drawer')?.classList.contains('open')) buildStarredDrawer();
   applyJitter();
+  drawBlobs();
   animateDots();
   updateAxisLabel();
   renderSidebar();
@@ -348,7 +356,7 @@ function buildStarredDrawer() {
       saveStarred();
       const countEl = document.getElementById('starred-drawer-count');
       if (countEl) countEl.textContent = Object.keys(_starredData).length;
-      applyJitter(); animateDots(); updateAxisLabel();
+      applyJitter(); drawBlobs(); animateDots(); updateAxisLabel();
       buildStarredDrawer();
     });
   });
@@ -369,7 +377,7 @@ async function loadAndRender() {
   );
 
   if (data.processedPapers?.length > 0) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = arxivDate();
     const ageMs = data.lastFetchTime ? Date.now() - data.lastFetchTime : Infinity;
     const isStale = data.lastFetch !== today || ageMs > 20 * 60 * 60 * 1000;
 
@@ -423,8 +431,9 @@ async function loadAndRender() {
     const d = await new Promise(r => chrome.storage.local.get(['processedPapers','papers','fetchError','fetchInProgress','fetchRetryAfter','fetchStartedAt'], r));
 
     // Detect dead service worker: fetchInProgress stuck true but fetchStartedAt
-    // is >90s old — the worker was killed mid-fetch. Break the lock and retry.
-    if (d.fetchInProgress && d.fetchStartedAt && (Date.now() - d.fetchStartedAt) > 90_000) {
+    // is >3min old — the worker was killed mid-fetch. 3min allows for 2 API
+    // chunks × 60s timeout + listing page fetch without false-firing.
+    if (d.fetchInProgress && d.fetchStartedAt && (Date.now() - d.fetchStartedAt) > 3 * 60_000) {
       console.warn('[arXiv] Service worker appears dead — breaking stale lock and retrying.');
       await new Promise(r => chrome.storage.local.set({ fetchInProgress: false, fetchStartedAt: null }, r));
       chrome.runtime.sendMessage({ action: 'refresh' });
@@ -1982,7 +1991,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   const incoming = changes.processedPapers?.newValue;
   if (!incoming?.length) return;
   // Only re-render if this is genuinely new data (different date or more papers)
-  const today = new Date().toISOString().slice(0, 10);
+  const today = arxivDate();
   const newDate = changes.lastFetch?.newValue ?? today;
   if (PAPERS.length > 0 && newDate === document.getElementById('header-date').textContent && incoming.length === PAPERS.length) return;
   chrome.storage.local.get(['lastFetch','appliedHistory'], ({ lastFetch, appliedHistory }) => renderPapers(incoming, lastFetch, appliedHistory));
