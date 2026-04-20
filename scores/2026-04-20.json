@@ -1,0 +1,965 @@
+{
+  "date": "2026-04-20",
+  "papers": {
+    "2604.15456": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15416": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "theory"
+    },
+    "2604.15409": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15384": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15375": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15341": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "empirical"
+    },
+    "2604.15332": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15327": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15316": {
+      "applied": 0.1,
+      "prestige": 3,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15314": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Robotics & Embodied",
+      "format": "empirical"
+    },
+    "2604.15951": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "survey"
+    },
+    "2604.15856": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15839": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "theory"
+    },
+    "2604.15805": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Robotics & Embodied",
+      "format": "empirical"
+    },
+    "2604.15776": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Retrieval & Knowledge",
+      "format": "benchmark"
+    },
+    "2604.15735": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "benchmark"
+    },
+    "2604.15709": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15613": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15607": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15591": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Retrieval & Knowledge",
+      "format": "empirical"
+    },
+    "2604.15585": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15529": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15505": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "benchmark"
+    },
+    "2604.15499": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15495": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "empirical"
+    },
+    "2604.16217": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.16171": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Fine-tuning & Adaptation",
+      "format": "empirical"
+    },
+    "2604.16145": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.16106": {
+      "applied": 0,
+      "prestige": 2,
+      "cluster": "Safety & Alignment",
+      "format": "position"
+    },
+    "2604.16104": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.16086": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.16076": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.16021": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "benchmark"
+    },
+    "2604.16009": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "benchmark"
+    },
+    "2604.16280": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "position"
+    },
+    "2604.16278": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "theory"
+    },
+    "2604.15769": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "theory"
+    },
+    "2604.15464": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15459": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15392": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15373": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "theory"
+    },
+    "2604.15372": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "empirical"
+    },
+    "2604.15356": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15336": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15335": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15331": {
+      "applied": 0.9,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "theory"
+    },
+    "2604.15329": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "survey"
+    },
+    "2604.16132": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.16090": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.16084": {
+      "applied": 0.2,
+      "prestige": 2,
+      "cluster": "Time Series & Signals",
+      "format": "empirical"
+    },
+    "2604.16082": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Vision: Detection",
+      "format": "empirical"
+    },
+    "2604.16027": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.16004": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15994": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "benchmark"
+    },
+    "2604.15723": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Image & Video Generation",
+      "format": "empirical"
+    },
+    "2604.15719": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15718": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15715": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "benchmark"
+    },
+    "2604.15679": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15611": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Image & Video Generation",
+      "format": "empirical"
+    },
+    "2604.15579": {
+      "applied": 0.2,
+      "prestige": 2,
+      "cluster": "Safety & Alignment",
+      "format": "survey"
+    },
+    "2604.15508": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15877": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15851": {
+      "applied": 0.1,
+      "prestige": 3,
+      "cluster": "Foundation Models",
+      "format": "benchmark"
+    },
+    "2604.16247": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.16207": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.16205": {
+      "applied": 0.9,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.16060": {
+      "applied": 0,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.16056": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Audio & Speech",
+      "format": "empirical"
+    },
+    "2604.16054": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "benchmark"
+    },
+    "2604.16033": {
+      "applied": 0.9,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15663": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "benchmark"
+    },
+    "2604.15642": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15621": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15590": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15574": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Fine-tuning & Adaptation",
+      "format": "empirical"
+    },
+    "2604.15558": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15725": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15713": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.16224": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15871": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "benchmark"
+    },
+    "2604.15859": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "benchmark"
+    },
+    "2604.15808": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "benchmark"
+    },
+    "2604.15787": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Time Series & Signals",
+      "format": "empirical"
+    },
+    "2604.15760": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "benchmark"
+    },
+    "2604.15741": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15728": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15411": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "benchmark"
+    },
+    "2604.15357": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15344": {
+      "applied": 0.2,
+      "prestige": 2,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15324": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "empirical"
+    },
+    "2604.15319": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.16286": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "benchmark"
+    },
+    "2604.16272": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "benchmark"
+    },
+    "2604.16241": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "benchmark"
+    },
+    "2604.16182": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Time Series & Signals",
+      "format": "empirical"
+    },
+    "2604.16175": {
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.16147": {
+      "applied": 0.9,
+      "prestige": null,
+      "cluster": "Retrieval & Knowledge",
+      "format": "empirical"
+    },
+    "2604.16117": {
+      "applied": 0.9,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.16042": {
+      "applied": 0,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "survey"
+    },
+    "2604.15990": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Image & Video Generation",
+      "format": "position"
+    },
+    "2604.15937": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15800": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "position"
+    },
+    "2604.15773": {
+      "applied": 0,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "position"
+    },
+    "2604.15768": {
+      "applied": 0.9,
+      "prestige": null,
+      "cluster": "Time Series & Signals",
+      "format": "empirical"
+    },
+    "2604.15726": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "survey"
+    },
+    "2604.15695": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "theory"
+    },
+    "2604.15588": {
+      "applied": 0.75,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "benchmark"
+    },
+    "2604.15577": {
+      "applied": 0.15,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15559": {
+      "applied": 0.25,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15489": {
+      "applied": 0.85,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15488": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15482": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15460": {
+      "applied": 0.65,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15453": {
+      "applied": 0.15,
+      "prestige": null,
+      "cluster": "Image & Video Generation",
+      "format": "empirical"
+    },
+    "2604.15415": {
+      "applied": 0.35,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "benchmark"
+    },
+    "2604.15414": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "position"
+    },
+    "2604.15400": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
+    "2604.15390": {
+      "applied": 0.25,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15388": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "benchmark"
+    },
+    "2604.15383": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Audio & Speech",
+      "format": "empirical"
+    },
+    "2604.15376": {
+      "applied": 0.65,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "theory"
+    },
+    "2604.15374": {
+      "applied": 0.15,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "benchmark"
+    },
+    "2604.15339": {
+      "applied": 0.45,
+      "prestige": null,
+      "cluster": "Robotics & Embodied",
+      "format": "empirical"
+    },
+    "2604.15334": {
+      "applied": 0.72,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "empirical"
+    },
+    "2604.15333": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Time Series & Signals",
+      "format": "empirical"
+    },
+    "2604.15764": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "theory"
+    },
+    "2604.15468": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15448": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15408": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15380": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
+    },
+    "2604.15371": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "survey"
+    },
+    "2604.15347": {
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Retrieval & Knowledge",
+      "format": "empirical"
+    },
+    "2604.15343": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.16270": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "benchmark"
+    },
+    "2604.16259": {
+      "applied": 0.1,
+      "prestige": 2,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.16258": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.16234": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Vision: Detection",
+      "format": "empirical"
+    },
+    "2604.16232": {
+      "applied": 0.15,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "empirical"
+    },
+    "2604.15711": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15593": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Image & Video Generation",
+      "format": "position"
+    },
+    "2604.15589": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Fine-tuning & Adaptation",
+      "format": "empirical"
+    },
+    "2604.15554": {
+      "applied": 0,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "position"
+    },
+    "2604.15547": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15514": {
+      "applied": 0.3,
+      "prestige": 2,
+      "cluster": "General ML",
+      "format": "position"
+    },
+    "2604.16158": {
+      "applied": 0.15,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.16116": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "benchmark"
+    },
+    "2604.16022": {
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "benchmark"
+    },
+    "2604.15972": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.15898": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "empirical"
+    },
+    "2604.15866": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2604.15837": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "benchmark"
+    },
+    "2604.15822": {
+      "applied": 0.4,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "benchmark"
+    },
+    "2604.15794": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    },
+    "2604.15777": {
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Vision: Detection",
+      "format": "empirical"
+    },
+    "2604.15750": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "theory"
+    },
+    "2604.15729": {
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Time Series & Signals",
+      "format": "empirical"
+    },
+    "2604.15727": {
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Foundation Models",
+      "format": "empirical"
+    },
+    "2308.10562": {
+      "applied": 0,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "survey"
+    },
+    "2604.15594": {
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "General ML",
+      "format": "empirical"
+    }
+  }
+}
