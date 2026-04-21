@@ -1616,7 +1616,7 @@ function seededRand(seed) {
 function applyJitter() {
   const JITTER_X = 0.12;
   const starCount = Object.keys(_starredData || {}).length;
-  const JITTER_Y = 0.09 * Math.exp(-starCount / 8);  // decays toward 0 as you star more papers
+  const JITTER_Y = 0.01;  // small — just enough to break pixel-stacking within rank tiers
   const isPersonalized = starCount > 0;
 
   // Even-spread X jitter within each score bucket: rank papers sharing the same
@@ -1651,13 +1651,32 @@ function applyJitter() {
   const xMin = Math.min(...allX) - PAD, xMax = Math.max(...allX) + PAD;
   PAPERS.forEach(p => { p._colorT = (p._x - xMin) / (xMax - xMin); });
 
+  // Rank-based Y: map each paper to its percentile within today's batch so the
+  // full vertical range is always used. The raw relevance score has only ~15
+  // discrete values (weighted keyword count), so hundreds of papers share the
+  // same score and jitter alone can't break the ties — rank guarantees spread.
+  // Tie-break by numeric paper ID for a stable ordering across reloads.
+  const relevanceSorted = [...PAPERS].sort((a, b) =>
+    b.relevance !== a.relevance
+      ? b.relevance - a.relevance
+      : (parseInt(a.id.replace('.','')) || 0) - (parseInt(b.id.replace('.','')) || 0)
+  );
+  // x² curve: steep slope near 1 (top papers spread out, individually navigable),
+  // shallow near 0 (low-relevance papers compressed into the bottom).
+  const rankMap = new Map(
+    relevanceSorted.map((p, i) => {
+      const linear = 1 - i / Math.max(1, relevanceSorted.length - 1);
+      return [p.id, linear * linear];
+    })
+  );
+
   PAPERS.forEach(p => {
     const rng  = seededRand(parseInt(p.id.replace('.','')) || 12345);
     rng(); // consume first value (used for bucket sort above)
     const yBase = isPersonalized
-      ? (scoreAffinity(p, _starredData) ?? p.relevance)
-      : p.relevance;
-    p._y = yBase + (rng() - 0.5) * 2 * JITTER_Y; // no clamp — matches x jitter behavior
+      ? (scoreAffinity(p, _starredData) ?? rankMap.get(p.id))
+      : rankMap.get(p.id);
+    p._y = yBase + (rng() - 0.5) * 2 * JITTER_Y;
   });
 }
 
@@ -1845,7 +1864,7 @@ function drawAxes(W, H) {
   const lblY   = barY + barH + 6;
   const isPersonalized = Object.keys(_starredData).length > 0;
 
-  function attachAxisTip(sel, key, hoverColor) {
+  function attachAxisTip(sel, key) {
     const tipCopy = {
       west:  'How things work\u2014theory, interpretability, scaling laws.',
       east:  'What was built\u2014benchmarks, deployed systems, robots.',
@@ -1854,11 +1873,10 @@ function drawAxes(W, H) {
         : 'Top papers are most relevant to AI/ML. Star papers to personalize.',
     };
     sel.on('mouseenter', function(evt) {
-        d3.select(this).style('fill', hoverColor);
+        d3.select(this).style('fill', '#C49428');
         tipEl.innerHTML =
-          `<div style="font-size:0.78rem;line-height:1.55;color:${hoverColor};max-width:200px">`
-          + tipCopy[key]
-          + `<br><span style="opacity:0.38;font-size:0.71rem">Double-click to reset view</span></div>`;
+          `<div style="font-size:0.88rem;line-height:1.6;color:#C49428;max-width:220px">`
+          + tipCopy[key] + `</div>`;
         tipEl.style.display = 'block';
         tipEl.style.pointerEvents = 'none';
         moveTip(evt);
@@ -1888,11 +1906,11 @@ function drawAxes(W, H) {
 
   attachAxisTip(axisG.append('text').attr('class','axis-label axis-west')
     .attr('x', M.left).attr('y', lblY).attr('dy','0.35em').attr('text-anchor','start')
-    .style('fill', axisColor(0)).text('Mechanism'), 'west', axisColor(0.03));
+    .style('fill', axisColor(0)).text('Mechanism'), 'west');
 
   attachAxisTip(axisG.append('text').attr('class','axis-label axis-east')
     .attr('x', M.left + chartW).attr('y', lblY).attr('dy','0.35em').attr('text-anchor','end')
-    .style('fill', axisColor(1)).text('Application'), 'east', axisColor(0.88));
+    .style('fill', axisColor(1)).text('Application'), 'east');
 
   axisG.append('rect').attr('class','axis-bar-y')
     .attr('x', M.left - 4).attr('y', M.top)
@@ -1902,7 +1920,7 @@ function drawAxes(W, H) {
 
   attachAxisTip(axisG.append('text').attr('class','axis-label axis-north')
     .attr('x', M.left + 13).attr('y', 13).attr('dy','0.35em').attr('text-anchor','start')
-    .text(isPersonalized ? 'Your interests' : 'Relevance'), 'north', '#C49428');
+    .text(isPersonalized ? 'Your interests' : 'Relevance'), 'north');
 
   axisG.append('text').attr('class','axis-label axis-south')
     .attr('x', M.left).attr('y', barY - 5).attr('text-anchor','start')
@@ -1918,10 +1936,9 @@ function draw() {
 
   applyJitter();
 
-  const PAD = 0.08;
   const xs = PAPERS.map(p => p._x), ys = PAPERS.map(p => p._y);
-  xSc = d3.scaleLinear().domain([Math.min(...xs) - PAD, Math.max(...xs) + PAD]).range([M.left, PW - M.right]);
-  ySc = d3.scaleLinear().domain([Math.min(...ys) - PAD, Math.max(...ys) + PAD]).range([PH - M.bottom, M.top]);
+  xSc = d3.scaleLinear().domain([Math.min(...xs) - 0.08, Math.max(...xs) + 0.08]).range([M.left, PW - M.right]);
+  ySc = d3.scaleLinear().domain([Math.min(...ys) - 0.04, Math.max(...ys) + 0.04]).range([PH - M.bottom, M.top]);
   svg.call(zoom.transform, d3.zoomIdentity.scale(1 / SCALE));
 
   gridG.selectAll('*').remove();
