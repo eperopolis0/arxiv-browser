@@ -2,8 +2,9 @@ name: Nightly arXiv scorer
 
 on:
   schedule:
-    # 02:00 UTC = 10:00 PM ET, ~2 hours after arXiv listing rotates (~8 PM ET)
-    # Runs Tue–Sat UTC (= Mon–Fri evening ET)
+    # 02:00 UTC = 10 PM EDT (9 PM EST in winter), ~2 hours after arXiv rotates (~8 PM ET).
+    # Runs Tue–Sat UTC (= Mon–Fri evening ET). 2-hour gap keeps us clear of
+    # arXiv's peak-traffic window even on busy post-weekend Mondays.
     - cron: '0 2 * * 2-6'
   workflow_dispatch:   # allow manual runs from GitHub UI
 

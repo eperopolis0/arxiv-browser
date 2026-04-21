@@ -120,18 +120,33 @@ function parseAtomXML(xml) {
 }
 
 async function fetchPapers(ids) {
-  // arXiv API limits id_list to ~300 at a time
+  // arXiv API limits id_list to ~300 at a time.
+  // On 429, retry up to 3 times with 60s linear backoff — peak-traffic Mondays
+  // (500+ papers) can hit rate limits immediately. 60s gaps stay well within the
+  // 60-minute Actions timeout even on worst-case 3-retry × 2-batch runs.
   const BATCH = 300;
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 60_000; // 60s per attempt
   const papers = [];
   for (let i = 0; i < ids.length; i += BATCH) {
     const chunk = ids.slice(i, i + BATCH);
-    console.log(`[arxiv] Fetching papers ${i+1}–${i+chunk.length} of ${ids.length}…`);
     const params = new URLSearchParams({ id_list: chunk.join(','), max_results: chunk.length });
-    const resp = await fetchWithTimeout(`${API_BASE}?${params}`, 60000);
+    const url = `${API_BASE}?${params}`;
+    let resp;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const wait = RETRY_DELAY * attempt; // 60s, 120s, 180s
+        console.warn(`[arxiv] 429 — retry ${attempt}/${MAX_RETRIES} in ${wait/1000}s…`);
+        await sleep(wait);
+      }
+      console.log(`[arxiv] Fetching papers ${i+1}–${i+chunk.length} of ${ids.length}${attempt > 0 ? ` (attempt ${attempt+1})` : ''}…`);
+      resp = await fetchWithTimeout(url, 60000);
+      if (resp.status !== 429) break;
+    }
     if (!resp.ok) throw new Error(`arXiv API HTTP ${resp.status}`);
     const xml = await resp.text();
     papers.push(...parseAtomXML(xml));
-    if (i + BATCH < ids.length) await sleep(3000); // respect arXiv rate limit
+    if (i + BATCH < ids.length) await sleep(5000); // 5s between batches
   }
   console.log(`[arxiv] ${papers.length} papers fetched`);
   return papers;

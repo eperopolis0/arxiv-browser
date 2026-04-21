@@ -381,22 +381,14 @@ async function loadAndRender() {
     const ageMs = data.lastFetchTime ? Date.now() - data.lastFetchTime : Infinity;
     const isStale = data.lastFetch !== today || ageMs > 20 * 60 * 60 * 1000;
 
-    if (!isStale) {
-      // Fresh cache — render immediately.
-      await renderPapers(data.processedPapers, data.lastFetch, data.appliedHistory);
-      return;
+    // Always render cached papers immediately — stale data beats an infinite
+    // loading spinner during arXiv's 8–9 PM ET rotation window or on weekends
+    // when no new listing exists. Background refetch (below) will swap in
+    // fresh data via the dataUpdated handler when/if it completes.
+    await renderPapers(data.processedPapers, data.lastFetch, data.appliedHistory);
+    if (isStale && !data.fetchInProgress) {
+      chrome.runtime.sendMessage({ action: 'refresh' });
     }
-
-    // Stale cache: show loading and wait for fresh data rather than rendering
-    // yesterday's map only to jump when today's arrives (~3s later).
-    showLoading('Fetching today\u2019s papers\u2026');
-    if (!data.fetchInProgress) {
-      document.getElementById('header-date').textContent = (data.lastFetch || '\u2014') + ' \u21bb';
-      chrome.storage.local.set({ lastFetch: null, fetchError: null }, () => {
-        chrome.runtime.sendMessage({ action: 'refresh' });
-      });
-    }
-    // dataUpdated fires when fresh papers are stored → loadAndRender() re-called.
     return;
   }
 
@@ -487,7 +479,11 @@ async function renderPapers(processedPapers, lastFetch, appliedHistory) {
   const seen = new Set();
   PAPERS.forEach(p => p.clusters.forEach(c => { if (!seen.has(c)) { seen.add(c); ALL_CLUSTERS.push(c); } }));
 
-  if (lastFetch) document.getElementById('header-date').textContent = lastFetch;
+  const dateEl = document.getElementById('header-date');
+  if (lastFetch) dateEl.textContent = lastFetch;
+  // Subtle red when the visible papers aren't from today's ET date — happens in
+  // the 8–9 PM ET rotation window before the scorer runs, and on weekends.
+  dateEl.classList.toggle('stale', !!lastFetch && lastFetch !== arxivDate());
   document.getElementById('vis-count').textContent = PAPERS.length;
 
   logScoreDistribution(PAPERS);
