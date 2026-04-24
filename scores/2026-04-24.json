@@ -140,7 +140,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.75,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -161,7 +161,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-22",
-      "applied": 0.35,
+      "applied": 0.4,
       "prestige": 2,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -184,7 +184,7 @@
       ],
       "cat": "cs.RO",
       "published": "2026-04-22",
-      "applied": 0.65,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -221,7 +221,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.15,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -238,7 +238,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-22",
-      "applied": 0.55,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "General ML",
       "format": "benchmark"
@@ -255,7 +255,7 @@
       ],
       "cat": "cs.SE",
       "published": "2026-04-22",
-      "applied": 0.25,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "theory"
@@ -302,7 +302,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.7,
+      "applied": 0.75,
       "prestige": 2,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -343,7 +343,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.05,
+      "applied": 0,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
@@ -385,7 +385,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -405,7 +405,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.5,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -449,7 +449,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-23",
-      "applied": 0.65,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -471,7 +471,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-23",
-      "applied": 0.25,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -493,7 +493,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-23",
-      "applied": 0.45,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Visual Understanding",
       "format": "benchmark"
@@ -651,7 +651,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-23",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -712,7 +712,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -773,7 +773,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-22",
-      "applied": 0.1,
+      "applied": 0,
       "prestige": null,
       "cluster": "General ML",
       "format": "theory"
@@ -793,7 +793,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -875,7 +875,7 @@
       ],
       "cat": "cs.CY",
       "published": "2026-03-26",
-      "applied": 0.5,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -912,7 +912,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-02-24",
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -936,7 +936,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-02-15",
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -954,7 +954,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-02-13",
-      "applied": 0.5,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Retrieval & Knowledge",
       "format": "benchmark"
@@ -1053,7 +1053,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.3,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -1077,7 +1077,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -1098,7 +1098,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.1,
+      "applied": 0.25,
       "prestige": 2,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
@@ -1120,7 +1120,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1155,7 +1155,7 @@
       ],
       "cat": "cs.SE",
       "published": "2026-04-23",
-      "applied": 0.3,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -1197,7 +1197,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.6,
+      "applied": 0.65,
       "prestige": null,
       "cluster": "Time Series & Signals",
       "format": "empirical"
@@ -1215,7 +1215,7 @@
       ],
       "cat": "cs.MA",
       "published": "2026-04-23",
-      "applied": 0.5,
+      "applied": 0.55,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1233,7 +1233,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0,
+      "applied": 0.05,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1255,7 +1255,7 @@
       ],
       "cat": "cs.RO",
       "published": "2026-04-23",
-      "applied": 0.4,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "benchmark"
@@ -1274,7 +1274,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.8,
+      "applied": 0.75,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -1358,7 +1358,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-23",
-      "applied": 0.9,
+      "applied": 0.85,
       "prestige": null,
       "cluster": "General ML",
       "format": "benchmark"
@@ -1401,7 +1401,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.1,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -1461,7 +1461,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-22",
-      "applied": 0.4,
+      "applied": 0.35,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "empirical"
@@ -1482,7 +1482,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.2,
+      "applied": 0.25,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "theory"
@@ -1502,7 +1502,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.5,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
@@ -1692,7 +1692,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-22",
-      "applied": 0.5,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1711,7 +1711,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-22",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -1737,7 +1737,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-21",
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "empirical"
@@ -1801,7 +1801,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-02-10",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Retrieval & Knowledge",
       "format": "empirical"
@@ -1843,7 +1843,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1864,7 +1864,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.7,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -1885,7 +1885,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -1906,7 +1906,7 @@
       ],
       "cat": "cs.LO",
       "published": "2026-04-23",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "General ML",
       "format": "empirical"
@@ -1972,7 +1972,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.6,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -2018,7 +2018,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -2039,7 +2039,7 @@
       ],
       "cat": "cs.NI",
       "published": "2026-04-23",
-      "applied": 0.7,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -2129,6 +2129,132 @@
       "cluster": "Safety & Alignment",
       "format": "empirical"
     },
+    "2604.21931": {
+      "title": "Seeing Fast and Slow: Learning the Flow of Time in Videos",
+      "summary": "How can we tell whether a video has been sped up or slowed down? How can we generate videos at different speeds? Although videos have been central to modern computer vision research, little attention has been paid to perceiving and controlling the passage of time. In this paper, we study time as a learnable visual concept and develop models for reasoning about and manipulating the flow of time in videos. We first exploit the multimodal cues and temporal structure naturally present in videos to learn, in a self-supervised manner, to detect speed changes and estimate playback speed. We then show that these learned temporal reasoning models enable us to curate the largest slow-motion video dataset to date from noisy in-the-wild sources. Such slow-motion footage, typically filmed by high-speed cameras, contains substantially richer temporal detail than standard videos. Using this data, we further develop models capable of temporal control, including speed-conditioned video generation, which produces motion at specified playback speed, and temporal super-resolution, which tranforms low-FPS, blurry videos into high-FPS sequences with fine-grained temporal details. Our findings highlight time as a manipulable, perceptual dimension in video learning, opening doors to temporally controllable video generation, temporal forensics detection, and potentially richer world-models that understand how events unfold over time.",
+      "authors": [
+        "Yen-Siang Wu",
+        "Rundong Luo",
+        "Jingsen Zhu",
+        "Tao Tu",
+        "Ali Farhadi",
+        "Matthew Wallingford",
+        "Yu-Chiang Frank Wang",
+        "Steve Marschner",
+        "Wei-Chiu Ma"
+      ],
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "cs.GR"
+      ],
+      "cat": "cs.CV",
+      "published": "2026-04-23",
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Image & Video Generation",
+      "format": "empirical"
+    },
+    "2604.21911": {
+      "title": "When Prompts Override Vision: Prompt-Induced Hallucinations in LVLMs",
+      "summary": "Despite impressive progress in capabilities of large vision-language models (LVLMs), these systems remain vulnerable to hallucinations, i.e., outputs that are not grounded in the visual input. Prior work has attributed hallucinations in LVLMs to factors such as limitations of the vision backbone or the dominance of the language component, yet the relative importance of these factors remains unclear. To resolve this ambiguity, We propose HalluScope, a benchmark to better understand the extent to which different factors induce hallucinations. Our analysis indicates that hallucinations largely stem from excessive reliance on textual priors and background knowledge, especially information introduced through textual instructions. To mitigate hallucinations induced by textual instruction priors, we propose HalluVL-DPO, a framework for fine-tuning off-the-shelf LVLMs towards more visually grounded responses. HalluVL-DPO leverages preference optimization using a curated training dataset that we construct, guiding the model to prefer grounded responses over hallucinated ones. We demonstrate that our optimized model effectively mitigates the targeted hallucination failure mode, while preserving or improving performance on other hallucination benchmarks and visual capability evaluations. To support reproducibility and further research, we will publicly release our evaluation benchmark, preference training dataset, and code at https://pegah-kh.github.io/projects/prompts-override-vision/ .",
+      "authors": [
+        "Pegah Khayatan",
+        "Jayneel Parekh",
+        "Arnaud Dapogny",
+        "Mustafa Shukor",
+        "Alasdair Newson",
+        "Matthieu Cord"
+      ],
+      "categories": [
+        "cs.CV",
+        "cs.AI",
+        "cs.CL",
+        "cs.LG"
+      ],
+      "cat": "cs.CV",
+      "published": "2026-04-23",
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Visual Understanding",
+      "format": "benchmark"
+    },
+    "2604.21910": {
+      "title": "From Research Question to Scientific Workflow: Leveraging Agentic AI for Science Automation",
+      "summary": "Scientific workflow systems automate execution -- scheduling, fault tolerance, resource management -- but not the semantic translation that precedes it. Scientists still manually convert research questions into workflow specifications, a task requiring both domain knowledge and infrastructure expertise. We propose an agentic architecture that closes this gap through three layers: an LLM interprets natural language into structured intents (semantic layer); validated generators produce reproducible workflow DAGs (deterministic layer); and domain experts author ``Skills'': markdown documents encoding vocabulary mappings, parameter constraints, and optimization strategies (knowledge layer). This decomposition confines LLM non-determinism to intent extraction: identical intents always yield identical workflows. We implement and evaluate the architecture on the 1000 Genomes population genetics workflow and Hyperflow WMS running on Kubernetes. In an ablation study on 150 queries, Skills raise full-match intent accuracy from 44% to 83%; skill-driven deferred workflow generation reduces data transfer by 92\\%; and the end-to-end pipeline completes queries on Kubernetes with LLM overhead below 15 seconds and cost under $0.001 per query.",
+      "authors": [
+        "Bartosz Balis",
+        "Michal Orzechowski",
+        "Piotr Kica",
+        "Michal Dygas",
+        "Michal Kuszewski"
+      ],
+      "categories": [
+        "cs.AI"
+      ],
+      "cat": "cs.AI",
+      "published": "2026-04-23",
+      "applied": 0.6,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.21907": {
+      "title": "Equity Bias: An Ethical Framework for AI Design",
+      "summary": "Equity Bias is a philosophical and practical framework for building smarter, more equitable AI systems. Grounded in hermeneutic philosophy and epistemic injustice theory, it treats bias not as an error to eliminate but as a reflection of whose knowledge is encoded into systems. While traditional approaches aim to reduce or remove bias, Equity Bias instead makes bias transparent and contestable. In doing so, it broadens whose perspectives shape AI and provides a lens for understanding AI systems as interpretive agents. The framework introduces a three-phase AI Life Cycle methodology: 'Equity Archaeology' (mapping knowledge and assumptions), 'Co-Creating Meaning' (participatory design), and 'Ongoing Accountability' (continuous evaluation). Equity Bias guides developers, researchers, and policymakers towards AI that is ethically accountable and capable of addressing complex real-world challenges.",
+      "authors": [
+        "Mary Lockwood"
+      ],
+      "categories": [
+        "cs.CY",
+        "cs.AI"
+      ],
+      "cat": "cs.CY",
+      "published": "2026-01-28",
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.21896": {
+      "title": "Nemobot Games: Crafting Strategic AI Gaming Agents for Interactive Learning with Large Language Models",
+      "summary": "This paper introduces a new paradigm for AI game programming, leveraging large language models (LLMs) to extend and operationalize Claude Shannon's taxonomy of game-playing machines. Central to this paradigm is Nemobot, an interactive agentic engineering environment that enables users to create, customize, and deploy LLM-powered game agents while actively engaging with AI-driven strategies. The LLM-based chatbot, integrated within Nemobot, demonstrates its capabilities across four distinct classes of games. For dictionary-based games, it compresses state-action mappings into efficient, generalized models for rapid adaptability. In rigorously solvable games, it employs mathematical reasoning to compute optimal strategies and generates human-readable explanations for its decisions. For heuristic-based games, it synthesizes strategies by combining insights from classical minimax algorithms (see, e.g., shannon1950chess) with crowd-sourced data. Finally, in learning-based games, it utilizes reinforcement learning with human feedback and self-critique to iteratively refine strategies through trial-and-error and imitation learning. Nemobot amplifies this framework by offering a programmable environment where users can experiment with tool-augmented generation and fine-tuning of strategic game agents. From strategic games to role-playing games, Nemobot demonstrates how AI agents can achieve a form of self-programming by integrating crowdsourced learning and human creativity to iteratively refine their own logic. This represents a step toward the long-term goal of self-programming AI.",
+      "authors": [
+        "Chee Wei Tan",
+        "Yuchen Wang",
+        "Shangxin Guo"
+      ],
+      "categories": [
+        "cs.AI"
+      ],
+      "cat": "cs.AI",
+      "published": "2026-04-23",
+      "applied": 0.5,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
+    },
+    "2604.21879": {
+      "title": "Addressing Image Authenticity When Cameras Use Generative AI",
+      "summary": "The ability of generative AI (GenAI) methods to photorealistically alter camera images has raised awareness about the authenticity of images shared online. Interestingly, images captured directly by our cameras are considered authentic and faithful. However, with the increasing integration of deep-learning modules into cameras' capture-time hardware -- namely, the image signal processor (ISP) -- there is now a potential for hallucinated content in images directly output by our cameras. Hallucinated capture-time image content is typically benign, such as enhanced edges or texture, but in certain operations, such as AI-based digital zoom or low-light image enhancement, hallucinations can potentially alter the semantics and interpretation of the image content. As a result, users may not realize that the content in their camera images is not authentic. This paper addresses this issue by enabling users to recover the 'unhallucinated' version of the camera image to avoid misinterpretation of the image content. Our approach works by optimizing an image-specific multi-layer perceptron (MLP) decoder together with a modality-specific encoder so that, given the camera image, we can recover the image before hallucinated content was added. The encoder and MLP are self-contained and can be applied post-capture to the image without requiring access to the camera ISP. Moreover, the encoder and MLP decoder require only 180 KB of storage and can be readily saved as metadata within standard image formats such as JPEG and HEIC.",
+      "authors": [
+        "Umar Masud",
+        "Abhijith Punnappurath",
+        "Luxi Zhao",
+        "David B. Lindell",
+        "Michael S. Brown"
+      ],
+      "categories": [
+        "cs.CV",
+        "cs.AI"
+      ],
+      "cat": "cs.CV",
+      "published": "2026-04-23",
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Safety & Alignment",
+      "format": "empirical"
+    },
     "2604.21571": {
       "title": "Separable Expert Architecture: Toward Privacy-Preserving LLM Personalization via Composable Adapters and Deletable User Proxies",
       "summary": "Current model training approaches incorporate user information directly into shared weights, making individual data removal computationally infeasible without retraining. This paper presents a three-layer architecture that decouples personal data from shared weights by combining a static base model, composable domain-expert LoRA adapters that shape behavior without imparting user data, and per-user proxy artefacts whose deletion constitutes deterministic unlearning. Evaluation on Phi-3.5-mini and Llama-3.1-8B confirms per-user differentiation in which personal data influences outputs while remaining isolated, verified by a return to baseline after proxy removal (KL divergence of approximately 0.21 nats, 82-89% verification pass rate) and near-zero cross-user contamination. Because user-specific information never enters shared weights, the architecture mitigates model inversion, membership inference, and training-data extraction against shared model components by construction. The approach converts machine unlearning from an intractable weight-editing problem into a deterministic deletion operation that preserves personalization alongside privacy-enhancing guarantees and is compatible with differentially private stochastic gradient descent (DP-SGD) for privacy-preserving shared model improvement.",
@@ -2179,7 +2305,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
@@ -2199,7 +2325,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-23",
-      "applied": 0.1,
+      "applied": 0,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -2262,7 +2388,7 @@
       ],
       "cat": "cs.SE",
       "published": "2026-04-23",
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "General ML",
       "format": "empirical"
@@ -2281,7 +2407,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -2320,7 +2446,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -2341,7 +2467,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.9,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -2364,7 +2490,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.5,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -2381,7 +2507,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-22",
-      "applied": 0.3,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "empirical"
@@ -2440,7 +2566,7 @@
       ],
       "cat": "cs.AR",
       "published": "2026-04-20",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -2458,7 +2584,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-13",
-      "applied": 0.3,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "theory"
@@ -2477,7 +2603,7 @@
       ],
       "cat": "cs.CY",
       "published": "2026-03-27",
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Retrieval & Knowledge",
       "format": "empirical"
@@ -2496,7 +2622,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-03-20",
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -2516,7 +2642,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-02-12",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": 2,
       "cluster": "Retrieval & Knowledge",
       "format": "empirical"
@@ -2538,132 +2664,6 @@
       "cluster": "Agents & Planning",
       "format": "benchmark"
     },
-    "2604.21931": {
-      "title": "Seeing Fast and Slow: Learning the Flow of Time in Videos",
-      "summary": "How can we tell whether a video has been sped up or slowed down? How can we generate videos at different speeds? Although videos have been central to modern computer vision research, little attention has been paid to perceiving and controlling the passage of time. In this paper, we study time as a learnable visual concept and develop models for reasoning about and manipulating the flow of time in videos. We first exploit the multimodal cues and temporal structure naturally present in videos to learn, in a self-supervised manner, to detect speed changes and estimate playback speed. We then show that these learned temporal reasoning models enable us to curate the largest slow-motion video dataset to date from noisy in-the-wild sources. Such slow-motion footage, typically filmed by high-speed cameras, contains substantially richer temporal detail than standard videos. Using this data, we further develop models capable of temporal control, including speed-conditioned video generation, which produces motion at specified playback speed, and temporal super-resolution, which tranforms low-FPS, blurry videos into high-FPS sequences with fine-grained temporal details. Our findings highlight time as a manipulable, perceptual dimension in video learning, opening doors to temporally controllable video generation, temporal forensics detection, and potentially richer world-models that understand how events unfold over time.",
-      "authors": [
-        "Yen-Siang Wu",
-        "Rundong Luo",
-        "Jingsen Zhu",
-        "Tao Tu",
-        "Ali Farhadi",
-        "Matthew Wallingford",
-        "Yu-Chiang Frank Wang",
-        "Steve Marschner",
-        "Wei-Chiu Ma"
-      ],
-      "categories": [
-        "cs.CV",
-        "cs.AI",
-        "cs.GR"
-      ],
-      "cat": "cs.CV",
-      "published": "2026-04-23",
-      "applied": 0.1,
-      "prestige": null,
-      "cluster": "Image & Video Generation",
-      "format": "empirical"
-    },
-    "2604.21911": {
-      "title": "When Prompts Override Vision: Prompt-Induced Hallucinations in LVLMs",
-      "summary": "Despite impressive progress in capabilities of large vision-language models (LVLMs), these systems remain vulnerable to hallucinations, i.e., outputs that are not grounded in the visual input. Prior work has attributed hallucinations in LVLMs to factors such as limitations of the vision backbone or the dominance of the language component, yet the relative importance of these factors remains unclear. To resolve this ambiguity, We propose HalluScope, a benchmark to better understand the extent to which different factors induce hallucinations. Our analysis indicates that hallucinations largely stem from excessive reliance on textual priors and background knowledge, especially information introduced through textual instructions. To mitigate hallucinations induced by textual instruction priors, we propose HalluVL-DPO, a framework for fine-tuning off-the-shelf LVLMs towards more visually grounded responses. HalluVL-DPO leverages preference optimization using a curated training dataset that we construct, guiding the model to prefer grounded responses over hallucinated ones. We demonstrate that our optimized model effectively mitigates the targeted hallucination failure mode, while preserving or improving performance on other hallucination benchmarks and visual capability evaluations. To support reproducibility and further research, we will publicly release our evaluation benchmark, preference training dataset, and code at https://pegah-kh.github.io/projects/prompts-override-vision/ .",
-      "authors": [
-        "Pegah Khayatan",
-        "Jayneel Parekh",
-        "Arnaud Dapogny",
-        "Mustafa Shukor",
-        "Alasdair Newson",
-        "Matthieu Cord"
-      ],
-      "categories": [
-        "cs.CV",
-        "cs.AI",
-        "cs.CL",
-        "cs.LG"
-      ],
-      "cat": "cs.CV",
-      "published": "2026-04-23",
-      "applied": 0.1,
-      "prestige": null,
-      "cluster": "Visual Understanding",
-      "format": "benchmark"
-    },
-    "2604.21910": {
-      "title": "From Research Question to Scientific Workflow: Leveraging Agentic AI for Science Automation",
-      "summary": "Scientific workflow systems automate execution -- scheduling, fault tolerance, resource management -- but not the semantic translation that precedes it. Scientists still manually convert research questions into workflow specifications, a task requiring both domain knowledge and infrastructure expertise. We propose an agentic architecture that closes this gap through three layers: an LLM interprets natural language into structured intents (semantic layer); validated generators produce reproducible workflow DAGs (deterministic layer); and domain experts author ``Skills'': markdown documents encoding vocabulary mappings, parameter constraints, and optimization strategies (knowledge layer). This decomposition confines LLM non-determinism to intent extraction: identical intents always yield identical workflows. We implement and evaluate the architecture on the 1000 Genomes population genetics workflow and Hyperflow WMS running on Kubernetes. In an ablation study on 150 queries, Skills raise full-match intent accuracy from 44% to 83%; skill-driven deferred workflow generation reduces data transfer by 92\\%; and the end-to-end pipeline completes queries on Kubernetes with LLM overhead below 15 seconds and cost under $0.001 per query.",
-      "authors": [
-        "Bartosz Balis",
-        "Michal Orzechowski",
-        "Piotr Kica",
-        "Michal Dygas",
-        "Michal Kuszewski"
-      ],
-      "categories": [
-        "cs.AI"
-      ],
-      "cat": "cs.AI",
-      "published": "2026-04-23",
-      "applied": 0.7,
-      "prestige": null,
-      "cluster": "Agents & Planning",
-      "format": "empirical"
-    },
-    "2604.21907": {
-      "title": "Equity Bias: An Ethical Framework for AI Design",
-      "summary": "Equity Bias is a philosophical and practical framework for building smarter, more equitable AI systems. Grounded in hermeneutic philosophy and epistemic injustice theory, it treats bias not as an error to eliminate but as a reflection of whose knowledge is encoded into systems. While traditional approaches aim to reduce or remove bias, Equity Bias instead makes bias transparent and contestable. In doing so, it broadens whose perspectives shape AI and provides a lens for understanding AI systems as interpretive agents. The framework introduces a three-phase AI Life Cycle methodology: 'Equity Archaeology' (mapping knowledge and assumptions), 'Co-Creating Meaning' (participatory design), and 'Ongoing Accountability' (continuous evaluation). Equity Bias guides developers, researchers, and policymakers towards AI that is ethically accountable and capable of addressing complex real-world challenges.",
-      "authors": [
-        "Mary Lockwood"
-      ],
-      "categories": [
-        "cs.CY",
-        "cs.AI"
-      ],
-      "cat": "cs.CY",
-      "published": "2026-01-28",
-      "applied": 0.3,
-      "prestige": null,
-      "cluster": "Agents & Planning",
-      "format": "empirical"
-    },
-    "2604.21896": {
-      "title": "Nemobot Games: Crafting Strategic AI Gaming Agents for Interactive Learning with Large Language Models",
-      "summary": "This paper introduces a new paradigm for AI game programming, leveraging large language models (LLMs) to extend and operationalize Claude Shannon's taxonomy of game-playing machines. Central to this paradigm is Nemobot, an interactive agentic engineering environment that enables users to create, customize, and deploy LLM-powered game agents while actively engaging with AI-driven strategies. The LLM-based chatbot, integrated within Nemobot, demonstrates its capabilities across four distinct classes of games. For dictionary-based games, it compresses state-action mappings into efficient, generalized models for rapid adaptability. In rigorously solvable games, it employs mathematical reasoning to compute optimal strategies and generates human-readable explanations for its decisions. For heuristic-based games, it synthesizes strategies by combining insights from classical minimax algorithms (see, e.g., shannon1950chess) with crowd-sourced data. Finally, in learning-based games, it utilizes reinforcement learning with human feedback and self-critique to iteratively refine strategies through trial-and-error and imitation learning. Nemobot amplifies this framework by offering a programmable environment where users can experiment with tool-augmented generation and fine-tuning of strategic game agents. From strategic games to role-playing games, Nemobot demonstrates how AI agents can achieve a form of self-programming by integrating crowdsourced learning and human creativity to iteratively refine their own logic. This represents a step toward the long-term goal of self-programming AI.",
-      "authors": [
-        "Chee Wei Tan",
-        "Yuchen Wang",
-        "Shangxin Guo"
-      ],
-      "categories": [
-        "cs.AI"
-      ],
-      "cat": "cs.AI",
-      "published": "2026-04-23",
-      "applied": 0.5,
-      "prestige": null,
-      "cluster": "Agents & Planning",
-      "format": "empirical"
-    },
-    "2604.21879": {
-      "title": "Addressing Image Authenticity When Cameras Use Generative AI",
-      "summary": "The ability of generative AI (GenAI) methods to photorealistically alter camera images has raised awareness about the authenticity of images shared online. Interestingly, images captured directly by our cameras are considered authentic and faithful. However, with the increasing integration of deep-learning modules into cameras' capture-time hardware -- namely, the image signal processor (ISP) -- there is now a potential for hallucinated content in images directly output by our cameras. Hallucinated capture-time image content is typically benign, such as enhanced edges or texture, but in certain operations, such as AI-based digital zoom or low-light image enhancement, hallucinations can potentially alter the semantics and interpretation of the image content. As a result, users may not realize that the content in their camera images is not authentic. This paper addresses this issue by enabling users to recover the 'unhallucinated' version of the camera image to avoid misinterpretation of the image content. Our approach works by optimizing an image-specific multi-layer perceptron (MLP) decoder together with a modality-specific encoder so that, given the camera image, we can recover the image before hallucinated content was added. The encoder and MLP are self-contained and can be applied post-capture to the image without requiring access to the camera ISP. Moreover, the encoder and MLP decoder require only 180 KB of storage and can be readily saved as metadata within standard image formats such as JPEG and HEIC.",
-      "authors": [
-        "Umar Masud",
-        "Abhijith Punnappurath",
-        "Luxi Zhao",
-        "David B. Lindell",
-        "Michael S. Brown"
-      ],
-      "categories": [
-        "cs.CV",
-        "cs.AI"
-      ],
-      "cat": "cs.CV",
-      "published": "2026-04-23",
-      "applied": 0.3,
-      "prestige": null,
-      "cluster": "Safety & Alignment",
-      "format": "empirical"
-    },
     "2604.18779": {
       "title": "Mango: Multi-Agent Web Navigation via Global-View Optimization",
       "summary": "Existing web agents typically initiate exploration from the root URL, which is inefficient for complex websites with deep hierarchical structures. Without a global view of the website's structure, agents frequently fall into navigation traps, explore irrelevant branches, or fail to reach target information within a limited budget. We propose Mango, a multi-agent web navigation method that leverages the website structure to dynamically determine optimal starting points. We formulate URL selection as a multi-armed bandit problem and employ Thompson Sampling to adaptively allocate the navigation budget across candidate URLs. Furthermore, we introduce an episodic memory component to store navigation history, enabling the agent to learn from previous attempts. Experiments on WebVoyager demonstrate that Mango achieves a success rate of 63.6% when using GPT-5-mini, outperforming the best baseline by 7.3%. Furthermore, on WebWalkerQA, Mango attains a 52.5% success rate, surpassing the best baseline by 26.8%. We also demonstrate the generalizability of Mango using both open-source and closed-source models as backbones. Our data and code are open-source and available at https://github.com/VichyTong/Mango.",
@@ -2678,7 +2678,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-20",
-      "applied": 0.6,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -2695,7 +2695,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.7,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "empirical"
@@ -2739,7 +2739,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -3008,7 +3008,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.7,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "survey"
@@ -3088,7 +3088,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-22",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -3148,7 +3148,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-03-02",
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -3168,7 +3168,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-02-10",
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "empirical"
@@ -3188,7 +3188,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-23",
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -3210,7 +3210,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-23",
-      "applied": 0.5,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "empirical"
@@ -3249,7 +3249,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Fine-tuning & Adaptation",
       "format": "survey"
@@ -3272,7 +3272,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-23",
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -3295,7 +3295,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-22",
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "empirical"
@@ -3315,7 +3315,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-22",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -3459,7 +3459,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-23",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "General ML",
       "format": "position"
@@ -3559,7 +3559,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "theory"
@@ -3698,7 +3698,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0.5,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -3892,7 +3892,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-23",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "survey"
@@ -4043,7 +4043,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-22",
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -4218,7 +4218,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-03-01",
-      "applied": 0.5,
+      "applied": 0.3,
       "prestige": 3,
       "cluster": "Image & Video Generation",
       "format": "empirical"
@@ -4274,7 +4274,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-23",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Robotics & Embodied",
       "format": "empirical"
@@ -4373,7 +4373,7 @@
       ],
       "cat": "cs.CE",
       "published": "2026-04-23",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -4411,7 +4411,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-23",
-      "applied": 0.5,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "empirical"
