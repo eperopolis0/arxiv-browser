@@ -136,7 +136,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-03-27",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Fine-tuning & Adaptation",
       "format": "empirical"
@@ -157,7 +157,7 @@
       ],
       "cat": "cs.CY",
       "published": "2026-04-27",
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -214,7 +214,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-29",
-      "applied": 0.5,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Time Series & Signals",
       "format": "empirical"
@@ -234,7 +234,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-29",
-      "applied": 0.2,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "empirical"
@@ -260,7 +260,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-29",
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -457,7 +457,7 @@
       ],
       "cat": "cs.SD",
       "published": "2026-04-29",
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "empirical"
@@ -477,7 +477,7 @@
       ],
       "cat": "cs.IR",
       "published": "2026-04-29",
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Reinforcement Learning",
       "format": "benchmark"
@@ -568,7 +568,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-28",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Retrieval & Knowledge",
       "format": "theory"
@@ -668,7 +668,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-29",
-      "applied": 0.4,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -689,7 +689,7 @@
       ],
       "cat": "cs.HC",
       "published": "2026-04-29",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -706,7 +706,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-29",
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -725,7 +725,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-29",
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "General ML",
       "format": "empirical"
@@ -744,30 +744,9 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Efficiency & Compression",
-      "format": "empirical"
-    },
-    "2604.26209": {
-      "title": "Breaking the Autoregressive Chain: Hyper-Parallel Decoding for Efficient LLM-Based Attribute Value Extraction",
-      "summary": "Some text generation tasks, such as Attribute Value Extraction (AVE), require decoding multiple independent sequences from the same document context. While standard autoregressive decoding is slow due to its sequential nature, the independence between output sequences offers an opportunity for parallelism. We present Hyper-Parallel Decoding, a novel decoding algorithm that accelerates offline decoding by leveraging both shared memory and computation across batches. HPD enables out-of-order token generation through position ID manipulation, significantly improving efficiency. Experiments on AVE show that attribute-value pairs are conditionally independent, enabling us to parallelize value generation within each prompt. By further stacking multiple documents within a single prompt, we can decode in parallel up to 96 tokens per prompt. HPD works with all LLMs, and reduces both inference costs and total inference time by up to 13.8X without compromising output quality, potentially saving hundreds of thousands of dollars on industry AVE tasks. Although designed for attribute extraction, HPD makes no assumptions unique to the AVE domain and can in theory be applied to other scenarios with independent output structures.",
-      "authors": [
-        "Theodore Glavas",
-        "Nikhita Vedula",
-        "Dushyanta Dhyani",
-        "Yilun Zhu",
-        "Shervin Malmasi"
-      ],
-      "categories": [
-        "cs.CL",
-        "cs.AI"
-      ],
-      "cat": "cs.CL",
-      "published": "2026-04-29",
-      "applied": 0.7,
-      "prestige": null,
-      "cluster": "Reinforcement Learning",
       "format": "empirical"
     },
     "2604.26206": {
@@ -828,7 +807,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-28",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -849,10 +828,31 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "survey"
+    },
+    "2604.26209": {
+      "title": "Breaking the Autoregressive Chain: Hyper-Parallel Decoding for Efficient LLM-Based Attribute Value Extraction",
+      "summary": "Some text generation tasks, such as Attribute Value Extraction (AVE), require decoding multiple independent sequences from the same document context. While standard autoregressive decoding is slow due to its sequential nature, the independence between output sequences offers an opportunity for parallelism. We present Hyper-Parallel Decoding, a novel decoding algorithm that accelerates offline decoding by leveraging both shared memory and computation across batches. HPD enables out-of-order token generation through position ID manipulation, significantly improving efficiency. Experiments on AVE show that attribute-value pairs are conditionally independent, enabling us to parallelize value generation within each prompt. By further stacking multiple documents within a single prompt, we can decode in parallel up to 96 tokens per prompt. HPD works with all LLMs, and reduces both inference costs and total inference time by up to 13.8X without compromising output quality, potentially saving hundreds of thousands of dollars on industry AVE tasks. Although designed for attribute extraction, HPD makes no assumptions unique to the AVE domain and can in theory be applied to other scenarios with independent output structures.",
+      "authors": [
+        "Theodore Glavas",
+        "Nikhita Vedula",
+        "Dushyanta Dhyani",
+        "Yilun Zhu",
+        "Shervin Malmasi"
+      ],
+      "categories": [
+        "cs.CL",
+        "cs.AI"
+      ],
+      "cat": "cs.CL",
+      "published": "2026-04-29",
+      "applied": 0.3,
+      "prestige": null,
+      "cluster": "Reinforcement Learning",
+      "format": "empirical"
     },
     "2604.26106": {
       "title": "Evaluating Strategic Reasoning in Forecasting Agents",
@@ -869,7 +869,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-28",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -892,7 +892,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-28",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Time Series & Signals",
       "format": "empirical"
@@ -916,7 +916,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-28",
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -937,7 +937,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-28",
-      "applied": 0.2,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "benchmark"
@@ -958,7 +958,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-17",
-      "applied": 0.1,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Vision: Detection",
       "format": "empirical"
@@ -1013,7 +1013,7 @@
       ],
       "cat": "cs.CY",
       "published": "2026-04-03",
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "survey"
@@ -1038,7 +1038,7 @@
       ],
       "cat": "cs.CY",
       "published": "2026-04-03",
-      "applied": 0.2,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1084,7 +1084,7 @@
       ],
       "cat": "cs.SE",
       "published": "2026-04-29",
-      "applied": 0.7,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "position"
@@ -1127,7 +1127,7 @@
       ],
       "cat": "cs.DC",
       "published": "2026-04-29",
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -1190,7 +1190,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-29",
-      "applied": 0.4,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1232,7 +1232,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-29",
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -1251,7 +1251,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-29",
-      "applied": 0.5,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -1268,7 +1268,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-29",
-      "applied": 0.3,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1308,7 +1308,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-29",
-      "applied": 0.2,
+      "applied": 0.15,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -1352,7 +1352,7 @@
       ],
       "cat": "cs.CR",
       "published": "2026-04-29",
-      "applied": 0.6,
+      "applied": 0.65,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -1370,7 +1370,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.7,
+      "applied": 0.75,
       "prestige": 2,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -1389,7 +1389,7 @@
       ],
       "cat": "cs.HC",
       "published": "2026-04-28",
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -1438,7 +1438,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.85,
+      "applied": 0.75,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "benchmark"
@@ -1503,10 +1503,62 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-29",
-      "applied": 0.15,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "position"
+    },
+    "2604.26694": {
+      "title": "Unified 4D World Action Modeling from Video Priors with Asynchronous Denoising",
+      "summary": "We propose X-WAM, a Unified 4D World Model that unifies real-time robotic action execution and high-fidelity 4D world synthesis (video + 3D reconstruction) in a single framework, addressing the critical limitations of prior unified world models (e.g., UWM) that only model 2D pixel-space and fail to balance action efficiency and world modeling quality. To leverage the strong visual priors of pretrained video diffusion models, X-WAM imagines the future world by predicting multi-view RGB-D videos, and obtains spatial information efficiently through a lightweight structural adaptation: replicating the final few blocks of the pretrained Diffusion Transformer into a dedicated depth prediction branch for the reconstruction of future spatial information. Moreover, we propose Asynchronous Noise Sampling (ANS) to jointly optimize generation quality and action decoding efficiency. ANS applies a specialized asynchronous denoising schedule during inference, which rapidly decodes actions with fewer steps to enable efficient real-time execution, while dedicating the full sequence of steps to generate high-fidelity video. Rather than entirely decoupling the timesteps during training, ANS samples from their joint distribution to align with the inference distribution. Pretrained on over 5,800 hours of robotic data, X-WAM achieves 79.2% and 90.7% average success rate on RoboCasa and RoboTwin 2.0 benchmarks, while producing high-fidelity 4D reconstruction and generation surpassing existing methods in both visual and geometric metrics.",
+      "authors": [
+        "Jun Guo",
+        "Qiwei Li",
+        "Peiyan Li",
+        "Zilong Chen",
+        "Nan Sun",
+        "Yifei Su",
+        "Heyun Wang",
+        "Yuan Zhang",
+        "Xinghang Li",
+        "Huaping Liu"
+      ],
+      "categories": [
+        "cs.RO",
+        "cs.AI",
+        "cs.CV"
+      ],
+      "cat": "cs.RO",
+      "published": "2026-04-29",
+      "applied": 0.8,
+      "prestige": null,
+      "cluster": "Image & Video Generation",
+      "format": "empirical"
+    },
+    "2604.26645": {
+      "title": "SciHorizon-DataEVA: An Agentic System for AI-Readiness Evaluation of Heterogeneous Scientific Data",
+      "summary": "AI-for-Science (AI4Science) is increasingly transforming scientific discovery by embedding machine learning models into prediction, simulation, and hypothesis generation workflows across domains. However, the effectiveness of these models is fundamentally constrained by the AI-readiness of scientific data, for which no scalable and systematic evaluation mechanism currently exists. In this work, we propose SciHorizon-DataEVA, a novel agentic system to scalable AI-readiness evaluation of heterogeneous scientific data. At the evaluation-criteria level, we introduce the Sci-TQA2 principles, which organize AI-readiness into four complementary dimensions: Governance Trustworthiness, Data Quality, AI Compatibility, and Scientific Adaptability. Each dimension is decomposed into measurable atomic elements that enable fine-grained and executable assessment. To operationalize these principles at scale, we develop Sci-TQA2-Eval, a hierarchical multi-agent evaluation approach orchestrated through a directed, cyclic workflow. Our Sci-TQA2-Eval dynamically constructs dataset-aware evaluation specifications by combining lightweight dataset profiling, applicability-aware metric activation, and knowledge-augmented planning grounded in domain constraints and dataset-paper signals. These specifications are executed through an adaptive, tool-centric evaluation mechanism with built-in verification and self-correction, enabling scalable and reliable assessment across heterogeneous scientific data. Extensive experiments on scientific datasets spanning multiple domains demonstrate the effectiveness and generality of SciHorizon-DataEVA for principled AI-readiness evaluation.",
+      "authors": [
+        "Dianyu Liu",
+        "Chuan Qin",
+        "Xi Chen",
+        "Xiaohan Li",
+        "Wenxi Xu",
+        "Yuyang Wang",
+        "Xin Chen",
+        "Yuanchun Zhou",
+        "Hengshu Zhu"
+      ],
+      "categories": [
+        "cs.AI",
+        "cs.LG"
+      ],
+      "cat": "cs.AI",
+      "published": "2026-04-29",
+      "applied": 0.7,
+      "prestige": null,
+      "cluster": "Agents & Planning",
+      "format": "empirical"
     },
     "2604.26084": {
       "title": "FruitProM-V2: Robust Probabilistic Maturity Estimation and Detection of Fruits and Vegetables",
@@ -1525,7 +1577,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-28",
-      "applied": 0.75,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1543,7 +1595,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-28",
-      "applied": 0.5,
+      "applied": 0.65,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -1590,7 +1642,7 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-28",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "survey"
@@ -1614,7 +1666,7 @@
       ],
       "cat": "cs.IT",
       "published": "2026-04-28",
-      "applied": 0.65,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Efficiency & Compression",
       "format": "empirical"
@@ -1658,7 +1710,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-01",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "benchmark"
@@ -1682,7 +1734,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-29",
-      "applied": 0,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -1723,7 +1775,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.1,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "General ML",
       "format": "empirical"
@@ -1746,7 +1798,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-29",
-      "applied": 0.6,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -1768,7 +1820,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-28",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "theory"
@@ -1808,61 +1860,9 @@
       ],
       "cat": "cs.LG",
       "published": "2026-04-28",
-      "applied": 0.3,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Fine-tuning & Adaptation",
-      "format": "empirical"
-    },
-    "2604.26694": {
-      "title": "Unified 4D World Action Modeling from Video Priors with Asynchronous Denoising",
-      "summary": "We propose X-WAM, a Unified 4D World Model that unifies real-time robotic action execution and high-fidelity 4D world synthesis (video + 3D reconstruction) in a single framework, addressing the critical limitations of prior unified world models (e.g., UWM) that only model 2D pixel-space and fail to balance action efficiency and world modeling quality. To leverage the strong visual priors of pretrained video diffusion models, X-WAM imagines the future world by predicting multi-view RGB-D videos, and obtains spatial information efficiently through a lightweight structural adaptation: replicating the final few blocks of the pretrained Diffusion Transformer into a dedicated depth prediction branch for the reconstruction of future spatial information. Moreover, we propose Asynchronous Noise Sampling (ANS) to jointly optimize generation quality and action decoding efficiency. ANS applies a specialized asynchronous denoising schedule during inference, which rapidly decodes actions with fewer steps to enable efficient real-time execution, while dedicating the full sequence of steps to generate high-fidelity video. Rather than entirely decoupling the timesteps during training, ANS samples from their joint distribution to align with the inference distribution. Pretrained on over 5,800 hours of robotic data, X-WAM achieves 79.2% and 90.7% average success rate on RoboCasa and RoboTwin 2.0 benchmarks, while producing high-fidelity 4D reconstruction and generation surpassing existing methods in both visual and geometric metrics.",
-      "authors": [
-        "Jun Guo",
-        "Qiwei Li",
-        "Peiyan Li",
-        "Zilong Chen",
-        "Nan Sun",
-        "Yifei Su",
-        "Heyun Wang",
-        "Yuan Zhang",
-        "Xinghang Li",
-        "Huaping Liu"
-      ],
-      "categories": [
-        "cs.RO",
-        "cs.AI",
-        "cs.CV"
-      ],
-      "cat": "cs.RO",
-      "published": "2026-04-29",
-      "applied": 0.7,
-      "prestige": null,
-      "cluster": "Image & Video Generation",
-      "format": "empirical"
-    },
-    "2604.26645": {
-      "title": "SciHorizon-DataEVA: An Agentic System for AI-Readiness Evaluation of Heterogeneous Scientific Data",
-      "summary": "AI-for-Science (AI4Science) is increasingly transforming scientific discovery by embedding machine learning models into prediction, simulation, and hypothesis generation workflows across domains. However, the effectiveness of these models is fundamentally constrained by the AI-readiness of scientific data, for which no scalable and systematic evaluation mechanism currently exists. In this work, we propose SciHorizon-DataEVA, a novel agentic system to scalable AI-readiness evaluation of heterogeneous scientific data. At the evaluation-criteria level, we introduce the Sci-TQA2 principles, which organize AI-readiness into four complementary dimensions: Governance Trustworthiness, Data Quality, AI Compatibility, and Scientific Adaptability. Each dimension is decomposed into measurable atomic elements that enable fine-grained and executable assessment. To operationalize these principles at scale, we develop Sci-TQA2-Eval, a hierarchical multi-agent evaluation approach orchestrated through a directed, cyclic workflow. Our Sci-TQA2-Eval dynamically constructs dataset-aware evaluation specifications by combining lightweight dataset profiling, applicability-aware metric activation, and knowledge-augmented planning grounded in domain constraints and dataset-paper signals. These specifications are executed through an adaptive, tool-centric evaluation mechanism with built-in verification and self-correction, enabling scalable and reliable assessment across heterogeneous scientific data. Extensive experiments on scientific datasets spanning multiple domains demonstrate the effectiveness and generality of SciHorizon-DataEVA for principled AI-readiness evaluation.",
-      "authors": [
-        "Dianyu Liu",
-        "Chuan Qin",
-        "Xi Chen",
-        "Xiaohan Li",
-        "Wenxi Xu",
-        "Yuyang Wang",
-        "Xin Chen",
-        "Yuanchun Zhou",
-        "Hengshu Zhu"
-      ],
-      "categories": [
-        "cs.AI",
-        "cs.LG"
-      ],
-      "cat": "cs.AI",
-      "published": "2026-04-29",
-      "applied": 0.7,
-      "prestige": null,
-      "cluster": "Agents & Planning",
       "format": "empirical"
     },
     "2604.26607": {
@@ -1881,7 +1881,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.8,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -1904,7 +1904,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-29",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -1941,7 +1941,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.5,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Image & Video Generation",
       "format": "empirical"
@@ -1962,7 +1962,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-29",
-      "applied": 0.2,
+      "applied": 0.3,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -2012,7 +2012,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-28",
-      "applied": 0.3,
+      "applied": 0.4,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -2035,7 +2035,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-28",
-      "applied": 0.7,
+      "applied": 0.6,
       "prestige": 2,
       "cluster": "Agents & Planning",
       "format": "empirical"
@@ -2052,7 +2052,7 @@
       ],
       "cat": "cs.CY",
       "published": "2026-04-07",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "position"
@@ -2090,7 +2090,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.1,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -2118,7 +2118,7 @@
       ],
       "cat": "cs.CV",
       "published": "2026-04-29",
-      "applied": 0.6,
+      "applied": 0.7,
       "prestige": null,
       "cluster": "Safety & Alignment",
       "format": "empirical"
@@ -2156,7 +2156,7 @@
       ],
       "cat": "cs.SE",
       "published": "2026-04-28",
-      "applied": 0.9,
+      "applied": 0.8,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "empirical"
@@ -2329,7 +2329,7 @@
       ],
       "cat": "cs.MA",
       "published": "2026-04-29",
-      "applied": 0.4,
+      "applied": 0.5,
       "prestige": null,
       "cluster": "Agents & Planning",
       "format": "position"
@@ -2350,7 +2350,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0.5,
+      "applied": 0.6,
       "prestige": null,
       "cluster": "Foundation Models",
       "format": "theory"
@@ -2371,7 +2371,7 @@
       ],
       "cat": "cs.CL",
       "published": "2026-04-29",
-      "applied": 0.1,
+      "applied": 0.2,
       "prestige": null,
       "cluster": "Audio & Speech",
       "format": "empirical"
@@ -2412,7 +2412,7 @@
       ],
       "cat": "cs.AI",
       "published": "2026-04-29",
-      "applied": 0,
+      "applied": 0.1,
       "prestige": null,
       "cluster": "Fine-tuning & Adaptation",
       "format": "empirical"
