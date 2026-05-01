@@ -64,7 +64,6 @@ const CATS = ['cs.AI','cs.LG','cs.CV','cs.CL','cs.RO','cs.CR','cs.HC','cs.IR'];
 
 ## Privacy
 
-- No data leaves your browser except the arXiv and HuggingFace API calls
 - No analytics, no accounts, no tracking
 - Stars are stored in `localStorage` locally
 
