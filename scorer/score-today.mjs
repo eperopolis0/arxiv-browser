@@ -18,13 +18,22 @@ if (!ANTHROPIC_API_KEY) { console.error('ANTHROPIC_API_KEY not set'); process.ex
 const API_BASE    = 'https://export.arxiv.org/api/query';
 const LISTING_URL = 'https://arxiv.org/list/cs.AI/new';
 
+// arXiv's edge layer rejects cloud-IP requests carrying undici's default
+// `User-Agent: node` with an instant HTTP 406. A descriptive UA (which arXiv's
+// API guidelines ask for anyway) gets the GitHub Actions runner through.
+const USER_AGENT = 'arxiv-browser/1.0 (+https://github.com/eperopolis0/arxiv-browser)';
+
 // ── Fetch helpers ──────────────────────────────────────────────────────────────
 
 async function fetchWithTimeout(url, ms = 30000, opts = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
-    const resp = await fetch(url, { ...opts, signal: ctrl.signal });
+    const resp = await fetch(url, {
+      ...opts,
+      headers: { 'User-Agent': USER_AGENT, ...opts.headers },
+      signal: ctrl.signal,
+    });
     return resp;
   } finally {
     clearTimeout(timer);
