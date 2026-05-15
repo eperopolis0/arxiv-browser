@@ -90,6 +90,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
     return true; // async response
   }
+  if (msg.action === 'recoverPrescore') {
+    // Today's raw papers are cached but pre-scoring wasn't applied — the nightly
+    // run failed or hadn't published scores/<date>.json yet. Re-attempt WITHOUT
+    // clearing the cache: doFetchAndCache's cheap branch just re-fetches the
+    // scores JSON and reprocesses the cached papers. No arXiv API call.
+    doFetchAndCache()
+      .then(() => sendResponse({ ok: true }))
+      .catch(e => sendResponse({ ok: false, error: e.message }));
+    return true; // async response
+  }
   if (msg.action === 'getStatus') {
     chrome.storage.local.get(['lastFetch', 'fetchError', 'paperCount', 'fetchInProgress'], sendResponse);
     return true;
@@ -123,11 +133,12 @@ async function doFetchAndCache() {
   }
 
   // Check if we already have fresh data for today
-  const { lastFetch, papers, processedPapers } = await getStorage(['lastFetch', 'papers', 'processedPapers']);
+  const { lastFetch, papers, processedPapers, preScoredApplied } = await getStorage(['lastFetch', 'papers', 'processedPapers', 'preScoredApplied']);
   const today = arxivDate();
   if (lastFetch === today && papers?.length > 0) {
-    if (!processedPapers?.length) {
-      console.log(`[arXiv] Papers already fetched for today but processedPapers missing — re-processing.`);
+    if (!processedPapers?.length || !preScoredApplied) {
+      const reason = !processedPapers?.length ? 'processedPapers missing' : 'pre-scoring not yet applied';
+      console.log(`[arXiv] Papers already fetched for today but ${reason} — re-processing.`);
       const preScored = await fetchPreScoredJSON(today);
       await processAndStore(papers, preScored);
       chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {});
@@ -726,7 +737,10 @@ async function processAndStore(rawPapers, preScored = null) {
     ? `[arXiv] All ${papers.length} papers pre-scored — rendering instantly.`
     : `[arXiv] ${preScoreCount}/${papers.length} pre-scored — rendering with keyword fallback for the rest.`
   );
-  await setStorage({ processedPapers: papers });
+  // preScoredApplied: false means the nightly scorer's JSON wasn't available, so
+  // every paper's prestige fell back to null. newtab triggers a cheap recovery
+  // re-attempt while this stays false.
+  await setStorage({ processedPapers: papers, preScoredApplied: preScoreCount > 0 });
   chrome.runtime.sendMessage({ action: 'dataUpdated' }).catch(() => {});
 
   // Compute per-cat, per-format, and per-cluster mean applied scores for today

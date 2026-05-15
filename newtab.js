@@ -368,12 +368,15 @@ document.getElementById('starred-drawer-close').addEventListener('click', closeS
 // CHROME STORAGE & LOADING
 // ═══════════════════════════════════════════════════════
 let _renderInFlight = false;
+// One pre-score recovery attempt per page load — a fresh new tab retries, but a
+// genuinely fileless day (weekend, fully-failed run) can't spin in a tight loop.
+let _recoveryAttempted = false;
 async function loadAndRender() {
   if (_renderInFlight) return; // prevent concurrent renders from dataUpdated + countdown racing
   _renderInFlight = true;
   try {
   const data = await new Promise(r =>
-    chrome.storage.local.get(['processedPapers','papers','lastFetch','lastFetchTime','fetchError','fetchInProgress','appliedHistory'], r)
+    chrome.storage.local.get(['processedPapers','papers','lastFetch','lastFetchTime','fetchError','fetchInProgress','appliedHistory','preScoredApplied'], r)
   );
 
   if (data.processedPapers?.length > 0) {
@@ -388,6 +391,11 @@ async function loadAndRender() {
     await renderPapers(data.processedPapers, data.lastFetch, data.appliedHistory);
     if (isStale && !data.fetchInProgress) {
       chrome.runtime.sendMessage({ action: 'refresh' });
+    } else if (!data.preScoredApplied && !data.fetchInProgress && !_recoveryAttempted) {
+      // Today's cache exists but the nightly scorer's JSON wasn't applied (run
+      // failed or hadn't published yet). Cheaply re-attempt just the pre-scoring.
+      _recoveryAttempted = true;
+      chrome.runtime.sendMessage({ action: 'recoverPrescore' });
     }
     return;
   }
