@@ -15,8 +15,9 @@ const ROOT = join(__dirname, '..');
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 if (!ANTHROPIC_API_KEY) { console.error('ANTHROPIC_API_KEY not set'); process.exit(1); }
 
-const API_BASE    = 'https://export.arxiv.org/api/query';
+const OAI_BASE    = 'https://oaipmh.arxiv.org/oai';
 const LISTING_URL = 'https://arxiv.org/list/cs.AI/new';
+const OAI_SET     = 'cs:cs:AI';
 
 // arXiv's edge layer rejects cloud-IP requests carrying undici's default
 // `User-Agent: node` with an instant HTTP 406. A descriptive UA (which arXiv's
@@ -101,65 +102,97 @@ async function fetchTodayListing() {
   return { count, ids: idList };
 }
 
-// ── arXiv API — fetch full metadata by ID list ─────────────────────────────────
+// ── arXiv OAI-PMH — fetch full metadata for today's announced papers ──────────
+//
+// We use OAI-PMH (the documented bulk-metadata path) rather than the interactive
+// API. Two prior failures came from arXiv's API edge layer reacting badly to
+// GHA cloud-IP traffic: 406 (User-Agent blocked) and sustained 429 (rate-limit
+// window ≥92 min). OAI-PMH lives on a different subdomain (oaipmh.arxiv.org)
+// with its own infrastructure and explicit bulk-use blessing.
+//
+// from=today&until=today returns a SUPERSET — everything whose OAI datestamp
+// landed today, including older papers that got metadata edits. We intersect
+// with the listing-page IDs (the authoritative "announced today" set) to get
+// exactly what the user expects.
 
 function xmlText(m) {
   if (!m) return '';
   return m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function parseAtomXML(xml) {
-  const entries = xml.split('<entry>').slice(1);
+function decodeEntities(s) {
+  return s
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'").replace(/&amp;/g, '&'); // &amp; last so we don't double-decode
+}
+
+function parseOAIRecords(xml) {
+  const records = xml.split('<record>').slice(1);
   const papers = [];
-  for (const e of entries) {
-    const id       = (/<id[^>]*>\s*([\s\S]*?)\s*<\/id>/.exec(e) || [])[1] || '';
-    const arxivId  = id.replace('http://arxiv.org/abs/', '').replace(/v\d+$/, '').trim();
-    const published= (/<published[^>]*>([\s\S]*?)<\/published>/.exec(e) || [])[1]?.trim() || '';
-    const updated  = (/<updated[^>]*>([\s\S]*?)<\/updated>/.exec(e)   || [])[1]?.trim() || '';
-    const title    = xmlText(/<title[^>]*>([\s\S]*?)<\/title>/.exec(e));
-    const summary  = xmlText(/<summary[^>]*>([\s\S]*?)<\/summary>/.exec(e));
-    const authorsM = [...e.matchAll(/<author>[\s\S]*?<name>([\s\S]*?)<\/name>[\s\S]*?<\/author>/g)];
-    const authors  = authorsM.map(m => m[1].trim());
-    const catsM    = [...e.matchAll(/<category[^>]*term="([^"]+)"/g)];
-    const categories = catsM.map(m => m[1]);
+  for (const r of records) {
+    const m = /<arXiv[^>]*>([\s\S]*?)<\/arXiv>/.exec(r);
+    if (!m) continue;
+    const inner = m[1];
+    const arxivId = (/<id>\s*([^<]+?)\s*<\/id>/.exec(inner) || [])[1] || '';
+    const title   = decodeEntities(xmlText(/<title>([\s\S]*?)<\/title>/.exec(inner)));
+    const summary = decodeEntities(xmlText(/<abstract>([\s\S]*?)<\/abstract>/.exec(inner)));
+    const created = (/<created>\s*([^<]+?)\s*<\/created>/.exec(inner) || [])[1] || '';
+    const updated = (/<updated>\s*([^<]+?)\s*<\/updated>/.exec(inner) || [])[1] || created;
+    const catsRaw = (/<categories>\s*([^<]+?)\s*<\/categories>/.exec(inner) || [])[1] || '';
+    const categories = catsRaw.split(/\s+/).filter(Boolean);
     const cat = categories.find(c => c.startsWith('cs.')) || categories[0] || 'cs.AI';
-    if (arxivId && title) papers.push({ arxivId, title, summary, published, updated, authors, categories, cat });
+    const authorMatches = [...inner.matchAll(
+      /<author>[\s\S]*?<keyname>([^<]+)<\/keyname>(?:[\s\S]*?<forenames>([^<]+)<\/forenames>)?[\s\S]*?<\/author>/g
+    )];
+    const authors = authorMatches.map(am => {
+      const last = am[1].trim();
+      const first = (am[2] || '').trim();
+      return first ? `${first} ${last}` : last;
+    });
+    if (arxivId && title) {
+      papers.push({ arxivId, title, summary, published: created, updated, authors, categories, cat });
+    }
   }
   return papers;
 }
 
 async function fetchPapers(ids) {
-  // arXiv API limits id_list to ~300 at a time.
-  // On 429, honor Retry-After if present; otherwise back off 5/10/15min — observed
-  // peak-Monday throttle windows hold longer than the prior 60/120/180s budget.
-  const BATCH = 300;
-  const MAX_RETRIES = 3;
-  const FALLBACK_DELAY = 300_000; // 5 min per attempt when Retry-After absent
-  const MAX_WAIT = 30 * 60_000;   // cap any single wait at 30 min
-  const papers = [];
-  for (let i = 0; i < ids.length; i += BATCH) {
-    const chunk = ids.slice(i, i + BATCH);
-    const params = new URLSearchParams({ id_list: chunk.join(','), max_results: chunk.length });
-    const url = `${API_BASE}?${params}`;
-    let resp;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      console.log(`[arxiv] Fetching papers ${i+1}–${i+chunk.length} of ${ids.length}${attempt > 0 ? ` (attempt ${attempt+1})` : ''}…`);
-      resp = await fetchWithTimeout(url, 60000);
-      if (resp.status !== 429) break;
-      if (attempt === MAX_RETRIES) break;
-      const retryAfter = parseInt(resp.headers.get('Retry-After') || '0', 10);
-      const wait = retryAfter > 0
-        ? Math.min(retryAfter * 1000, MAX_WAIT)
-        : FALLBACK_DELAY * (attempt + 1);
-      console.warn(`[arxiv] 429 — Retry-After: ${retryAfter || 'absent'} — waiting ${Math.round(wait/1000)}s before attempt ${attempt+2}/${MAX_RETRIES+1}…`);
-      await sleep(wait);
-    }
-    if (!resp.ok) throw new Error(`arXiv API HTTP ${resp.status}`);
+  const today = new Date().toISOString().slice(0, 10);
+  const idSet = new Set(ids);
+  const matched = new Map();
+  let token = null;
+  let page = 0;
+
+  do {
+    page++;
+    const url = token
+      ? `${OAI_BASE}?verb=ListRecords&resumptionToken=${encodeURIComponent(token)}`
+      : `${OAI_BASE}?verb=ListRecords&metadataPrefix=arXiv&set=${OAI_SET}&from=${today}&until=${today}`;
+    console.log(`[oai] Fetching page ${page}…`);
+    const resp = await fetchWithTimeout(url, 60000);
+    if (!resp.ok) throw new Error(`OAI-PMH HTTP ${resp.status}`);
     const xml = await resp.text();
-    papers.push(...parseAtomXML(xml));
-    if (i + BATCH < ids.length) await sleep(5000); // 5s between batches
+    const records = parseOAIRecords(xml);
+    let pageMatched = 0;
+    for (const r of records) {
+      if (idSet.has(r.arxivId) && !matched.has(r.arxivId)) {
+        matched.set(r.arxivId, r);
+        pageMatched++;
+      }
+    }
+    console.log(`[oai] Page ${page}: ${records.length} records, ${pageMatched} matched listing IDs (cumulative ${matched.size}/${ids.length})`);
+    const tokenMatch = /<resumptionToken[^>]*>([^<]*)<\/resumptionToken>/.exec(xml);
+    token = tokenMatch && tokenMatch[1].trim() ? tokenMatch[1].trim() : null;
+    if (token) await sleep(3000); // arXiv guidance: stay under 1 req per 3s on OAI-PMH
+  } while (token);
+
+  const papers = [...matched.values()];
+  const missing = ids.filter(id => !matched.has(id));
+  if (missing.length) {
+    console.warn(`[oai] ${missing.length} listing ID(s) not in OAI-PMH today's set: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
   }
-  console.log(`[arxiv] ${papers.length} papers fetched`);
   return papers;
 }
 
