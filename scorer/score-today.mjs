@@ -5,7 +5,7 @@
 //
 // Usage: ANTHROPIC_API_KEY=sk-ant-... node scorer/score-today.mjs
 
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -130,12 +130,12 @@ function parseAtomXML(xml) {
 
 async function fetchPapers(ids) {
   // arXiv API limits id_list to ~300 at a time.
-  // On 429, retry up to 3 times with 60s linear backoff — peak-traffic Mondays
-  // (500+ papers) can hit rate limits immediately. 60s gaps stay well within the
-  // 60-minute Actions timeout even on worst-case 3-retry × 2-batch runs.
+  // On 429, honor Retry-After if present; otherwise back off 5/10/15min — observed
+  // peak-Monday throttle windows hold longer than the prior 60/120/180s budget.
   const BATCH = 300;
   const MAX_RETRIES = 3;
-  const RETRY_DELAY = 60_000; // 60s per attempt
+  const FALLBACK_DELAY = 300_000; // 5 min per attempt when Retry-After absent
+  const MAX_WAIT = 30 * 60_000;   // cap any single wait at 30 min
   const papers = [];
   for (let i = 0; i < ids.length; i += BATCH) {
     const chunk = ids.slice(i, i + BATCH);
@@ -143,14 +143,16 @@ async function fetchPapers(ids) {
     const url = `${API_BASE}?${params}`;
     let resp;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      if (attempt > 0) {
-        const wait = RETRY_DELAY * attempt; // 60s, 120s, 180s
-        console.warn(`[arxiv] 429 — retry ${attempt}/${MAX_RETRIES} in ${wait/1000}s…`);
-        await sleep(wait);
-      }
       console.log(`[arxiv] Fetching papers ${i+1}–${i+chunk.length} of ${ids.length}${attempt > 0 ? ` (attempt ${attempt+1})` : ''}…`);
       resp = await fetchWithTimeout(url, 60000);
       if (resp.status !== 429) break;
+      if (attempt === MAX_RETRIES) break;
+      const retryAfter = parseInt(resp.headers.get('Retry-After') || '0', 10);
+      const wait = retryAfter > 0
+        ? Math.min(retryAfter * 1000, MAX_WAIT)
+        : FALLBACK_DELAY * (attempt + 1);
+      console.warn(`[arxiv] 429 — Retry-After: ${retryAfter || 'absent'} — waiting ${Math.round(wait/1000)}s before attempt ${attempt+2}/${MAX_RETRIES+1}…`);
+      await sleep(wait);
     }
     if (!resp.ok) throw new Error(`arXiv API HTTP ${resp.status}`);
     const xml = await resp.text();
@@ -375,6 +377,14 @@ async function main() {
   const outPath = join(ROOT, 'scores', `${today}.json`);
 
   console.log(`\n=== arXiv scorer — ${today} ===\n`);
+
+  // Idempotency: workflow does a fresh checkout, so file-on-disk = committed by a
+  // prior successful run today. Lets the morning safety-net cron be a free no-op
+  // on days the night slot already succeeded.
+  if (existsSync(outPath)) {
+    console.log(`[skip] scores/${today}.json already exists — exiting cleanly.`);
+    return;
+  }
 
   // 1. Get today's paper IDs from listing page
   const { ids } = await fetchTodayListing();

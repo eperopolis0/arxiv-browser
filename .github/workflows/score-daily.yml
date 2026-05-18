@@ -4,6 +4,9 @@ on:
   schedule:
     # 00:30 UTC Mon–Fri = ~8:30pm ET Sun–Thu, ~30 min after arXiv publishes new listings
     - cron: '30 0 * * 1-5'
+    # 08:00 UTC Mon–Fri = ~4am ET morning safety net. No-op if night slot already
+    # wrote scores/${date}.json (script does an existsSync check at startup).
+    - cron: '0 8 * * 1-5'
   workflow_dispatch: # allow manual trigger
 
 jobs:
