@@ -186,8 +186,43 @@ async function doFetchAndCache() {
       await processAndStore(rawPapers, preScored);
 
     } else {
-      // Fallback: fetch from arXiv API (pre-scored JSON missing or old format).
-      console.log('[arXiv] Pre-scored JSON unavailable or lacks metadata — falling back to arXiv API.');
+      // Today's scored file isn't published yet — the GitHub Action runs hours
+      // after arXiv's nightly drop (cron lag pushes it past ET-midnight), and it
+      // never runs on weekends/holidays. Prefer the most recent *scored* day over
+      // an unscored live scrape: the corner date renders `lastFetch`, so showing a
+      // prior date already signals "not today" (and trips the stale-red style),
+      // while keeping the rich scored map up. lastFetch stays at the served date
+      // (NOT today), so loadAndRender's stale check keeps re-attempting today and
+      // auto-upgrades the instant the real file lands.
+      const recent = await fetchMostRecentPreScored(today, 5);
+      if (recent) {
+        const rawPapers = Object.entries(recent.papers).map(([arxivId, d]) => ({
+          arxivId,
+          title:      d.title,
+          summary:    d.summary,
+          authors:    d.authors || [],
+          categories: d.categories || ['cs.AI'],
+          cat:        d.cat || 'cs.AI',
+          published:  d.published || '',
+          prestige:   null,
+        }));
+        await setStorage({
+          papers: rawPapers,
+          lastFetch: recent.date,
+          lastFetchTime: Date.now(),
+          fetchError: null,
+          fetchRetryAfter: null,
+          paperCount: rawPapers.length,
+          fetchInProgress: false,
+          fetchStartedAt: null,
+        });
+        console.log(`[arXiv] Today's scores unpublished — serving most recent scored day ${recent.date} (${rawPapers.length} papers).`);
+        await processAndStore(rawPapers, recent.papers);
+        return;
+      }
+
+      // Last resort: no recent scored file either — scrape arXiv live (unscored).
+      console.log('[arXiv] No recent pre-scored JSON — falling back to arXiv API.');
       const [{ count, ids: listingIds }] = await Promise.all([fetchTodayListing()]);
       const rawPapers = await fetchArxivBatch(count, listingIds);
 
@@ -347,6 +382,28 @@ async function fetchPreScoredJSON(date) {
     console.log(`[arXiv] No pre-scored JSON for ${date} (${e.message}) — will score locally.`);
     return null;
   }
+}
+
+// YYYY-MM-DD shifted by deltaDays. Anchored at noon UTC so day arithmetic never
+// trips over a timezone/DST boundary.
+function shiftDate(ymd, deltaDays) {
+  const t = new Date(`${ymd}T12:00:00Z`);
+  t.setUTCDate(t.getUTCDate() + deltaDays);
+  return t.toISOString().slice(0, 10);
+}
+
+// Walk backward from `today` and return the first published, metadata-bearing
+// scored file as { date, papers }, or null if none within `maxLookback` days.
+// 404s for not-yet-published / weekend / holiday days return fast, so the walk
+// is cheap in practice. 5 days covers a Fri→following-Wed gap.
+async function fetchMostRecentPreScored(today, maxLookback) {
+  for (let i = 1; i <= maxLookback; i++) {
+    const date = shiftDate(today, -i);
+    const papers = await fetchPreScoredJSON(date);
+    const first = papers && Object.values(papers)[0];
+    if (first && first.title) return { date, papers };
+  }
+  return null;
 }
 
 // Tier 3 — Pure frontier AI labs only. These are orgs whose primary purpose is

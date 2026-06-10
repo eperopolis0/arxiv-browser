@@ -158,6 +158,36 @@ function parseOAIRecords(xml) {
   return papers;
 }
 
+// OAI-PMH bulk pages flake transiently — a single 60s timeout or 5xx used to
+// kill the entire daily run, leaving no scores/<date>.json until the morning
+// safety-net cron hours later. Retry a page a few times with backoff before
+// giving up; honor Retry-After on 503/429. Returns the page XML.
+async function fetchOAIPage(url, attempts = 4) {
+  let lastErr;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const resp = await fetchWithTimeout(url, 60000);
+      if (resp.status === 503 || resp.status === 429) {
+        const ra = parseInt(resp.headers.get('retry-after') || '', 10);
+        const waitMs = Number.isFinite(ra) ? ra * 1000 : attempt * 5000;
+        lastErr = new Error(`OAI-PMH HTTP ${resp.status}`);
+        console.warn(`[oai] HTTP ${resp.status} — waiting ${Math.round(waitMs / 1000)}s (attempt ${attempt}/${attempts})`);
+        if (attempt < attempts) await sleep(waitMs);
+        continue;
+      }
+      if (!resp.ok) throw new Error(`OAI-PMH HTTP ${resp.status}`);
+      return await resp.text();
+    } catch (e) {
+      lastErr = e;
+      if (attempt === attempts) break;
+      const waitMs = attempt * 5000;
+      console.warn(`[oai] page fetch failed (${e.message}) — retrying in ${waitMs / 1000}s (attempt ${attempt}/${attempts})`);
+      await sleep(waitMs);
+    }
+  }
+  throw lastErr || new Error('OAI-PMH page fetch failed');
+}
+
 async function fetchPapers(ids) {
   const today = new Date().toISOString().slice(0, 10);
   const idSet = new Set(ids);
@@ -171,9 +201,7 @@ async function fetchPapers(ids) {
       ? `${OAI_BASE}?verb=ListRecords&resumptionToken=${encodeURIComponent(token)}`
       : `${OAI_BASE}?verb=ListRecords&metadataPrefix=arXiv&set=${OAI_SET}&from=${today}&until=${today}`;
     console.log(`[oai] Fetching page ${page}…`);
-    const resp = await fetchWithTimeout(url, 60000);
-    if (!resp.ok) throw new Error(`OAI-PMH HTTP ${resp.status}`);
-    const xml = await resp.text();
+    const xml = await fetchOAIPage(url);
     const records = parseOAIRecords(xml);
     let pageMatched = 0;
     for (const r of records) {
