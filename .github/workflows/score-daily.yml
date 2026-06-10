@@ -7,6 +7,10 @@ on:
     # 08:00 UTC Mon–Fri = ~4am ET morning safety net. No-op if night slot already
     # wrote scores/${date}.json (script does an existsSync check at startup).
     - cron: '0 8 * * 1-5'
+    # 13:00 UTC Mon–Fri = ~9am ET late-morning safety net — a third attempt for
+    # days when OAI-PMH flakes for hours and both earlier slots fail. Same UTC
+    # date → same scores/${date}.json, so it no-ops via existsSync once written.
+    - cron: '0 13 * * 1-5'
   workflow_dispatch: # allow manual trigger
 
 jobs:
