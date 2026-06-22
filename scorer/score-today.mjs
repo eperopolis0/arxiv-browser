@@ -110,10 +110,11 @@ async function fetchTodayListing() {
 // window ≥92 min). OAI-PMH lives on a different subdomain (oaipmh.arxiv.org)
 // with its own infrastructure and explicit bulk-use blessing.
 //
-// from=today&until=today returns a SUPERSET — everything whose OAI datestamp
-// landed today, including older papers that got metadata edits. We intersect
-// with the listing-page IDs (the authoritative "announced today" set) to get
-// exactly what the user expects.
+// We query a multi-day date WINDOW (not just today) because OAI's <datestamp>
+// is the metadata-modification day, which lags the announcement — see the
+// OAI_LOOKBACK_DAYS note below. The window returns a SUPERSET; we intersect with
+// the listing-page IDs (the authoritative "announced today" set) to get exactly
+// what the user expects, and GetRecord any stragglers the window still misses.
 
 function xmlText(m) {
   if (!m) return '';
@@ -188,18 +189,46 @@ async function fetchOAIPage(url, attempts = 4) {
   throw lastErr || new Error('OAI-PMH page fetch failed');
 }
 
+// Number of days to look back in the OAI-PMH date window. The listing page is
+// authoritative for *which* papers were announced today; OAI's <datestamp> only
+// tells us which day-bucket it filed the metadata under — and those disagree.
+// On Mondays (and after any weekend/holiday gap) arXiv announces papers whose
+// OAI datestamp is the previous business day, so from=today&until=today finds
+// nothing (observed 2026-06-22: 220 announced papers all datestamped 06-19,
+// three days earlier). A multi-day window catches them; intersecting with the
+// listing IDs keeps the result exact, so widening the window can only add
+// candidates to match against, never wrong papers.
+const OAI_LOOKBACK_DAYS = 5;
+// Cap on the per-ID GetRecord fallback. After a 5-day bulk window, only a small
+// tail should ever be missing; a large miss count means OAI is systemically
+// behind and per-ID requests won't rescue it (just slow the run), so we stop.
+const GETRECORD_FALLBACK_CAP = 50;
+
+// Fetch one record by its canonical arXiv ID via OAI-PMH GetRecord. Used as a
+// fallback for listing IDs the bulk windowed ListRecords didn't return — the
+// single-record path stayed healthy even during the June bulk-endpoint outages.
+async function fetchRecordById(id) {
+  const url = `${OAI_BASE}?verb=GetRecord&metadataPrefix=arXiv&identifier=oai:arXiv.org:${id}`;
+  const xml = await fetchOAIPage(url);
+  const recs = parseOAIRecords(xml);
+  return recs.find(r => r.arxivId === id) || recs[0] || null;
+}
+
 async function fetchPapers(ids) {
   const today = new Date().toISOString().slice(0, 10);
+  const from = new Date(Date.now() - OAI_LOOKBACK_DAYS * 86400000)
+    .toISOString().slice(0, 10);
   const idSet = new Set(ids);
   const matched = new Map();
   let token = null;
   let page = 0;
 
+  console.log(`[oai] Window from=${from} until=${today} (lookback ${OAI_LOOKBACK_DAYS}d)`);
   do {
     page++;
     const url = token
       ? `${OAI_BASE}?verb=ListRecords&resumptionToken=${encodeURIComponent(token)}`
-      : `${OAI_BASE}?verb=ListRecords&metadataPrefix=arXiv&set=${OAI_SET}&from=${today}&until=${today}`;
+      : `${OAI_BASE}?verb=ListRecords&metadataPrefix=arXiv&set=${OAI_SET}&from=${from}&until=${today}`;
     console.log(`[oai] Fetching page ${page}…`);
     const xml = await fetchOAIPage(url);
     const records = parseOAIRecords(xml);
@@ -216,10 +245,33 @@ async function fetchPapers(ids) {
     if (token) await sleep(3000); // arXiv guidance: stay under 1 req per 3s on OAI-PMH
   } while (token);
 
-  const papers = [...matched.values()];
-  const missing = ids.filter(id => !matched.has(id));
+  // Per-ID GetRecord fallback for any announced papers the bulk window missed
+  // (datestamp older than the window, or not yet in the bulk feed).
+  let missing = ids.filter(id => !matched.has(id));
   if (missing.length) {
-    console.warn(`[oai] ${missing.length} listing ID(s) not in OAI-PMH today's set: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
+    const toFetch = missing.slice(0, GETRECORD_FALLBACK_CAP);
+    if (missing.length > GETRECORD_FALLBACK_CAP) {
+      console.warn(`[oai] ${missing.length} IDs missing after bulk window — fetching first ${GETRECORD_FALLBACK_CAP} via GetRecord (the rest suggest OAI is systemically behind).`);
+    } else {
+      console.log(`[oai] ${missing.length} ID(s) missing after bulk window — fetching via GetRecord…`);
+    }
+    let got = 0;
+    for (const id of toFetch) {
+      try {
+        const r = await fetchRecordById(id);
+        if (r && r.arxivId && r.title) { matched.set(r.arxivId, r); got++; }
+      } catch (e) {
+        console.warn(`[oai] GetRecord ${id} failed: ${e.message}`);
+      }
+      await sleep(1000); // single-record requests are cheap; stay polite
+    }
+    console.log(`[oai] GetRecord fallback recovered ${got}/${toFetch.length}`);
+  }
+
+  const papers = [...matched.values()];
+  missing = ids.filter(id => !matched.has(id));
+  if (missing.length) {
+    console.warn(`[oai] ${missing.length} listing ID(s) still unresolved: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`);
   }
   return papers;
 }
