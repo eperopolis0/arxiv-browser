@@ -5,7 +5,7 @@
 //
 // Usage: ANTHROPIC_API_KEY=sk-ant-... node scorer/score-today.mjs
 
-import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, appendFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -557,7 +557,25 @@ async function main() {
   // 6. Write to scores/YYYY-MM-DD.json
   mkdirSync(join(ROOT, 'scores'), { recursive: true });
   writeFileSync(outPath, JSON.stringify(output, null, 2));
-  console.log(`\n✓ Wrote ${Object.keys(output.papers).length} papers to ${outPath}`);
+  const count = Object.keys(output.papers).length;
+  console.log(`\n✓ Wrote ${count} papers to ${outPath}`);
+
+  // 7. Low-count alert — flag a suspiciously thin day (e.g. OAI under-fetch, or a
+  // listing problem that slipped past the readiness floor). Rough absolute floors,
+  // not meant to catch every shortfall — just catastrophic ones. arXiv's Tuesday
+  // announcement runs ~500, so it gets a higher floor; every other weekday uses the
+  // default. The file is already written above; we only SIGNAL here (set a GitHub
+  // Actions output + exit 0) so the workflow still commits the partial file and then
+  // fails a later step — that way the data is saved and self-heal/re-dispatch can
+  // recover it, while the red run emails us. Tunable.
+  const MIN_COUNT_DEFAULT = 100;
+  const MIN_COUNT_BY_WEEKDAY = { 2: 250 }; // 2 = Tuesday (UTC); arXiv's big day
+  const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
+  const floor = MIN_COUNT_BY_WEEKDAY[weekday] ?? MIN_COUNT_DEFAULT;
+  if (count < floor) {
+    console.warn(`::warning::Low paper count for ${today}: ${count} (floor ${floor} for UTC weekday ${weekday}). File written, but this may be an under-fetch — re-dispatch the workflow to self-heal.`);
+    if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, 'low_count=true\n');
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

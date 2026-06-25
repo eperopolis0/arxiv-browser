@@ -31,6 +31,7 @@ jobs:
           node-version: '20'
 
       - name: Score today's papers
+        id: score
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           S2_API_KEY: ${{ secrets.S2_API_KEY }}
@@ -44,3 +45,11 @@ jobs:
           git add scores/${DATE}.json
           git diff --cached --quiet || git commit -m "scores: ${DATE}"
           git push
+
+      # Fail AFTER the commit above, so the (partial) file is still saved and
+      # self-heal/re-dispatch can recover it — the red run just emails us.
+      - name: Alert on suspiciously low paper count
+        if: steps.score.outputs.low_count == 'true'
+        run: |
+          echo "::error::Scorer wrote a suspiciously low paper count for today (see the 'Score today's papers' log for the count + floor). The file was committed; re-dispatch this workflow to self-heal if it was a fetch issue."
+          exit 1
