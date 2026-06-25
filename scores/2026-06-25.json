@@ -1,0 +1,54 @@
+{
+  "date": "2026-06-25",
+  "papers": {
+    "2206.04359": {
+      "title": "Learning Non-Vacuous Generalization Bounds from Optimization",
+      "summary": "One of the fundamental challenges in the deep learning community is to theoretically understand how well a deep neural network generalizes to unseen data. However, current approaches often yield generalization bounds that are either too loose to be informative of the true generalization error or only valid to the compressed nets. In this study, we present a simple yet non-vacuous generalization bound from the optimization perspective. We achieve this goal by leveraging that the hypothesis set accessed by stochastic gradient algorithms is essentially fractal-like and thus can derive a tighter bound over the algorithm-dependent Rademacher complexity. The main argument rests on modeling the discrete-time recursion process via a continuous-time stochastic differential equation driven by fractional Brownian motion. Numerical studies demonstrate that our approach is able to yield plausible generalization guarantees for modern neural networks such as ResNet and Vision Transformer, even when they are trained on a large-scale dataset (e.g. ImageNet-1K).",
+      "authors": [
+        "Chengli Tan",
+        "Jiangshe Zhang",
+        "Junmin Liu",
+        "Yihong Gong"
+      ],
+      "categories": [
+        "cs.LG",
+        "cs.AI"
+      ],
+      "cat": "cs.LG",
+      "published": "2026-06-24",
+      "applied": 0.1,
+      "prestige": null,
+      "cluster": "Retrieval & Knowledge",
+      "format": "position"
+    },
+    "2405.01741": {
+      "title": "PVF:Understanding AI Vulnerability Against SDCs",
+      "summary": "Reliability of AI systems is a fundamental concern for the successful deployment and widespread adoption of AI technologies. Unfortunately, the escalating complexity and heterogeneity of AI hardware systems make them increasingly susceptible to hardware faults, e.g., silent data corruptions (SDC), that can potentially corrupt model parameters. When this occurs during AI inference/servicing, it can potentially lead to incorrect or degraded model output for users, ultimately affecting the quality and reliability of AI services. In light of the escalating threat, it is crucial to address key questions: How vulnerable are AI models to parameter corruptions, and how do different components (such as modules, layers) of the models exhibit varying vulnerabilities to parameter corruptions? To systematically address this question, we propose a novel quantitative metric, Parameter Vulnerability Factor (PVF), inspired by architectural vulnerability factor (AVF) in computer architecture community, aiming to standardize the quantification of AI model vulnerability against parameter corruptions. We define a model parameter's PVF as the probability that a corruption in that particular model parameter will result in an incorrect output. In this paper, we present several use cases on applying PVF to three types of tasks/models during inference -- recommendation (DLRM), vision classification (CNN), and text classification (BERT), while presenting an in-depth vulnerability analysis on DLRM. PVF has been a critical metric used for making key error management design decisions in productionizing Meta's in-house AI chip - MTIA.",
+      "authors": [
+        "Xun Jiao",
+        "Fred Lin",
+        "Harish D. Dixit",
+        "Joel Coburn",
+        "Sajin Nair",
+        "Abhinav Pandey",
+        "Han Wang",
+        "Venkat Ramesh",
+        "Jianyu Huang",
+        "Daniel Moore",
+        "Sriram Sankar"
+      ],
+      "categories": [
+        "cs.CR",
+        "cs.AI",
+        "cs.AR",
+        "cs.LG"
+      ],
+      "cat": "cs.CR",
+      "published": "2026-06-24",
+      "applied": 0.2,
+      "prestige": null,
+      "cluster": "Efficiency & Compression",
+      "format": "empirical"
+    }
+  }
+}
