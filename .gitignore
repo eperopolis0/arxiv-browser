@@ -23,3 +23,6 @@ notes.md
 # Secrets — never commit API keys
 .env
 .env.*
+
+# Playwright MCP test artifacts (console logs + page snapshots)
+.playwright-mcp/
