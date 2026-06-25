@@ -5,7 +5,7 @@
 //
 // Usage: ANTHROPIC_API_KEY=sk-ant-... node scorer/score-today.mjs
 
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -491,17 +491,38 @@ async function main() {
 
   console.log(`\n=== arXiv scorer — ${today} ===\n`);
 
-  // Idempotency: workflow does a fresh checkout, so file-on-disk = committed by a
-  // prior successful run today. Lets the morning safety-net cron be a free no-op
-  // on days the night slot already succeeded.
-  if (existsSync(outPath)) {
-    console.log(`[skip] scores/${today}.json already exists — exiting cleanly.`);
-    return;
-  }
-
-  // 1. Get today's paper IDs from listing page
+  // 1. Get today's paper IDs from listing page. Fetched BEFORE the idempotency
+  //    check below so we can compare any existing file against the live listing
+  //    (the listing GET is cheap; expensive OAI/Haiku work still only runs on a
+  //    real regeneration).
   const { ids } = await fetchTodayListing();
   if (!ids.length) { console.error('No IDs found — exiting'); process.exit(1); }
+
+  // Readiness floor: a real cs.AI weekday announces 150+ papers. A count this low
+  // means we caught arXiv mid-publish — only a cross-list stub is up, with no
+  // "New submissions" section yet. Don't persist a partial day; exit so a later
+  // safety-net cron retries once publishing completes. (2026-06-25: a 04:38 UTC
+  // run saw 2 IDs and wrote a 2-paper file that then blocked every safety net.)
+  const MIN_PLAUSIBLE_DAY = 20;
+  if (ids.length < MIN_PLAUSIBLE_DAY) {
+    console.error(`[not-ready] listing has only ${ids.length} ID(s) (< ${MIN_PLAUSIBLE_DAY}) — arXiv likely mid-publish; exiting so a later run retries.`);
+    process.exit(1);
+  }
+
+  // Idempotency + self-heal: workflow does a fresh checkout, so file-on-disk =
+  // committed by a prior run today. Normally that makes the safety-net crons a
+  // near-free no-op. But if the existing file is far smaller than the current
+  // listing (a degenerate partial-day file from a mid-publish run), regenerate
+  // instead of skipping — this is what lets the safety nets self-heal.
+  if (existsSync(outPath)) {
+    let existingCount = 0;
+    try { existingCount = Object.keys(JSON.parse(readFileSync(outPath, 'utf8')).papers || {}).length; } catch {}
+    if (existingCount >= ids.length * 0.5) {
+      console.log(`[skip] scores/${today}.json already has ${existingCount} papers (listing: ${ids.length}) — exiting cleanly.`);
+      return;
+    }
+    console.warn(`[regen] existing scores/${today}.json has only ${existingCount} papers but listing now shows ${ids.length} — regenerating.`);
+  }
 
   // 2. Fetch metadata
   const papers = await fetchPapers(ids);
