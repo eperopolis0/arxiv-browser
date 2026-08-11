@@ -5,7 +5,7 @@
 //
 // Usage: ANTHROPIC_API_KEY=sk-ant-... node scorer/score-today.mjs
 
-import { writeFileSync, readFileSync, appendFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, appendFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -483,6 +483,25 @@ async function fetchPrestigeForAll(papers) {
   return prestigeMap;
 }
 
+// ── Previous day's scores — used by the stale-listing guard ───────────────────
+
+// Newest scores/*.json strictly before `today`, as { date, ids }. Null if none
+// (first run ever, or a fresh clone with an empty scores/).
+function previousScores(today) {
+  let files;
+  try {
+    files = readdirSync(join(ROOT, 'scores'))
+      .filter(f => /^\d{4}-\d{2}-\d{2}\.json$/.test(f) && f.slice(0, 10) < today)
+      .sort();
+  } catch { return null; }
+  const latest = files[files.length - 1];
+  if (!latest) return null;
+  try {
+    const papers = JSON.parse(readFileSync(join(ROOT, 'scores', latest), 'utf8')).papers || {};
+    return { date: latest.slice(0, 10), ids: new Set(Object.keys(papers)) };
+  } catch { return null; }
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -507,6 +526,26 @@ async function main() {
   if (ids.length < MIN_PLAUSIBLE_DAY) {
     console.error(`[not-ready] listing has only ${ids.length} ID(s) (< ${MIN_PLAUSIBLE_DAY}) — arXiv likely mid-publish; exiting so a later run retries.`);
     process.exit(1);
+  }
+
+  // Stale-listing guard: arXiv serves /list/cs.AI/new through a CDN, and a run
+  // that lands before the day's announcement has propagated gets the PREVIOUS
+  // day's page — not a partial one, a complete and plausible-looking one. On
+  // 2026-08-11 the 02:31 UTC run scraped the same 201 IDs Monday's three runs
+  // saw and wrote Monday's papers into scores/2026-08-11.json; the page had
+  // rolled over by ~03:09 UTC. Counting can't catch this (a busy stale day sails
+  // past the low-count floor below) — comparing ID sets can. Exit like the
+  // readiness floor so a later cron retries, rather than persisting a duplicate.
+  const STALE_OVERLAP = 0.8;
+  const prev = previousScores(today);
+  if (prev) {
+    const shared = ids.filter(id => prev.ids.has(id)).length;
+    const overlap = shared / ids.length;
+    if (overlap > STALE_OVERLAP) {
+      console.error(`[stale] ${Math.round(overlap * 100)}% of the ${ids.length} listed IDs (${shared}) are already in scores/${prev.date}.json — arXiv is still serving the previous announcement; exiting so a later run retries.`);
+      process.exit(1);
+    }
+    console.log(`[listing] ${shared}/${ids.length} IDs overlap ${prev.date} — fresh listing.`);
   }
 
   // Idempotency + self-heal: workflow does a fresh checkout, so file-on-disk =
