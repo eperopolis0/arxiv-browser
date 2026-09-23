@@ -168,9 +168,10 @@ async function fetchOAIPage(url, attempts = 4) {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const resp = await fetchWithTimeout(url, 60000);
-      if (resp.status === 503 || resp.status === 429) {
+      // 406 = arXiv's edge refusing this runner's cloud IP; it clears on its own, so wait longer.
+      if (resp.status === 503 || resp.status === 429 || resp.status === 406) {
         const ra = parseInt(resp.headers.get('retry-after') || '', 10);
-        const waitMs = Number.isFinite(ra) ? ra * 1000 : attempt * 5000;
+        const waitMs = Number.isFinite(ra) ? ra * 1000 : attempt * (resp.status === 406 ? 30000 : 5000);
         lastErr = new Error(`OAI-PMH HTTP ${resp.status}`);
         console.warn(`[oai] HTTP ${resp.status} — waiting ${Math.round(waitMs / 1000)}s (attempt ${attempt}/${attempts})`);
         if (attempt < attempts) await sleep(waitMs);
